@@ -1,0 +1,13 @@
+# PQ-SSE Desktop runtime and test dependencies
+cryptography>=42
+kyber-py>=1.0
+dilithium-py>=1.1
+numpy>=1.26
+PySide6>=6.6
+pypdf>=4.0
+pytest>=8.0
+pyinstaller>=6.0
+# GPU engine (optional, the app runs on CPU without it):
+#   pip install cupy-cuda12x
+# Faster PQ backend (optional, used automatically when importable):
+#   pip install liboqs-python

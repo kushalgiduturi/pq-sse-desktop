@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+build/
+dist/
+*.spec
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+bench_results/

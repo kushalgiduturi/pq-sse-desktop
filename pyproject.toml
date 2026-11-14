@@ -1,0 +1,13 @@
+[project]
+name = "pqsse-desktop"
+version = "0.1.0"
+description = "PQ-SSE Desktop: MU-PQ-SSE v3 with ML-KEM, ML-DSA and a GPU batch engine"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "gpu: needs a working CUDA device (skipped automatically when missing)",
+    "slow: long running test",
+]
