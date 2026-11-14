@@ -62,8 +62,8 @@ Your own data is never touched, and **Reset lesson** gives you a clean start.
 ## Questions people ask
 
 **Is this safe?**
-The design is sound and every claim in the app is covered by tests. But this is research
-software. It has not been audited by outside experts, and the post-quantum code it uses
+The main security claims are exercised by automated tests, including a cloud that cheats
+on purpose. But this is research software. It has not been audited by outside experts, and the post-quantum code it uses
 by default is a slow teaching version. Do not use it to protect real records.
 
 **Is it really quantum-proof?**

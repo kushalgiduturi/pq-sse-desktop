@@ -79,6 +79,16 @@ Each milestone: full test suite, commit.
 - **L11 "Try it without protection" is text only.** It describes what a system without
   the check would return. No code path is weakened.
 
+- **L12 Light colors.** The app asks Qt for the light color scheme. Its colors (lights,
+  tags, story boxes) were chosen for contrast on a light background; under a dark system
+  theme several were unreadable.
+- **L13 Text-only changes inside `pqsse/`.** Refusal messages (`describe_rejection`) and two
+  `AccessDenied` texts were reworded in plain language, and the one-line `narrator.emit`
+  hooks were added. No protocol behavior, wire format or cloud endpoint changed.
+- **L14 Challenges are checked from narrator events and Alice's records**, so they work in
+  the lesson practice area and with the user's own data alike. There are seven.
+- **L15 The diagram lives in the Narrator dock**, so it stays visible on every tab.
+
 ## 4. Risks
 
 - Teaching text that drifts from the code. Mitigation: narrator facts come from the real

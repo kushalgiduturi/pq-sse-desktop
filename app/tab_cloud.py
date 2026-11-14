@@ -17,8 +17,9 @@ from .common import GREEN, GREY, RED, Light, TabBase, make_table, password_field
 
 SEE_INTRO = (
     "Everything below is read straight from the cloud's database.\n"
-    "The server holds: masked index entries (address, value), AES-GCM document ciphertexts,\n"
-    "encrypted and signed states, sealed mailbox items and wrapped credentials.\n"
+    "The server holds: locked index entries (a secret-looking address and a masked value),\n"
+    "locked documents (AES-GCM ciphertext), Alice's stamped summaries (states), sealed mailbox\n"
+    "items and each doctor's wrapped pass (credential).\n"
     "It holds no group key, no index key, no document key, no keyword and no document text.\n"
 )
 

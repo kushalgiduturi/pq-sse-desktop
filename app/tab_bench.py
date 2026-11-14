@@ -23,6 +23,11 @@ NOTE = ("What the GPU does here: only the symmetric batch work of BuildIndex, th
 
 
 class BenchTab(TabBase):
+    INTRO = ("<b>How fast is it on this computer?</b> Press the first button to measure how long Alice needs to lock "
+             f"and index documents, with and without the {term('gpu', 'graphics chip (GPU)')}. The honest result: the GPU "
+             "only speeds up computing the secret index addresses. It does not speed up the post-quantum steps, so for "
+             "small amounts of data it makes little or no difference. Every number shown is measured here, not promised.")
+
     def __init__(self, session, runner) -> None:
         super().__init__(session, runner)
         self.build_rows: list[dict] = []
@@ -63,8 +68,9 @@ class BenchTab(TabBase):
         note.setWordWrap(True)
         tip(run_build, "gpu", "cuda", "index")
         tip(run_ops, "ml-kem", "ml-dsa")
-        self.advanced = [self.build_table, ops_box, run_ops]
+        self.advanced = [self.build_table, ops_box, run_ops, note]
         layout = QVBoxLayout(self)
+        layout.addWidget(self.intro)
         layout.addWidget(note)
         layout.addWidget(self.show_advanced)
         layout.addLayout(buttons)

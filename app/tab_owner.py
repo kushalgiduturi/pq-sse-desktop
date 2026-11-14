@@ -86,6 +86,7 @@ class OwnerTab(TabBase):
         # documents
         self.overview = QLabel("Select a group")
         self.overview.setWordWrap(True)
+        self.overview.linkActivated.connect(self._link)
         self.segments = make_table(["Epoch", "Status", "Keywords", "Index entries", "Documents"])
         self.segments.setMaximumHeight(120)
         self.docs = make_table(["Id", "Title", "Epoch", "Keywords"])
@@ -236,10 +237,17 @@ class OwnerTab(TabBase):
         info = owner.overview(item.text())
         expires = time.strftime("%Y-%m-%d %H:%M", time.localtime(info["expires"])) if info["expires"] else "never published"
         dirty = "UNPUBLISHED CHANGES, press Publish" if info["dirty"] else "published"
-        self.overview.setText(
-            f"Group {info['group']}: current epoch {info['epoch']}, live segments from epoch {info['base']}, "
-            f"state version {info['version']} ({dirty}), fresh until {expires}, "
-            f"{info['seq']} update batches, {len(info['members'])} member(s)")
+        if self.beginner:
+            changes = info["epoch"] - 1
+            self.overview.setText(
+                f"Group {info['group']}: the locks were changed {changes} time(s), so this is key period "
+                f"({term('epoch', 'epoch')}) {info['epoch']}. Stamped summary version {info['version']} ({dirty}), "
+                f"valid until {expires}. {len(info['members'])} doctor(s) may read this group.")
+        else:
+            self.overview.setText(
+                f"Group {info['group']}: current epoch {info['epoch']}, live segments from epoch {info['base']}, "
+                f"state version {info['version']} ({dirty}), fresh until {expires}, "
+                f"{info['seq']} update batches, {len(info['members'])} member(s)")
         fill_table(self.segments, [[s["epoch"], "final (closed)" if s["final"] else "current", s["keywords"],
                                     s["entries"], s["docs"]] for s in info["segments"]])
         fill_table(self.docs, [[d["id"], d["title"], d["epoch"], d["keywords"]] for d in owner.documents(item.text())])

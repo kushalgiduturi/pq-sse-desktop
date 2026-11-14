@@ -16,6 +16,9 @@ from .common import TabBase
 
 
 class SettingsTab(TabBase):
+    INTRO = ("<b>Settings.</b> Text size and reduced motion are here. The technical choices are under "
+             "'Show advanced'; the defaults are fine for learning.")
+
     def __init__(self, session, runner, on_engine_changed) -> None:
         super().__init__(session, runner)
         self.on_engine_changed = on_engine_changed
@@ -88,6 +91,7 @@ class SettingsTab(TabBase):
         gpu_layout.addWidget(self.report, 1)
 
         layout = QVBoxLayout(self)
+        layout.addWidget(self.intro)
         layout.addWidget(form_box)
         layout.addWidget(gpu_box, 1)
         layout.addWidget(self.footer)
