@@ -93,14 +93,31 @@ class CloudTab(TabBase):
 
         def done(line: str) -> None:
             self.passphrase.clear()
-            self.light.set(GREEN)
-            fingerprint = line.split("fingerprint=")[-1]
-            self.status.setText(f"Server running on 127.0.0.1:{self.session.port} (local only), key fingerprint {fingerprint}")
+            self.sync_state()
             self.notify("Cloud server started. Its public key file is in " + str(paths.pub_dir() / "cloud.pqpub"))
-            self.timer.start()
-            self.refresh()
 
         self.task(lambda p: self.session.start_cloud(secret), done, "Starting the cloud server", locked=False)
+
+    def sync_state(self) -> None:
+        """Make the light, status line and log timer match whether the server is running."""
+        if self.session.cloud_running():
+            fingerprint = self.session.cloud_line.split("fingerprint=")[-1]
+            self.light.set(GREEN)
+            self.status.setText(f"Server running on 127.0.0.1:{self.session.port} (local only), key fingerprint {fingerprint}")
+            self.timer.start()
+            self.refresh()
+        else:
+            self.timer.stop()
+            self.light.set(GREY)
+            self.status.setText("Server stopped")
+
+    def reset_view(self) -> None:
+        """Clear the log (used when the app switches between your data and the lesson)."""
+        self.log.setRowCount(0)
+        self.last_log_id = 0
+        self.see.setPlainText(SEE_INTRO)
+        self.stats.setText("No statistics yet")
+        self.sync_state()
 
     def stop(self) -> None:
         self.timer.stop()

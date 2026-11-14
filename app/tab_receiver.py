@@ -14,14 +14,14 @@ from .glossary import term, tip
 from .common import GREEN, GREY, RED, Light, TabBase, password_field
 
 CHECK_LABELS = {
-    "state signature": "State signature OK",
-    "segments complete": "All segments present",
-    "older segments final": "Older segments final",
-    "freshness": "Current state fresh",
-    "no rollback": "No rollback",
-    "response signature": "Response signature OK",
-    "completeness": "Completeness OK",
-    "hash chain": "Hash chain OK",
+    "state signature": "Alice's stamp on the summary (state signature)",
+    "segments complete": "Every part of the index present (segments)",
+    "older segments final": "Closed parts marked final",
+    "freshness": "Summary not expired (freshness)",
+    "no rollback": "Not an older version (no rollback)",
+    "response signature": "Cloud's stamp on the answer (response signature)",
+    "completeness": "Nothing missing or added (completeness)",
+    "hash chain": "Nothing changed or swapped (hash chain)",
 }
 
 
@@ -126,6 +126,24 @@ class ReceiverTab(TabBase):
         if self.current is None or self.current not in self.session.receivers:
             raise PQSSEError("Unlock a receiver first (name and passphrase).")
         return self.session.receivers[self.current]
+
+    def reset_view(self) -> None:
+        """Clear the tab (used when the app switches between your data and the lesson)."""
+        self.current = None
+        self.user.setEditText("")
+        self.identity.setText("No receiver unlocked")
+        self.group.clear()
+        self.clear_results()
+        self.reload_users()
+
+    def sync(self) -> None:
+        """Show whichever receiver is open in the session (after the lesson acted for you)."""
+        self.reload_users()
+        if self.current not in self.session.receivers:
+            self.current = next(iter(self.session.receivers), None)
+        if self.current is not None:
+            self.user.setEditText(self.current)
+            self.refresh_identity()
 
     def reload_users(self) -> None:
         text = self.user.currentText()

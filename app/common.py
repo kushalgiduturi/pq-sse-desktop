@@ -15,7 +15,8 @@ from pqsse import narrator
 from .session import Session, explain_full
 from .workers import ProgressFn, TaskRunner
 
-GREEN, RED, GREY, AMBER = "#2e9e5b", "#d64545", "#9aa0a6", "#d9a400"
+# Chosen for contrast: white text on these, and these as text on a light background, are readable.
+GREEN, RED, GREY, AMBER = "#1e7a44", "#c62828", "#5f6670", "#8a6500"
 
 
 LIGHT_WORDS = {GREEN: "OK", RED: "Failed", GREY: "Not checked", AMBER: "Wait"}

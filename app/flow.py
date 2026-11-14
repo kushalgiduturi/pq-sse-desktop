@@ -32,6 +32,14 @@ def describe(packet: Packet, who: str = "") -> str:
             f"Contains: {packet.contents}\nWho can read it: {packet.readers}")
 
 
+class _FitView(QGraphicsView):
+    """A view that always shows the whole diagram, whatever its size."""
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+
 class FlowView(QWidget):
     """The diagram with its controls and the text list of packets."""
 
@@ -42,9 +50,12 @@ class FlowView(QWidget):
         self.queue: list[tuple[Packet, str]] = []
         self.moving: QGraphicsRectItem | None = None
         self.scene = QGraphicsScene(0, 0, 450, 225)
-        self.view = QGraphicsView(self.scene)
+        self.view = _FitView(self.scene)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.view.setBackgroundBrush(QBrush(QColor("#f7f9fc")))
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.view.setMinimumHeight(240)
+        self.view.setMinimumHeight(200)
         self.view.setAccessibleName("Data-flow diagram: Alice, the doctors and the Cloud")
         self._draw_nodes()
         self.scene.selectionChanged.connect(self._selection)
@@ -108,7 +119,9 @@ class FlowView(QWidget):
         return item
 
     def _anchor(self, node: str) -> QPointF:
-        return NODES[node][0] + QPointF(NODE_W / 2 - 23, NODE_H / 2 - 11)
+        # Beside the node, on the side that faces the other party, so labels stay readable.
+        offset = QPointF(-54, NODE_H / 2 - 11) if node == "cloud" else QPointF(NODE_W + 8, NODE_H / 2 - 11)
+        return NODES[node][0] + offset
 
     # ------------------------------------------------------------------ packets
     def add(self, packet: Packet, who: str = "") -> None:

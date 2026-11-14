@@ -196,6 +196,16 @@ class OwnerTab(TabBase):
         self.task(lambda p: self.session.owner_pair_cloud(path), done, "Pairing owner with cloud")
 
     # ------------------------------------------------------------------ refresh
+    def reset_view(self) -> None:
+        """Clear the tab (used when the app switches between your data and the lesson)."""
+        self.joins = {}
+        self.identity.setText("Owner locked")
+        self.groups.clear()
+        self.overview.setText("Select a group")
+        for table in (self.docs, self.segments, self.join_table, self.receiver_table):
+            fill_table(table, [])
+        self.refresh_all()
+
     def refresh_all(self) -> None:
         owner = self.session.owner
         if owner is None:

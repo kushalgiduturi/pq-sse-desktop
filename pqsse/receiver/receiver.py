@@ -235,13 +235,13 @@ class Receiver:
     def _cap(self) -> dict:
         cap = self._me["cap"]
         if cap is None:
-            raise AccessDenied("this receiver has no capability yet (join not approved)")
+            raise AccessDenied("this doctor has not been approved by Alice yet (no access pass received)")
         return cap
 
     def _group_keys(self, g: str) -> dict[int, bytes]:
         group = self._cap()["groups"].get(g)
         if group is None:
-            raise AccessDenied(f"group {g} is outside this receiver's capability")
+            raise AccessDenied(f"{g} is not one of the groups Alice approved for this doctor")
         return {int(e): k for e, k in group["keys"].items()}
 
     def _seal_request(self, endpoint: str, req: dict) -> bytes:
