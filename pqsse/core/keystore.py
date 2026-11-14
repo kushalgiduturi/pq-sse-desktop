@@ -109,11 +109,19 @@ class MemoryVault:
 
     def __init__(self) -> None:
         self._data: dict[str, bytes] = {}
+        self._key = os.urandom(32)
         self._lock = threading.RLock()
 
     @property
     def lock(self) -> threading.RLock:
         return self._lock
+
+    def encrypt(self, name: str, value: Any) -> bytes:
+        """Test stand-in: random key AES-GCM so stored blobs are still ciphertext."""
+        return aead_encrypt(self._key, wire.enc(value), name.encode("utf-8"))
+
+    def decrypt(self, name: str, blob: bytes) -> Any:
+        return wire.dec(aead_decrypt(self._key, blob, name.encode("utf-8"), what="vault"))
 
     def put(self, name: str, value: Any) -> None:
         self._data[name] = wire.enc(value)

@@ -16,6 +16,7 @@ from typing import Sequence
 import numpy as np
 
 from ..gpu.batchprf import BatchPRF
+from .prims import F, hkdf
 from .wire import sstr, u32
 
 ADDR_LEN = 32
@@ -83,3 +84,22 @@ def derive(prf: BatchPRF, k_idx: bytes, items: Sequence[tuple[str, int]]) -> tup
         addrs[index] = out[:m]
         masks[index] = out[m:, :VAL_LEN]
     return addrs, masks
+
+
+def doc_handle(k_doc: bytes, doc_id: int) -> bytes:
+    """Storage handle of a document at the cloud (hides the plain id)."""
+    return F(k_doc, b"handle" + u32(doc_id))[:16]
+
+
+def doc_aad(group: str, epoch: int, doc_id: int) -> bytes:
+    """Associated data g || e || id of a document ciphertext."""
+    return sstr(group) + u32(epoch) + u32(doc_id)
+
+
+def token_key(a_u: bytes) -> bytes:
+    """Key that protects receiver requests (tokens), derived from the credential a_u."""
+    return hkdf(a_u, b"pqsse/v3/token")
+
+
+def token_aad(uid: str, endpoint: str) -> bytes:
+    return uid.encode("ascii") + b"/" + endpoint.encode("ascii")
