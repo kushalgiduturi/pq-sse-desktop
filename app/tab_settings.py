@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices, QFont
-from PySide6.QtWidgets import (QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
                                QSpinBox, QVBoxLayout)
 
 from pqsse import paths, pqbackend
@@ -11,6 +11,7 @@ from pqsse.gpu import status
 from pqsse.gpu.calibrate import NEVER, calibrate
 from pqsse.pqbackend import KEM_NAMES, SIG_NAMES
 
+from .glossary import term, tip
 from .common import TabBase
 
 
@@ -37,6 +38,16 @@ class SettingsTab(TabBase):
         self.ttl.setRange(1, 24 * 365)
         self.ttl.setSuffix(" hours")
         self.ttl.setValue(int(s["state_ttl_hours"]))
+        self.font_size = QComboBox()
+        for label, value in (("Small text", "small"), ("Normal text", "normal"), ("Large text", "large")):
+            self.font_size.addItem(label, value)
+        self.font_size.setCurrentIndex(max(0, self.font_size.findData(s.get("font_size", "normal"))))
+        self.reduce_motion = QCheckBox("Reduce motion (no moving packets in the diagram)")
+        self.reduce_motion.setChecked(bool(s.get("reduce_motion", False)))
+        tip(self.kem, "ml-kem", "post-quantum")
+        tip(self.sig, "ml-dsa", "signature")
+        tip(self.engine, "gpu", "cuda")
+        tip(self.ttl, "freshness", "state")
         save = QPushButton("Save settings")
         save.clicked.connect(lambda: self.save())
         form_box = QGroupBox("Settings")
@@ -46,6 +57,11 @@ class SettingsTab(TabBase):
         form.addRow("Batch engine", self.engine)
         form.addRow("Cloud port on 127.0.0.1", self.port)
         form.addRow("State freshness window (delta)", self.ttl)
+        form.addRow("Text size", self.font_size)
+        form.addRow(self.reduce_motion)
+        form.addRow(self.show_advanced)
+        self.form = form
+        self.advanced = [self.kem, self.sig, self.port]
         form.addRow(save)
         form.addRow(QLabel("The parameter set applies to identities created from now on. Owner, cloud and receivers "
                            "must use the same set. The port applies the next time the cloud server starts."))
@@ -74,8 +90,13 @@ class SettingsTab(TabBase):
         layout = QVBoxLayout(self)
         layout.addWidget(form_box)
         layout.addWidget(gpu_box, 1)
-        layout.addWidget(self.message)
+        layout.addWidget(self.footer)
         self.refresh_info()
+
+    def _apply_advanced(self) -> None:
+        hide = self.beginner and not self.show_advanced.isChecked()
+        for widget in self.advanced:
+            self.form.setRowVisible(widget, not hide)
 
     def refresh_info(self) -> None:
         gpu = self.session.gpu
@@ -90,7 +111,8 @@ class SettingsTab(TabBase):
     def save(self) -> None:
         self.session.settings.update(kem=self.kem.currentText(), sig=self.sig.currentText(),
                                      engine=self.engine.currentData(), port=self.port.value(),
-                                     state_ttl_hours=self.ttl.value())
+                                     state_ttl_hours=self.ttl.value(), font_size=self.font_size.currentData(),
+                                     reduce_motion=self.reduce_motion.isChecked())
         self.session.save_settings()
         if self.session.owner is not None:
             self.session.owner.state_ttl = self.ttl.value() * 3600.0

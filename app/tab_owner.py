@@ -12,6 +12,7 @@ from pqsse import paths
 from pqsse.core.errors import PQSSEError, VerifyError
 from pqsse.owner import DocInput
 
+from .glossary import term, tip
 from .common import (DocumentDialog, TabBase, fill_table, make_table, password_field, read_document_file,
                      selected_value)
 
@@ -49,6 +50,11 @@ class GroupDialog(QDialog):
 
 
 class OwnerTab(TabBase):
+    INTRO = ("<b>You are Alice, the hospital records manager (the data owner).</b> You own the documents and decide "
+             f"who may read what. Here you make a {term('group', 'group')} for each kind of document, add documents, "
+             f"approve doctors, press Publish so doctors can verify answers, and change the locks "
+             f"({term('revocation', 'revocation')}) when someone must lose access.")
+
     def __init__(self, session, runner) -> None:
         super().__init__(session, runner)
         self.joins: dict[str, dict] = {}
@@ -129,11 +135,20 @@ class OwnerTab(TabBase):
         for widget in (group_box, doc_box, people_box):
             splitter.addWidget(widget)
         splitter.setSizes([170, 520, 470])
+        tip(self.pair_button, "pairing", "fingerprint")
+        tip(self.policy, "revocation", "policy-r", "policy-re")
+        tip(revoke, "revocation", "epoch")
+        tip(self.segments, "epoch", "segment")
+        tip(self.publish_button, "state", "freshness")
+        tip(approve, "capability", "credential", "ml-kem")
+        tip(self.docs, "ciphertext", "index")
+        tip(self.passphrase, "passphrase", "ml-dsa")
         layout = QVBoxLayout(self)
+        layout.addWidget(self.intro)
         layout.addLayout(top)
         layout.addWidget(self.identity)
         layout.addWidget(splitter, 1)
-        layout.addWidget(self.message)
+        layout.addWidget(self.footer)
 
     # ------------------------------------------------------------------ helpers
     @property

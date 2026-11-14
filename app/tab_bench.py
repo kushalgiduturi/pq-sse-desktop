@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QFileDialog, QGroupBox, QHBoxLayout, QLabel, QPro
 from pqsse import bench
 from pqsse.pqbackend import PARAM_SETS
 
+from .glossary import term, tip
 from .common import TabBase, fill_table, make_table
 
 NOTE = ("What the GPU does here: only the symmetric batch work of BuildIndex, that is the HMAC-SHA3-256 address and "
@@ -60,12 +61,16 @@ class BenchTab(TabBase):
         splitter.setSizes([700, 480])
         note = QLabel(NOTE)
         note.setWordWrap(True)
+        tip(run_build, "gpu", "cuda", "index")
+        tip(run_ops, "ml-kem", "ml-dsa")
+        self.advanced = [self.build_table, ops_box, run_ops]
         layout = QVBoxLayout(self)
         layout.addWidget(note)
+        layout.addWidget(self.show_advanced)
         layout.addLayout(buttons)
         layout.addWidget(self.stage)
         layout.addWidget(splitter, 1)
-        layout.addWidget(self.message)
+        layout.addWidget(self.footer)
 
     def _progress(self, progress):
         def report(message: str, fraction: float) -> None:

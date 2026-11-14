@@ -23,3 +23,7 @@ def params():
 def _isolated_data_dir(tmp_path, monkeypatch):
     """Never touch the real %LOCALAPPDATA% folder from tests."""
     monkeypatch.setenv("PQSSE_DATA_DIR", str(tmp_path / "data"))
+    yield
+    from pqsse import paths
+
+    paths.set_profile("")

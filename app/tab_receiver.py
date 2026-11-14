@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QComboBox, QGridLayout, QGroupBox, QHBoxLayout, Q
 from pqsse.core.errors import PQSSEError, VerifyError
 from pqsse.receiver import CHECKS, Report
 
+from .glossary import term, tip
 from .common import GREEN, GREY, RED, Light, TabBase, password_field
 
 CHECK_LABELS = {
@@ -25,6 +26,10 @@ CHECK_LABELS = {
 
 
 class ReceiverTab(TabBase):
+    INTRO = ("<b>You are a doctor (a receiver), for example Bob or Carol.</b> You may search and read only the groups "
+             f"Alice approved you for. Your app sends the cloud a sealed {term('token', 'search slip')}, then checks "
+             "the cloud's answer before showing anything, because the cloud is not trusted.")
+
     def __init__(self, session, runner) -> None:
         super().__init__(session, runner)
         self.current: str | None = None
@@ -99,12 +104,20 @@ class ReceiverTab(TabBase):
         for widget in (results_box, verify_box, viewer_box):
             splitter.addWidget(widget)
         splitter.setSizes([280, 420, 460])
+        tip(search, "token", "sse")
+        tip(verify_box, "signature", "hash-chain", "freshness")
+        tip(join, "capability", "ml-dsa")
+        tip(mail, "capability", "epoch")
+        tip(pair, "pairing", "fingerprint")
+        tip(self.results, "ciphertext", "aes-gcm")
+        tip(self.passphrase, "passphrase", "ml-kem")
         layout = QVBoxLayout(self)
+        layout.addWidget(self.intro)
         layout.addLayout(top)
         layout.addWidget(self.identity)
         layout.addLayout(row)
         layout.addWidget(splitter, 1)
-        layout.addWidget(self.message)
+        layout.addWidget(self.footer)
         self.reload_users()
 
     # ------------------------------------------------------------------ users

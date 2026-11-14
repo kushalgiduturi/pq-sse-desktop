@@ -7,8 +7,17 @@ from pathlib import Path
 APP_DIR_NAME = "PQ-SSE-Desktop"
 
 
-def data_dir() -> Path:
-    """Return (and create) the data folder. ``PQSSE_DATA_DIR`` overrides it for tests."""
+_profile = ""
+
+
+def set_profile(name: str) -> None:
+    """Select a sub-folder of the data folder (used by the Learn Mode lesson sandbox)."""
+    global _profile
+    _profile = name
+
+
+def base_dir() -> Path:
+    """Return (and create) the base data folder. ``PQSSE_DATA_DIR`` overrides it for tests."""
     override = os.environ.get("PQSSE_DATA_DIR")
     if override:
         base = Path(override)
@@ -17,6 +26,13 @@ def data_dir() -> Path:
         base = Path(local) / APP_DIR_NAME
     base.mkdir(parents=True, exist_ok=True)
     return base
+
+
+def data_dir() -> Path:
+    """Folder of the active profile: the base folder, or its lesson sub-folder."""
+    path = base_dir() / _profile if _profile else base_dir()
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def owner_db() -> Path:
@@ -33,7 +49,7 @@ def receiver_db(name: str) -> Path:
 
 
 def settings_file() -> Path:
-    return data_dir() / "settings.json"
+    return base_dir() / "settings.json"
 
 
 def pub_dir() -> Path:

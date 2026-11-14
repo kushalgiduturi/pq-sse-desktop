@@ -35,6 +35,22 @@ class Outcome:
     passed: bool = False
     verdict: str = ""
     lines: list[str] = field(default_factory=list)
+    check: str = ""           # machine name of the check or refusal that stopped the attack
+    caught_by: str = ""       # the same, in plain words
+    checks: list[tuple[str, bool]] = field(default_factory=list)   # Verify checks reached, in order
+
+    def caught(self, check: str, caught_by: str, exc: object = None) -> None:
+        self.check, self.caught_by = check, caught_by
+        report = getattr(exc, "report", None)
+        if report is not None:
+            self.checks = [(name, ok) for name, ok, _ in report.checks]
+
+    def lesson(self) -> str:
+        """Teaching text shown after a run: what was tried, what caught it, why it matters."""
+        teach = TEACH[self.key]
+        return (f"What the attacker tried: {teach['tries']}\n"
+                f"Which check caught it: {self.caught_by} (check name: {self.check}).\n"
+                f"What would go wrong without that check: {teach['without']}")
 
     def say(self, text: str) -> None:
         self.lines.append(text)
@@ -82,6 +98,7 @@ def _search_attack(key: str, title: str, mode: str, story: str) -> Outcome:
     except VerifyError as exc:
         out.say(f"What the cloud did: {lab.tamper.note}.")
         out.say(f"Receiver Verify failed at check '{exc.check}': {exc.detail}.")
+        out.caught(exc.check, f"the '{exc.check}' check in Bob's Verify step", exc)
         out.passed, out.verdict = True, f"DETECTED by the '{exc.check}' check. No result was shown to the user."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -121,6 +138,7 @@ def substitute_document() -> Outcome:
     except VerifyError as exc:
         out.say(f"Receiver Decrypt refused: {exc}.")
         out.say("The owner's signature covers group, epoch and the document handle, so a swap cannot verify.")
+        out.caught(exc.check, "Alice's stamp (signature) on the document, checked in Bob's Decrypt step")
         out.passed, out.verdict = True, "DETECTED by the owner's document signature."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -141,6 +159,7 @@ def replay_update() -> Outcome:
         lab.world.api.call("update", batch)
     except Rejected as exc:
         out.say(f"Cloud answer: rejected, reason '{exc.reason}' ({exc.detail}).")
+        out.caught(exc.reason, "the update sequence number, checked by the cloud")
         out.passed, out.verdict = True, "REJECTED: batches are sequence numbered, a replay is out of sequence."
     else:
         out.verdict = "ACCEPTED (this would be a bug)"
@@ -163,6 +182,7 @@ def forge_update() -> Outcome:
         lab.world.api.call("update", {"msg": forged, "sig": signing.sign_bytes(lab.world.params, attacker_sk, "batch", forged)})
     except Rejected as exc:
         out.say(f"Cloud answer: rejected, reason '{exc.reason}' ({exc.detail}).")
+        out.caught(exc.reason, "Alice's stamp (signature) on every update, checked by the cloud")
         out.passed, out.verdict = True, "REJECTED: only batches signed by the owner's ML-DSA key are accepted."
     else:
         out.verdict = "ACCEPTED (this would be a bug)"
@@ -186,6 +206,7 @@ def rollback_state() -> Outcome:
         lab.bob.search(GROUP, lab.keyword)
     except VerifyError as exc:
         out.say(f"Receiver Verify failed at check '{exc.check}': {exc.detail}.")
+        out.caught(exc.check, f"the '{exc.check}' check in Bob's Verify step", exc)
         out.passed, out.verdict = True, "DETECTED: the receiver remembers the highest version it has seen."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -208,6 +229,7 @@ def expired_state() -> Outcome:
         lab.world.owner.publish(GROUP)
         again = lab.bob.search(GROUP, lab.keyword)
         out.say(f"After the owner republishes, search works again ({len(again.hits)} documents).")
+        out.caught(exc.check, f"the '{exc.check}' check in Bob's Verify step", exc)
         out.passed, out.verdict = True, "DETECTED: a state older than the freshness window is refused."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -237,6 +259,7 @@ def revoked_retry() -> Outcome:
     still = lab.bob.search(GROUP, lab.keyword)
     out.say(f"bob, who was not revoked, still gets {len(still.hits)} documents in the new epoch.")
     if all(reasons):
+        out.caught(reasons[0], "the cloud's check of the doctor's pass (credential)")
         out.passed, out.verdict = True, "REJECTED: the cloud deauthorized the credential, old tokens are dead."
     else:
         out.verdict = "ACCEPTED (this would be a bug)"
@@ -285,9 +308,60 @@ def collusion_demo() -> Outcome:
     r_ok = 0 < results["R"][0] < results["R"][1]
     re_ok = results["RE"][0] == 0
     out.passed = r_ok and re_ok
+    out.caught("policy RE", "re-locking everything under policy RE (policy R alone does not stop this)")
     out.verdict = ("AS DOCUMENTED: R leaves old data exposed to a revoked user who colludes with the cloud, RE does not."
                    if out.passed else "UNEXPECTED RESULT (this would be a bug)")
     return out
+
+
+# Teaching texts, in the story voice. "unprotected" describes a system without the check;
+# it is an explanation only, no code path is weakened to produce it.
+TEACH: dict[str, dict[str, str]] = {
+    "drop": {
+        "tries": "The cloud quietly leaves one matching document out of Bob's search answer.",
+        "without": "Bob would believe the shorter list. A missing invoice or a missing allergy note would go unnoticed.",
+        "unprotected": "An unprotected system would show Bob the shorter list as if it were complete."},
+    "modify": {
+        "tries": "The cloud changes one entry in the answer so that it points somewhere else.",
+        "without": "Bob could be sent to the wrong document, or lose a real match, without any warning.",
+        "unprotected": "An unprotected system would unmask the changed entry and show Bob a wrong document number."},
+    "reorder": {
+        "tries": "The cloud swaps two entries of the answer.",
+        "without": "Order matters: a delete applied before its add would bring a deleted document back to life.",
+        "unprotected": "An unprotected system would apply the entries in the wrong order and could list a deleted document."},
+    "truncate": {
+        "tries": "The cloud cuts off the end of the answer, hiding the newest entries.",
+        "without": "Bob would see an old picture: new documents missing, and deleted ones still listed.",
+        "unprotected": "An unprotected system would show only the older part of the results."},
+    "substitute": {
+        "tries": "When Bob asks for one document, the cloud hands him a different, genuine one.",
+        "without": "Bob would read the wrong record believing it is the one he asked for. In a hospital that is dangerous.",
+        "unprotected": "An unprotected system would unlock and display the other document under the wrong name."},
+    "replay": {
+        "tries": "An attacker records one of Alice's updates and sends the same update to the cloud again.",
+        "without": "Old changes could be applied twice or brought back later, corrupting the index.",
+        "unprotected": "An unprotected system would store the same entries a second time."},
+    "forge": {
+        "tries": "An attacker invents an update and signs it with their own key, pretending to be Alice.",
+        "without": "Anyone could plant fake index entries or fake documents in Alice's name.",
+        "unprotected": "An unprotected system would store the fake entry next to Alice's real ones."},
+    "rollback": {
+        "tries": "The cloud shows Bob an older, genuinely stamped summary of the index to hide a new document.",
+        "without": "Bob would keep getting yesterday's answers and never learn that anything changed.",
+        "unprotected": "An unprotected system would accept the old summary because its stamp is genuine."},
+    "expired": {
+        "tries": "The cloud keeps serving a summary after its expiry time.",
+        "without": "A doctor who was offline for a while could be fed stale data for as long as the cloud likes.",
+        "unprotected": "An unprotected system would accept the old summary forever."},
+    "revoked": {
+        "tries": "Carol, whose access Alice took away, tries to search again and replays an old search slip.",
+        "without": "Revocation would mean nothing: a removed doctor could go on searching.",
+        "unprotected": "An unprotected system would answer the old search slip as before."},
+    "collusion": {
+        "tries": "A revoked doctor kept the old group key and teams up with the cloud, which hands over everything it stores.",
+        "without": "With policy R alone, documents from before the revocation stay readable to that pair. Policy RE re-locks them.",
+        "unprotected": "Without any key change, the revoked doctor and the cloud together could read everything, old and new."},
+}
 
 
 SCENARIOS: list[tuple[str, str, str, Callable[[], Outcome]]] = [

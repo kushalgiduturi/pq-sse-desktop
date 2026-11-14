@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QFileDialog, QGroupBox, QHBoxLayout, QLabel, QPla
 
 from pqsse import paths
 
+from .glossary import term, tip
 from .common import GREEN, GREY, RED, Light, TabBase, make_table, password_field
 
 SEE_INTRO = (
@@ -23,6 +24,10 @@ SEE_INTRO = (
 
 
 class CloudTab(TabBase):
+    INTRO = ("<b>This is the Cloud, a rented storage company.</b> It stores everything for Alice but is not trusted: "
+             "it might peek, lie, drop results or send old data. So it only ever receives "
+             f"{term('ciphertext', 'locked data')}. The panel on the right shows exactly what it holds.")
+
     def __init__(self, session, runner) -> None:
         super().__init__(session, runner)
         self.last_log_id = 0
@@ -30,7 +35,7 @@ class CloudTab(TabBase):
         self.start_button = QPushButton("Start server")
         self.stop_button = QPushButton("Stop server")
         self.pair_button = QPushButton("Pair: import owner key (.pqpub)")
-        self.light = Light(GREY)
+        self.light = Light(GREY, {GREEN: "Running", GREY: "Stopped", RED: "Not running"})
         self.status = QLabel("Server stopped")
         self.start_button.clicked.connect(lambda: self.start())
         self.stop_button.clicked.connect(lambda: self.stop())
@@ -64,12 +69,18 @@ class CloudTab(TabBase):
         splitter.addWidget(see_box)
         splitter.setSizes([600, 500])
 
+        tip(self.see, "ciphertext", "index", "credential")
+        tip(self.log, "token", "signature")
+        tip(self.pair_button, "pairing", "fingerprint")
+        self.advanced = [self.stats]
         layout = QVBoxLayout(self)
+        layout.addWidget(self.intro)
         layout.addLayout(top)
         layout.addLayout(controls)
+        layout.addWidget(self.show_advanced)
         layout.addWidget(self.stats)
         layout.addWidget(splitter, 1)
-        layout.addWidget(self.message)
+        layout.addWidget(self.footer)
 
         self.timer = QTimer(self)
         self.timer.setInterval(1500)

@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from .. import pqbackend
+from .. import narrator, pqbackend
 from ..core import index, seal, signing, wire
 from ..core.chain import CHAIN_START, chain_fold
 from ..core.index import doc_aad, doc_handle, token_aad, token_key
@@ -110,6 +110,7 @@ class Receiver:
         vault.put("receiver", {"name": name, "kem": params.kem, "sig": params.sig, "ek": ek, "dk": dk,
                                "vk": vk, "sk": sk, "owner_pub": None, "cloud_pub": None, "cap": None,
                                "seen": {}, "mail_done": []})
+        narrator.emit("setup.receiver", name, kem=params.kem, sig=params.sig)
         return cls(vault, **kwargs)
 
     @staticmethod
@@ -131,6 +132,7 @@ class Receiver:
         self._me["owner_pub"] = owner.to_wire()
         self._me["cloud_pub"] = cloud.to_wire()
         self._save()
+        narrator.emit("pair", self.name, other="Alice and the cloud")
 
     @property
     def paired(self) -> bool:
@@ -159,7 +161,10 @@ class Receiver:
         return {"req": req, "sig": signing.sign_bytes(self.params, self._sk, "join", req)}
 
     def send_join(self) -> str:
-        return self._cloud().call("join_post", self.join_request())["uid"]
+        request = self.join_request()
+        uid = self._cloud().call("join_post", request)["uid"]
+        narrator.emit("join.request", self.name, bytes=len(request["req"]))
+        return uid
 
     @property
     def joined(self) -> bool:
@@ -204,6 +209,7 @@ class Receiver:
         self._me["cap"] = cap
         self._me["seen"] = {}
         self._save()
+        narrator.emit("join.capability", self.name, groups=self.groups)
 
     def _accept_rekey(self, box: bytes, sig: bytes) -> str:
         """Revoke (receiver part): open a rekey box bound to the pre-shared m_u."""
@@ -222,6 +228,7 @@ class Receiver:
             group["base"] = body["base"]
             group["keys"] = {k: v for k, v in group["keys"].items() if int(k) >= body["base"]}
         self._save()
+        narrator.emit("rekey", self.name, g=g, e=epoch)
         return f"new key for group {g}, epoch {epoch}" + (" (re-encrypted, old segments dropped)" if body["reset"] else "")
 
     # ------------------------------------------------------------------ requests
@@ -334,6 +341,17 @@ class Receiver:
 
     # ------------------------------------------------------------------ TokenGen + Verify
     def search(self, g: str, keyword: str) -> SearchResult:
+        """Public entry: TokenGen, Search and Verify. Narrates refusals, then re-raises them."""
+        try:
+            return self._search(g, keyword)
+        except VerifyError as exc:
+            narrator.emit("verify.failed", self.name, check=exc.check, detail=exc.detail[:200])
+            raise
+        except AccessDenied:
+            narrator.emit("search.denied", self.name, g=g)
+            raise
+
+    def _search(self, g: str, keyword: str) -> SearchResult:
         """Algorithms 6 TokenGen and 8 Verify around the cloud's Search.
 
         TokenGen: for every live segment take c_w from the verified state, derive the
@@ -362,6 +380,8 @@ class Receiver:
             segs.append([e, derived[e][0]])
         token_ct = self._seal_request("search", {"g": g, "cur": max(epochs), "segs": segs})
         self._tick("TokenGen", t0)
+        narrator.emit("tokengen", self.name, g=g, keyword=keyword[:60], segments=len(epochs), bytes=len(token_ct),
+                      addresses=sum(plan[e][0] for e in epochs))
         t0 = time.perf_counter()
         reply = self._cloud().call("search", {"uid": self.uid, "ct": token_ct})
         self._tick("Search", t0)
@@ -381,6 +401,8 @@ class Receiver:
                 raise KeyError("group")
         except (WireError, KeyError, TypeError, IndexError) as exc:
             raise report.fail("completeness", "malformed response body") from exc
+        narrator.emit("search", self.name, g=g, bytes=len(body_raw), sig_bytes=len(sig),
+                      entries=sum(len(pair[0]) // index.ADDR_LEN for pair in got.values()))
         total = 0
         for e in epochs:
             want_addrs = derived[e][0]
@@ -412,6 +434,8 @@ class Receiver:
         report.ok("hash chain", "chain heads match the signed state")
         self._commit_seen()
         self._tick("Verify", t0)
+        narrator.emit("verify", self.name, g=g, keyword=keyword[:60], hits=len(hits), entries=total,
+                      checks=len(report.checks))
         return SearchResult(g, keyword, sorted(hits.items()), report, total)
 
     # ------------------------------------------------------------------ Decrypt
@@ -420,9 +444,13 @@ class Receiver:
 
         Works only for documents whose group and epoch key this receiver holds.
         """
-        keys = self._group_keys(g)
-        if epoch not in keys:
-            raise AccessDenied(f"no key for group {g}, epoch {epoch}")
+        try:
+            keys = self._group_keys(g)
+            if epoch not in keys:
+                raise AccessDenied(f"no key for group {g}, epoch {epoch}")
+        except AccessDenied:
+            narrator.emit("decrypt.denied", self.name, g=g)
+            raise
         k_doc = group_subkeys(keys[epoch], g, epoch)[1]
         handle = doc_handle(k_doc, doc_id)
         _, reply = self._request("doc_get", {"g": g, "e": epoch, "handle": handle})
@@ -442,6 +470,7 @@ class Receiver:
         if not signing.check_obj(self.params, self._owner_vk(), "doc", [g, epoch, handle, H(blob)], sig):
             raise VerifyError("document signature", "document is not the one signed by the owner")
         plain = wire.dec(aead_decrypt(k_doc, blob, doc_aad(g, epoch, doc_id), what="document decryption"))
+        narrator.emit("decrypt", self.name, g=g, doc_id=doc_id, e=epoch, bytes=len(blob))
         return Document(doc_id, epoch, plain["title"], plain["text"])
 
 
@@ -457,5 +486,14 @@ def describe_rejection(exc: Rejected) -> str:
         "no_such_doc": "The document is no longer stored at the cloud.",
         "bad_segment": "The requested segment was dropped (group re-encrypted).",
         "unknown_group": "The cloud does not know this group.",
+        "bad_signature": "The cloud refused this: it does not carry a valid stamp (signature) from Alice.",
+        "bad_sequence": "The cloud refused this update: it is a repeat, or it arrived out of order.",
+        "stale_state": "The cloud refused this summary: it is not newer than the one already stored.",
+        "bad_epoch": "The cloud refused this: it belongs to a different key period (epoch) of the group.",
+        "not_paired": "The cloud is not paired with Alice yet, so it cannot check her stamps.",
+        "group_exists": "A group with this name already exists.",
+        "pairing": "Pairing was refused: the key file does not fit (wrong role, wrong settings, or another owner is already paired).",
+        "malformed": "The cloud could not read the request.",
+        "admin_only": "This view is only available to the app that started the cloud server.",
     }
-    return messages.get(exc.reason, f"The cloud rejected the request: {exc}")
+    return messages.get(exc.reason, "The cloud refused the request.")

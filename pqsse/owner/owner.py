@@ -14,7 +14,7 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 
-from .. import pqbackend
+from .. import narrator, pqbackend
 from ..core import chain, index, seal, signing, wire
 from ..core.chain import CHAIN_START
 from ..core.errors import PQSSEError, VerifyError
@@ -90,6 +90,7 @@ class Owner:
         vk, sk = pqbackend.sig_keygen(params.sig)
         vault.put("owner", {"name": name, "kem": params.kem, "sig": params.sig, "vk": vk, "sk": sk,
                             "ctl_seq": 0, "cloud_pub": None, "receivers": {}, "nonces": []})
+        narrator.emit("setup.owner", "Alice", sig=params.sig, vk_bytes=len(vk))
         return cls(vault, **kwargs)
 
     @staticmethod
@@ -107,6 +108,7 @@ class Owner:
             raise PQSSEError("cloud uses a different parameter set")
         self._meta["cloud_pub"] = ident.to_wire()
         self._save_meta()
+        narrator.emit("pair", "Alice", other="the cloud")
 
     @property
     def cloud_pub(self) -> PublicIdentity | None:
@@ -158,6 +160,7 @@ class Owner:
         self.groups[g] = {"epoch": 1, "base": 1, "keys": {"1": random_key()}, "seq": 0, "ver": 0,
                           "next_id": 1, "nmax": nmax, "kw": {"1": {}}, "docs": {}, "dirty": False, "exp": 0}
         self._save_group(g)
+        narrator.emit("group", "Alice", g=g)
         self.publish(g)
 
     def documents(self, g: str) -> list[dict]:
@@ -235,12 +238,13 @@ class Owner:
         self.receivers[req.uid] = {"name": req.name, "ek": req.ek, "vk": req.vk, "a": a_u, "m": m_u,
                                    "groups": sorted(groups), "revoked": False}
         self._save_meta()
+        narrator.emit("join.approved", req.name, groups=sorted(groups), cap_bytes=len(cap_box))
         return req.uid
 
     # ------------------------------------------------------------------ BuildIndex / Update
     def build_index(self, g: str, docs: Sequence[DocInput]) -> list[int]:
         """Algorithm 3 BuildIndex: encrypt and index a document set as one signed batch."""
-        return self._apply(g, list(docs), [])
+        return self._apply(g, list(docs), [], kind="build_index")
 
     def add_document(self, g: str, title: str, text: str, keywords: Sequence[str] | None = None) -> int:
         """Algorithm 4 Update (add)."""
@@ -254,7 +258,8 @@ class Owner:
         """Edit = delete followed by add under a fresh id, in one batch."""
         return self._apply(g, [DocInput(title, text)], [doc_id])[0]
 
-    def _apply(self, g: str, adds: list[DocInput], dels: list[int], reset: bool = False) -> list[int]:
+    def _apply(self, g: str, adds: list[DocInput], dels: list[int], reset: bool = False,
+               kind: str = "update") -> list[int]:
         """Build, sign and send one update batch; commit local state only if accepted.
 
         For keyword w with counter c_w: address a = F(K_idx, sstr(w) || u32(c_w) || 0),
@@ -352,6 +357,8 @@ class Owner:
         gs["next_id"] = next_id
         gs["dirty"] = True
         self._save_group(g)
+        narrator.emit("reencrypt" if reset else kind, "Alice", g=g, e=e, docs=len(adds), adds=len(adds),
+                      deletes=len(dels), entries=n, bytes=len(msg), engine=self.prf.name)
         return [int(i) for i in new_docs]
 
     # ------------------------------------------------------------------ Publish
@@ -381,6 +388,8 @@ class Owner:
         gs["exp"] = exp
         gs["dirty"] = False
         self._save_group(g)
+        narrator.emit("publish", "Alice", g=g, e=e, ver=gs["ver"], records=len(records), bytes=len(msg["ct"]),
+                      final="yes" if final else "no")
         return gs["ver"]
 
     # ------------------------------------------------------------------ Revoke
@@ -407,6 +416,7 @@ class Owner:
             if g in self.groups:
                 self._rotate(g, policy)
                 rotated.append(g)
+        narrator.emit("revoke", rec["name"], policy=policy, groups=rotated)
         return rotated
 
     def _rotate(self, g: str, policy: str) -> None:

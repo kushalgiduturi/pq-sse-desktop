@@ -10,12 +10,14 @@ import json
 import os
 import subprocess
 import sys
+import shutil
 import threading
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pqsse import paths, pqbackend
+from pqsse import narrator, paths, pqbackend
 from pqsse.core.errors import AccessDenied, BadPassphrase, PQSSEError, Rejected, VerifyError
 from pqsse.core.keystore import Vault
 from pqsse.core.pairing import PublicIdentity, export_pub, import_pub
@@ -26,24 +28,137 @@ from pqsse.pqbackend import Params
 from pqsse.receiver import Receiver, describe_rejection
 from pqsse.transport import CloudUnavailable, HttpCloud
 
-DEFAULTS = {"kem": "ML-KEM-768", "sig": "ML-DSA-65", "port": 8765, "engine": "auto", "state_ttl_hours": 24}
+DEFAULTS = {"kem": "ML-KEM-768", "sig": "ML-DSA-65", "port": 8765, "engine": "auto", "state_ttl_hours": 24,
+            "mode": "expert", "show_welcome": True, "font_size": "normal", "reduce_motion": False,
+            "narrator": True, "lesson_step": 0, "lesson_done": [], "challenges_done": []}
+LESSON_PROFILE = "lesson"
+LESSON_PASSPHRASE = "lesson"
+
+
+@dataclass(frozen=True)
+class Friendly:
+    """A three-part explanation of a problem, plus technical details for support."""
+
+    what: str
+    why: str
+    next: str
+    technical: str = ""
+
+    def text(self) -> str:
+        return f"What happened: {self.what}\nWhy it matters: {self.why}\nWhat to do next: {self.next}"
+
+
+_GENERIC_WHY = "The app stopped instead of guessing, so nothing wrong was shown or stored."
+_REJECTED = {
+    "revoked": ("Alice took this doctor's access away. The cloud no longer accepts the doctor's pass, so old "
+                "and new requests are refused alike.",
+                "Nothing to fix on this side. If access is still needed, the doctor sends a new join request "
+                "and Alice approves it."),
+    "unknown_user": ("The cloud only answers doctors that Alice approved. This protects the data from strangers.",
+                     "Send a join request on the Receiver tab, let Alice approve it on the Owner tab, then press Fetch mailbox."),
+    "scope": ("Each doctor may only ask about the groups Alice chose. The cloud enforces this even if the doctor's app is changed.",
+              "Search a group you belong to, or ask Alice to approve you for this group."),
+    "bad_signature": ("Every update must carry Alice's stamp. A missing or wrong stamp means it may be forged or was changed on the way.",
+                      "If you are Alice, check that the cloud is paired with your current key file, then try again."),
+    "bad_sequence": ("Updates are numbered. A repeated or out-of-order update could bring back old data, so the cloud refuses it.",
+                     "Nothing to do: the genuine update is already stored. If you are Alice and this keeps happening, restart the app."),
+    "stale_state": ("The cloud keeps only the newest stamped summary. An older or duplicate one is refused so old data cannot return.",
+                    "Press Publish again to create a new version."),
+    "stale_epoch": ("The group's locks were changed since this search slip was made, so the slip is out of date.",
+                    "Press Fetch mailbox to receive the new key, then search again."),
+    "bad_token": ("The request could not be opened with this doctor's pass. It may be damaged or made with the wrong pass.",
+                  "Press Fetch mailbox to refresh the pass, then try again."),
+    "stale_token": ("Requests carry a time. One that is too old is refused so that recordings cannot be replayed later.",
+                    "Check that this computer's clock is right, then try again."),
+    "no_such_doc": ("The cloud no longer stores this document. It was deleted or the group was re-locked.",
+                    "Search again to get the current list of documents."),
+    "bad_segment": ("That part of the index was dropped when the group was re-locked.",
+                    "Press Fetch mailbox, then search again."),
+    "not_paired": ("The cloud does not know Alice's public key yet, so it cannot check her stamps.",
+                   "On the Cloud tab press 'Pair: import owner key' and pick owner.pqpub."),
+    "group_exists": ("Group names must be unique so that keys and documents cannot be mixed up.",
+                     "Choose a different group name."),
+}
+_VERIFY = {
+    "state signature": ("The summary of the index must carry Alice's stamp. Without it the cloud could invent what the index contains.",
+                        "Do not trust this answer. Search again; if it repeats, the cloud is misbehaving."),
+    "segments complete": ("An answer must cover every live part of the index. A missing part could hide documents.",
+                          "Search again; if it repeats, the cloud is withholding data."),
+    "older segments final": ("Closed parts of the index must be marked final by Alice, otherwise entries could be hidden in them.",
+                             "Search again; if it repeats, the cloud is misbehaving."),
+    "freshness": ("An expired summary could be an old copy that hides newer changes. The app refuses to rely on it.",
+                  "Alice presses Publish on the Owner tab to issue a fresh summary. Then search again."),
+    "no rollback": ("The cloud showed an older version than one this app has already seen. That would hide recent changes.",
+                    "Do not trust this answer. Search again; if it repeats, the cloud is serving old data."),
+    "response signature": ("The cloud must stamp every answer. A missing or wrong stamp means the answer cannot be trusted or proven.",
+                           "Search again; if it repeats, the cloud is misbehaving or the wrong cloud key is paired."),
+    "completeness": ("Alice's summary says exactly which entries must come back. Some were missing, extra or out of order.",
+                     "No result is shown. Search again; if it repeats, the cloud is hiding or reordering results."),
+    "hash chain": ("The running fingerprint of the entries does not match the one Alice stamped, so an entry was changed or swapped.",
+                   "No result is shown. Search again; if it repeats, the cloud is tampering with results."),
+    "document signature": ("The document that came back is not the one Alice stamped under that name. It may be swapped or altered.",
+                           "The document was not opened. Try again; if it repeats, the cloud is tampering."),
+    "join proof": ("A join request must prove that the sender really owns the key in it. This one does not, or it is too old.",
+                   "Ask the doctor to send a new join request."),
+    "capability": ("An access pass must be stamped by Alice. This one is not, so it was ignored.",
+                   "Ask Alice to approve the join request again."),
+}
+
+
+def _sentence(text: str) -> str:
+    text = text.strip() or "The step could not be completed"
+    text = text[:1].upper() + text[1:]
+    return text if text[-1] in ".!?" else text + "."
+
+
+def explain_full(exc: BaseException) -> Friendly:
+    """Three-part explanation for any error: what happened, why it matters, what to do next."""
+    technical = f"{type(exc).__name__}: {exc}"
+    trace = getattr(exc, "trace", "")
+    if trace:
+        technical += "\n" + trace
+    if isinstance(exc, Rejected):
+        why, nxt = _REJECTED.get(exc.reason, ("The cloud checks every request and refused this one.", "Try the step again."))
+        return Friendly(describe_rejection(exc), why, nxt, technical)
+    if isinstance(exc, VerifyError):
+        why, nxt = _VERIFY.get(exc.check, ("A security check did not pass, so the data cannot be trusted.", "Try again."))
+        return Friendly(_sentence(f"Verification failed at check '{exc.check}': {exc.detail}"), why, nxt, technical)
+    if isinstance(exc, AccessDenied):
+        return Friendly(_sentence(f"Access denied: {exc}"),
+                        "Access is decided by keys. Without the key for a group, its data cannot be searched or read.",
+                        "Use a group you were approved for, or ask Alice to approve you for this one.", technical)
+    if isinstance(exc, BadPassphrase):
+        return Friendly("Wrong passphrase.",
+                        "The passphrase unlocks the keys stored on this computer. Without it they stay locked.",
+                        "Type the passphrase again. Passphrases cannot be recovered; a forgotten one means starting over.",
+                        technical)
+    if isinstance(exc, CloudUnavailable):
+        return Friendly("The cloud server is not reachable. Start it on the Cloud tab.",
+                        "Every step stores or fetches data at the cloud, so nothing can happen while it is off.",
+                        "Open the Cloud tab, type the cloud passphrase and press Start server.", technical)
+    if isinstance(exc, PQSSEError):
+        return Friendly(_sentence(str(exc)), _GENERIC_WHY, "Fix the point mentioned above and try again.", technical)
+    return Friendly("Something unexpected went wrong inside the app.", _GENERIC_WHY,
+                    "Try the step again. If it keeps happening, press 'Copy technical details' and send them to support.",
+                    technical)
 
 
 def explain(exc: BaseException) -> str:
-    """Turn an exception into a clear message for the user."""
-    if isinstance(exc, Rejected):
-        return describe_rejection(exc)
-    if isinstance(exc, VerifyError):
-        return f"Verification failed at check '{exc.check}': {exc.detail}"
-    if isinstance(exc, AccessDenied):
-        return f"Access denied: {exc}"
-    if isinstance(exc, BadPassphrase):
-        return "Wrong passphrase."
-    if isinstance(exc, CloudUnavailable):
-        return "The cloud server is not reachable. Start it on the Cloud tab."
-    if isinstance(exc, PQSSEError):
-        return str(exc)
-    return f"{type(exc).__name__}: {exc}"
+    """The one-line "what happened" part of explain_full."""
+    return explain_full(exc).what
+
+
+def explain_gpu(usable: bool, reason: str = "") -> Friendly:
+    """Explanation shown when no usable GPU is found."""
+    if usable:
+        return Friendly("The graphics chip (GPU) is in use for batch work.",
+                        "It speeds up building the index. It does not speed up the post-quantum steps.",
+                        "Nothing to do.")
+    return Friendly("No usable graphics chip (GPU) was found. The app is using the normal processor (CPU).",
+                    "Everything still works and gives the same results. Only building a very large index is slower, "
+                    "because the GPU only ever helps with that batch work.",
+                    "Nothing is required. To use a GPU later, see the setup notes in README.md and run the GPU self-test "
+                    "on the Settings tab.", reason)
 
 
 class Session:
@@ -60,6 +175,8 @@ class Session:
         self.admin_token = "adm-" + os.urandom(16).hex()
         self.prf: BatchPRF = CpuPRF()
         self.gpu: status.GpuStatus | None = None
+        self.first_run = "mode" not in self._read_settings()
+        self.profile = ""
 
     # ------------------------------------------------------------------ settings
     @staticmethod
@@ -119,6 +236,7 @@ class Session:
         else:
             cmd = [sys.executable, "-m", "pqsse.cloud"]
         cmd += ["--port", str(self.port), "--kem", self.settings["kem"], "--sig", self.settings["sig"]]
+        cmd += ["--db", str(paths.cloud_db()), "--pub", str(paths.pub_dir() / "cloud.pqpub")]
         root = str(Path(__file__).resolve().parent.parent)
         env = {**os.environ, "PQSSE_CLOUD_PASSPHRASE": passphrase, "PQSSE_CLOUD_ADMIN_TOKEN": self.admin_token}
         env["PYTHONPATH"] = root + os.pathsep + env.get("PYTHONPATH", "")
@@ -145,6 +263,7 @@ class Session:
         if "fingerprint=" not in line:
             line = "PQSSE-CLOUD READY fingerprint=" + self.cloud_identity().fingerprint()
         self.cloud_proc, self.cloud_line = proc, line
+        narrator.emit("cloud.started", "Cloud", port=self.port)
         if self.owner is not None:
             self.owner.cloud = self.api()
         return line
@@ -223,6 +342,29 @@ class Session:
         cloud = import_pub(cloud_path or paths.pub_dir() / "cloud.pqpub", expect_role="cloud")
         rec.pair(owner, cloud)
         return f"owner {owner.fingerprint()} | cloud {cloud.fingerprint()}"
+
+    # ------------------------------------------------------------------ profiles (Learn Mode)
+    def set_profile(self, profile: str) -> None:
+        """Switch between the user's own data ("") and the lesson sandbox ("lesson").
+
+        Closes every open role and the cloud process first; nothing is shared between profiles.
+        """
+        if profile == self.profile:
+            return
+        self.close()
+        self.owner, self.receivers = None, {}
+        paths.set_profile(profile)
+        self.profile = profile
+
+    def reset_lesson(self) -> None:
+        """Delete the lesson sandbox data and the saved lesson progress."""
+        was_lesson = self.profile == LESSON_PROFILE
+        self.close()
+        self.owner, self.receivers = None, {}
+        shutil.rmtree(paths.base_dir() / LESSON_PROFILE, ignore_errors=True)
+        self.settings.update(lesson_step=0, lesson_done=[])
+        self.save_settings()
+        paths.set_profile(LESSON_PROFILE if was_lesson else "")
 
     def header_text(self) -> str:
         return f"PQ backend: {pqbackend.backend_name()} | New identities: {self.params.label()}"

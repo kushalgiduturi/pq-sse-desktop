@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit, Q
 
 from pqsse import attacklab
 
+from .glossary import term, tip
 from .common import GREEN, RED, TabBase, make_table, selected_value
 
 INTRO = ("Each demo builds its own small owner, cloud and receivers in memory (your real data is not touched), "
@@ -51,10 +52,11 @@ class AttackTab(TabBase):
         splitter.setSizes([520, 640])
         intro = QLabel(INTRO)
         intro.setWordWrap(True)
+        tip(self.table, "signature", "hash-chain", "freshness")
         layout = QVBoxLayout(self)
         layout.addWidget(intro)
         layout.addWidget(splitter, 1)
-        layout.addWidget(self.message)
+        layout.addWidget(self.footer)
 
     def _row_of(self, key: str) -> int:
         return [s[0] for s in attacklab.SCENARIOS].index(key)
