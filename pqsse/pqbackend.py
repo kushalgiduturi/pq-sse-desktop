@@ -9,6 +9,7 @@ No cryptography is implemented in this module.
 """
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Protocol
@@ -57,7 +58,12 @@ class Backend(Protocol):
 
 
 class PurePythonBackend:
-    """kyber-py (ML_KEM_*) and dilithium-py (ML_DSA_*)."""
+    """kyber-py (ML_KEM_*) and dilithium-py (ML_DSA_*).
+
+    These pure Python libraries keep shared internal state (measured: concurrent ML-DSA
+    signing from several threads yields invalid signatures), so every call is serialized
+    with one lock. The GUI runs roles on worker threads, which makes this necessary.
+    """
 
     name = "kyber-py + dilithium-py (pure Python)"
 
@@ -67,30 +73,37 @@ class PurePythonBackend:
 
         self._kem = {"ML-KEM-512": ML_KEM_512, "ML-KEM-768": ML_KEM_768, "ML-KEM-1024": ML_KEM_1024}
         self._sig = {"ML-DSA-44": ML_DSA_44, "ML-DSA-65": ML_DSA_65, "ML-DSA-87": ML_DSA_87}
+        self._lock = threading.Lock()
 
     def kem_keygen(self, alg: str) -> tuple[bytes, bytes]:
-        ek, dk = self._kem[alg].keygen()
+        with self._lock:
+            ek, dk = self._kem[alg].keygen()
         return bytes(ek), bytes(dk)
 
     def kem_encaps(self, alg: str, ek: bytes) -> tuple[bytes, bytes]:
-        shared, ct = self._kem[alg].encaps(ek)
+        with self._lock:
+            shared, ct = self._kem[alg].encaps(ek)
         return bytes(ct), bytes(shared)
 
     def kem_decaps(self, alg: str, dk: bytes, ct: bytes) -> bytes:
-        return bytes(self._kem[alg].decaps(dk, ct))
+        with self._lock:
+            return bytes(self._kem[alg].decaps(dk, ct))
 
     def sig_keygen(self, alg: str) -> tuple[bytes, bytes]:
-        vk, sk = self._sig[alg].keygen()
+        with self._lock:
+            vk, sk = self._sig[alg].keygen()
         return bytes(vk), bytes(sk)
 
     def sig_sign(self, alg: str, sk: bytes, msg: bytes) -> bytes:
-        return bytes(self._sig[alg].sign(sk, msg))
+        with self._lock:
+            return bytes(self._sig[alg].sign(sk, msg))
 
     def sig_verify(self, alg: str, vk: bytes, msg: bytes, sig: bytes) -> bool:
-        try:
-            return bool(self._sig[alg].verify(vk, msg, sig))
-        except Exception:
-            return False
+        with self._lock:
+            try:
+                return bool(self._sig[alg].verify(vk, msg, sig))
+            except Exception:
+                return False
 
 
 class OqsBackend:

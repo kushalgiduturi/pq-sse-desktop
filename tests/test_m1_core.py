@@ -40,6 +40,37 @@ def test_signature_round_trip(p):
     assert not pqbackend.sig_verify(p.sig, vk, b"message", b"garbage")
 
 
+def test_backend_is_safe_to_use_from_several_threads():
+    """Regression: dilithium-py is not thread-safe on its own, the backend serializes calls."""
+    import sys
+    import threading
+
+    failures = []
+
+    def work(i: int) -> None:
+        vk, sk = pqbackend.sig_keygen("ML-DSA-44")
+        ek, dk = pqbackend.kem_keygen("ML-KEM-512")
+        for j in range(6):
+            msg = b"message %d %d" % (i, j)
+            if not pqbackend.sig_verify("ML-DSA-44", vk, msg, pqbackend.sig_sign("ML-DSA-44", sk, msg)):
+                failures.append(("sig", i, j))
+            ct, shared = pqbackend.kem_encaps("ML-KEM-512", ek)
+            if pqbackend.kem_decaps("ML-KEM-512", dk, ct) != shared:
+                failures.append(("kem", i, j))
+
+    old = sys.getswitchinterval()
+    sys.setswitchinterval(0.0005)
+    try:
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        sys.setswitchinterval(old)
+    assert failures == []
+
+
 def test_backend_reports_a_name():
     assert pqbackend.backend_name()
     with pytest.raises(ValueError):
