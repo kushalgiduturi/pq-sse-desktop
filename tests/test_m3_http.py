@@ -134,7 +134,7 @@ def test_full_scenario_over_http_with_encrypted_stores(tmp_path):
         stats = cloud.api.call("admin_stats", None)
         assert stats["entries"] > 0 and stats["revoked"] == 1 and stats["rejected"] >= 2
         log = cloud.api.call("admin_log", {"since": 0})
-        assert any(row[2] == "search" and row[5] == 0 and row[6] == "revoked" for row in log)
+        assert any(row[2] == "states_get" and row[5] == 0 and row[6] == "revoked" for row in log)
         peek = cloud.api.call("admin_peek", None)
         assert peek["entries"] and peek["docs"] and peek["states"]
 
@@ -158,17 +158,20 @@ def test_full_scenario_over_http_with_encrypted_stores(tmp_path):
         for word in SECRET_WORDS + [t for t, _ in DOCS] + ["Zeppelin", "Marzipan", "Platypus", "revisited"]:
             assert word.encode() not in blob, word
             assert word.lower().encode() not in blob, word
-        group_state = owner._group("alpha")
-        secrets = list(group_state["keys"].values()) + list(owner._group("beta")["keys"].values())
-        secrets += [owner._sk, bob._dk, bob._sk, alice._dk]
-        secrets += [r["a"] for r in owner.receivers.values()] + [r["m"] for r in owner.receivers.values()]
+        # Probes: whole symmetric keys, the private seed K of each ML-DSA signing key
+        # (bytes 32..64; the first 32 bytes are the public rho), and the private parts of
+        # each ML-KEM decapsulation key (its start and its final z; the middle is the public ek).
         cloud_vault = Vault(tmp_path / "cloud.sqlite", "cloud-pass")
         ident = cloud_vault.get("identity")
-        secrets += [ident["dk"], ident["sk"]]
         cloud_vault.close()
-        for secret in secrets:
-            assert secret not in blob
-            assert secret[:16] not in blob
+        probes = list(owner._group("alpha")["keys"].values()) + list(owner._group("beta")["keys"].values())
+        probes += [r["a"] for r in owner.receivers.values()] + [r["m"] for r in owner.receivers.values()]
+        for sig_key in (owner._sk, bob._sk, alice._sk, ident["sk"]):
+            probes += [sig_key, sig_key[32:64]]
+        for kem_key in (bob._dk, alice._dk, ident["dk"]):
+            probes += [kem_key, kem_key[:32], kem_key[-32:]]
+        for probe in probes:
+            assert probe not in blob
 
         # ---- owner and receiver stores are encrypted at rest as well
         owner_vault.close()
@@ -178,8 +181,8 @@ def test_full_scenario_over_http_with_encrypted_stores(tmp_path):
         bob_blob = all_bytes(tmp_path / "bob.sqlite")
         for word in SECRET_WORDS:
             assert word.encode() not in owner_blob and word.encode() not in bob_blob
-        for secret in secrets:
-            assert secret[:16] not in owner_blob and secret[:16] not in bob_blob
+        for probe in probes:
+            assert probe not in owner_blob and probe not in bob_blob
         with pytest.raises(BadPassphrase):
             Vault(tmp_path / "owner.sqlite", "guess")
         reopened = Owner(Vault(tmp_path / "owner.sqlite", "owner-pass"))

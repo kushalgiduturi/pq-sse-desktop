@@ -361,7 +361,7 @@ class CloudCore:
     def _h_admin_log(self, obj: dict) -> list:
         rows = self.db.execute("SELECT id, ts, endpoint, in_bytes, out_bytes, ok, reason FROM log WHERE id>? ORDER BY id LIMIT 500",
                                (obj.get("since", 0),)).fetchall()
-        return [list(r) for r in rows]
+        return [[i, int(ts * 1000), ep, n_in, n_out, ok, reason] for i, ts, ep, n_in, n_out, ok, reason in rows]
 
     def _h_admin_stats(self, obj: Any) -> dict:
         def one(sql: str) -> int:
