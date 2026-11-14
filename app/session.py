@@ -123,18 +123,28 @@ class Session:
         env = {**os.environ, "PQSSE_CLOUD_PASSPHRASE": passphrase, "PQSSE_CLOUD_ADMIN_TOKEN": self.admin_token}
         env["PYTHONPATH"] = root + os.pathsep + env.get("PYTHONPATH", "")
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-        proc = subprocess.Popen(cmd, cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, creationflags=flags)
-        line = proc.stdout.readline().strip() if proc.stdout else ""
-        if not line.startswith("PQSSE-CLOUD READY"):
-            proc.kill()
+        # The child writes its one status line to a log file (not a pipe): this also works
+        # for the packaged windowed executable, and nothing can block on an unread pipe.
+        log_path = paths.data_dir() / "cloud_process.log"
+        with open(log_path, "w", encoding="utf-8") as log:
+            proc = subprocess.Popen(cmd, cwd=root if not getattr(sys, "frozen", False) else None, env=env,
+                                    stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, creationflags=flags)
+        deadline = time.time() + 30
+        while time.time() < deadline and proc.poll() is None and not self.api().alive():
+            time.sleep(0.05)
+        try:
+            line = (log_path.read_text(encoding="utf-8", errors="replace").strip().splitlines() or [""])[0]
+        except OSError:
+            line = ""
+        if proc.poll() is not None or not self.api().alive():
+            if proc.poll() is None:
+                proc.kill()
             if "wrong passphrase" in line:
                 raise BadPassphrase("wrong cloud passphrase")
             raise PQSSEError("The cloud server did not start: " + (line or "no output"))
+        if "fingerprint=" not in line:
+            line = "PQSSE-CLOUD READY fingerprint=" + self.cloud_identity().fingerprint()
         self.cloud_proc, self.cloud_line = proc, line
-        deadline = time.time() + 15
-        while time.time() < deadline and not self.api().alive():
-            time.sleep(0.05)
         if self.owner is not None:
             self.owner.cloud = self.api()
         return line
@@ -148,8 +158,6 @@ class Session:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-        if proc.stdout:
-            proc.stdout.close()
 
     def cloud_identity(self) -> PublicIdentity:
         return PublicIdentity.from_wire(self.api().call("pub", None))

@@ -148,6 +148,18 @@ Each milestone ends with: run its tests, fix, commit, short status.
 - **D16 Test speed.** The pure Python ML-DSA takes about 35 to 90 ms per signature, so
   the large randomized tests use ML-KEM-512 / ML-DSA-44; one test runs every parameter set.
 
+- **D17 Thread safety of the PQ backend.** `dilithium-py` produced invalid signatures when
+  called from several threads at once (found by the threaded GUI test). All calls into the
+  pure Python backend are serialized with one lock; `tests/test_m1_core.py` has the
+  regression test.
+- **D18 Cloud child process output.** The app sends the child's status line to
+  `cloud_process.log` in the data folder instead of a pipe, so the packaged windowed
+  executable works the same way as `python -m pqsse.cloud`.
+- **D19 Attack Lab and Benchmarks run on their own in-memory worlds**, never on the user's
+  owner, receivers or cloud database.
+- **D20 Build output outside OneDrive.** `build_windows.ps1` writes to
+  `%LOCALAPPDATA%\PQ-SSE-Desktop-build` by default.
+
 ## 6. Risks
 
 - Pure Python PQ backend is slow for signing. Mitigation: caching of verified states,
