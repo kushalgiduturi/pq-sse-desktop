@@ -95,6 +95,7 @@ class Receiver:
         self.ek, self._dk = me["ek"], me["dk"]
         self.vk, self._sk = me["vk"], me["sk"]
         self.uid: str = H(self.ek, self.vk)[:16].hex()
+        self.timings: dict[str, float] | None = None
         self._sig_cache: dict[bytes, StateHeader] = {}
         self._open_cache: dict[bytes, dict] = {}
 
@@ -236,12 +237,19 @@ class Receiver:
             raise AccessDenied(f"group {g} is outside this receiver's capability")
         return {int(e): k for e, k in group["keys"].items()}
 
-    def _request(self, endpoint: str, req: dict) -> tuple[bytes, Any]:
+    def _seal_request(self, endpoint: str, req: dict) -> bytes:
         """Encrypt a request under the credential a_u so only the cloud can read it."""
         cap = self._cap()
         req = {**req, "ts": int(self.clock() * 1000), "nonce": os.urandom(12)}
-        ct = aead_encrypt(token_key(cap["a"]), wire.enc(req), token_aad(self.uid, endpoint))
+        return aead_encrypt(token_key(cap["a"]), wire.enc(req), token_aad(self.uid, endpoint))
+
+    def _request(self, endpoint: str, req: dict) -> tuple[bytes, Any]:
+        ct = self._seal_request(endpoint, req)
         return ct, self._cloud().call(endpoint, {"uid": self.uid, "ct": ct})
+
+    def _tick(self, name: str, start: float) -> None:
+        if self.timings is not None:
+            self.timings[name] = self.timings.get(name, 0.0) + time.perf_counter() - start
 
     # ------------------------------------------------------------------ states
     def _verified_states(self, g: str, report: Report, retry: bool = True) -> dict[int, dict]:
@@ -336,7 +344,10 @@ class Receiver:
         """
         report = Report()
         keyword = keyword.strip().lower()
+        t0 = time.perf_counter()
         tables = self._verified_states(g, report)
+        self._tick("Verify", t0)
+        t0 = time.perf_counter()
         keys = self._group_keys(g)
         tag = index.keyword_tag(keyword)
         epochs = sorted(tables)
@@ -349,7 +360,12 @@ class Receiver:
             addrs, masks = index.derive(self.prf, k_idx, [(keyword, i) for i in range(count)])
             derived[e] = (addrs.tobytes(), masks.tobytes())
             segs.append([e, derived[e][0]])
-        token_ct, reply = self._request("search", {"g": g, "cur": max(epochs), "segs": segs})
+        token_ct = self._seal_request("search", {"g": g, "cur": max(epochs), "segs": segs})
+        self._tick("TokenGen", t0)
+        t0 = time.perf_counter()
+        reply = self._cloud().call("search", {"uid": self.uid, "ct": token_ct})
+        self._tick("Search", t0)
+        t0 = time.perf_counter()
 
         try:
             body_raw, sig = reply["body"], reply["sig"]
@@ -395,6 +411,7 @@ class Receiver:
                     raise report.fail("hash chain", "entry does not unmask to a valid operation")
         report.ok("hash chain", "chain heads match the signed state")
         self._commit_seen()
+        self._tick("Verify", t0)
         return SearchResult(g, keyword, sorted(hits.items()), report, total)
 
     # ------------------------------------------------------------------ Decrypt
