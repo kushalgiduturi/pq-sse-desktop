@@ -1,0 +1,32 @@
+# PQ-SSE Desktop: exact versions for a reproducible build (Python 3.11, Windows x64).
+# These are the versions of the working environment on the build PC.
+# Used by build_release.ps1 for the build environment (runtime, tests, PyInstaller).
+# To update: change versions here, run build_release.ps1, and keep what passes.
+#
+# PySide6 is installed as its two parts (Essentials and Addons, the latter for QtCharts)
+# instead of the umbrella package, which would also pull in WebEngine and Pdf (unused).
+cryptography==50.0.2
+cffi==2.1.1
+pycparser==3.12
+kyber-py==1.2.0
+dilithium-py==1.5.1
+numpy==2.4.6
+PySide6_Essentials==6.12.0
+PySide6_Addons==6.12.0
+shiboken6==6.12.0
+pypdf==7.1.0
+
+# tests
+pytest==9.2.0
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0
+colorama==0.4.6
+
+# packaging
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.10
+altgraph==0.17.5
+pefile==2024.8.26
+pywin32-ctypes==0.2.3

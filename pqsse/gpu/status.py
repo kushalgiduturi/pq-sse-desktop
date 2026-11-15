@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import random
 import threading
@@ -18,8 +19,10 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .. import paths
+from . import runtime
 from .batchprf import BatchPRF, CpuPRF
 
+_log = logging.getLogger("pqsse.gpu")
 DEFAULT_THRESHOLD = 4096
 SELFTEST_MESSAGES = 1000
 _EDGE_LENGTHS = (0, 1, 31, 32, 33, 135, 136, 137, 271, 272, 273, 408, 600)
@@ -117,7 +120,17 @@ def _detect() -> GpuStatus:
     try:
         import cupy as cp
     except Exception as exc:
-        status.reason = f"CuPy is not installed or failed to import ({type(exc).__name__})"
+        if isinstance(exc, ModuleNotFoundError) and (exc.name or "").split(".")[0] == "cupy":
+            status.reason = "CuPy is not installed (this build has no GPU engine)"
+        elif not runtime.driver_present():
+            status.reason = "no NVIDIA driver found on this PC (nvcuda.dll is missing)"
+        else:
+            status.reason = f"CuPy failed to import ({type(exc).__name__}: {' '.join(str(exc).split())[:120]})"
+            _log.warning("CuPy failed to import", exc_info=exc)
+        return status
+    if not runtime.driver_present():
+        status.cupy_version = cp.__version__
+        status.reason = "no NVIDIA driver found on this PC (nvcuda.dll is missing)"
         return status
     status.cupy_version = cp.__version__
     try:
@@ -133,7 +146,8 @@ def _detect() -> GpuStatus:
 
         engine = GpuPRF(0)
     except Exception as exc:
-        status.reason = f"CUDA kernel could not be built ({type(exc).__name__}: {str(exc)[:120]})"
+        status.reason = f"CUDA kernel could not be built ({type(exc).__name__}: {' '.join(str(exc).split())[:120]})"
+        _log.warning("CUDA kernel could not be built", exc_info=exc)
         return status
     status.available = True
     status.device = engine.device_name
@@ -159,6 +173,7 @@ def gpu_status(refresh: bool = False) -> GpuStatus:
     with _lock:
         if _cached is None or refresh:
             _cached = _detect()
+            _log.info("GPU detection: %s", _cached.summary())
         return _cached
 
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 
-from . import status
+from . import runtime, status
 from .calibrate import NEVER, calibrate
 
 
@@ -21,6 +21,12 @@ def main() -> int:
     if info.available:
         print(f"Memory       : {info.total_mem / 2**30:.2f} GB total, {info.free_mem / 2**30:.2f} GB free")
         print(f"Runtime      : {info.driver}")
+        bundled = runtime.bundled_dir()
+        print(f"Bundled CUDA : {bundled or 'none (using what is installed on this PC)'}")
+        print("NVIDIA libraries loaded by this process:")
+        for path in runtime.loaded_cuda_modules():
+            origin = "bundled with the app" if bundled and path.lower().startswith(bundled.lower()) else "from this PC"
+            print(f"  {path}  ({origin})")
     if info.selftest is not None:
         print("-" * 60)
         print("Byte for byte comparison with hashlib / hmac:")

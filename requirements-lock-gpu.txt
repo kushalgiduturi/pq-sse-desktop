@@ -1,0 +1,12 @@
+# PQ-SSE Desktop: extra packages for the GPU build only (build_release.ps1 -WithGpu).
+# Install on top of requirements-lock.txt.
+#
+# CuPy is the GPU array library. The two NVIDIA packages provide the run-time compiler
+# (NVRTC), the CUDA runtime DLL and the CUDA headers that the build copies into the app,
+# so that the user's PC needs only an NVIDIA driver, not the CUDA Toolkit.
+# They are the CUDA 12.0 releases on purpose: code compiled by an older NVRTC runs on
+# older drivers. Newer 12.x releases should also work with CuPy but were not tested here.
+cupy-cuda12x==14.2.0
+cuda-pathfinder==1.9.0
+nvidia-cuda-nvrtc-cu12==12.0.140
+nvidia-cuda-runtime-cu12==12.0.146

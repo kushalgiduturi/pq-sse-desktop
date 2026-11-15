@@ -2,9 +2,35 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 APP_DIR_NAME = "PQ-SSE-Desktop"
+
+
+def frozen() -> bool:
+    """True inside the packaged executable."""
+    return bool(getattr(sys, "frozen", False))
+
+
+def resource_root() -> Path:
+    """Folder that holds the read-only files shipped with the program.
+
+    Packaged app: the folder PyInstaller unpacked or installed its data to (sys._MEIPASS).
+    Source tree: the project folder. Never write here: it may be read-only.
+    """
+    bundled = getattr(sys, "_MEIPASS", None)
+    return Path(bundled) if bundled else Path(__file__).resolve().parent.parent
+
+
+def resource(relative: str) -> Path:
+    """Path of a shipped read-only file, for example resource("assets/pqsse.ico")."""
+    return resource_root() / relative
+
+
+def install_dir() -> Path:
+    """Folder of the executable (packaged app) or the project folder (source tree)."""
+    return Path(sys.executable).resolve().parent if frozen() else resource_root()
 
 
 _profile = ""
@@ -50,6 +76,12 @@ def receiver_db(name: str) -> Path:
 
 def settings_file() -> Path:
     return base_dir() / "settings.json"
+
+
+def logs_dir() -> Path:
+    path = base_dir() / "logs"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def pub_dir() -> Path:

@@ -7,6 +7,7 @@ goes through HttpCloud to the separate process on 127.0.0.1.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -27,6 +28,10 @@ from pqsse.owner import Owner
 from pqsse.pqbackend import Params
 from pqsse.receiver import Receiver, describe_rejection
 from pqsse.transport import CloudUnavailable, HttpCloud
+
+from . import winjob
+
+log = logging.getLogger("pqsse.app")
 
 DEFAULTS = {"kem": "ML-KEM-768", "sig": "ML-DSA-65", "port": 8765, "engine": "auto", "state_ttl_hours": 24,
             "mode": "expert", "show_welcome": True, "font_size": "normal", "reduce_motion": False,
@@ -177,6 +182,7 @@ class Session:
         self.gpu: status.GpuStatus | None = None
         self.first_run = "mode" not in self._read_settings()
         self.profile = ""
+        self._job: int | None = None
 
     # ------------------------------------------------------------------ settings
     @staticmethod
@@ -244,9 +250,9 @@ class Session:
         # The child writes its one status line to a log file (not a pipe): this also works
         # for the packaged windowed executable, and nothing can block on an unread pipe.
         log_path = paths.data_dir() / "cloud_process.log"
-        with open(log_path, "w", encoding="utf-8") as log:
+        with open(log_path, "w", encoding="utf-8") as child_out:
             proc = subprocess.Popen(cmd, cwd=root if not getattr(sys, "frozen", False) else None, env=env,
-                                    stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, creationflags=flags)
+                                    stdout=child_out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, creationflags=flags)
         deadline = time.time() + 30
         while time.time() < deadline and proc.poll() is None and not self.api().alive():
             time.sleep(0.05)
@@ -259,10 +265,15 @@ class Session:
                 proc.kill()
             if "wrong passphrase" in line:
                 raise BadPassphrase("wrong cloud passphrase")
+            log.error("Cloud process did not start: %s", line or "no output")
             raise PQSSEError("The cloud server did not start: " + (line or "no output"))
         if "fingerprint=" not in line:
             line = "PQSSE-CLOUD READY fingerprint=" + self.cloud_identity().fingerprint()
         self.cloud_proc, self.cloud_line = proc, line
+        if self._job is None:
+            self._job = winjob.create()
+        tied = winjob.assign(self._job, proc)       # the child ends whenever this app ends
+        log.info("Cloud process started: pid %s, 127.0.0.1:%s, tied to the app: %s", proc.pid, self.port, tied)
         narrator.emit("cloud.started", "Cloud", port=self.port)
         if self.owner is not None:
             self.owner.cloud = self.api()
@@ -272,6 +283,7 @@ class Session:
         proc, self.cloud_proc = self.cloud_proc, None
         if proc is None:
             return
+        log.info("Cloud process stopped: pid %s", proc.pid)
         proc.terminate()
         try:
             proc.wait(timeout=5)

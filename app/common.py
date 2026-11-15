@@ -1,6 +1,7 @@
 """Shared GUI pieces: tab base class, indicator light, table helper, document import."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
@@ -140,6 +141,7 @@ class TabBase(QWidget):
         self.detail.setHidden(False)
         self.technical = friendly.technical
         self.copy_button.setHidden(False)
+        logging.getLogger("pqsse.app").warning("Step failed: %s", friendly.technical.splitlines()[0] if friendly.technical else friendly.what)
         narrator.emit("blocked", "", what=friendly.what[:280])
 
     def copy_technical(self) -> str:

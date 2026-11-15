@@ -12,10 +12,15 @@ from __future__ import annotations
 import sys
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (QApplication, QDockWidget, QLabel, QLineEdit, QMainWindow, QProgressBar, QTabWidget,
                                QToolBar, QVBoxLayout, QWidget, QWidgetAction)
 
+from pqsse import applog, paths
+from pqsse.gpu import runtime as gpu_runtime
+from pqsse.version import APP_NAME, get_version
+
+from .about import AboutDialog, open_folder
 from .glossary import GlossaryDialog
 from .narrator_panel import NarratorPanel
 from .session import Session, explain_gpu
@@ -29,7 +34,9 @@ from .tab_settings import SettingsTab
 from .welcome import Tour, WelcomeDialog
 from .workers import TaskRunner
 
-FONT_POINTS = {"small": 9, "normal": 10, "large": 13}
+ICON = "assets/pqsse.ico"
+NO_WINDOW_FLAGS = ("--smoke-test", "--gpu-selftest", "--version")
+FONT_POINTS ={"small": 9, "normal": 10, "large": 13}
 STYLE = """
 QWidget {{ font-size: {pt}pt; }}
 QGroupBox {{ font-weight: 600; border: 1px solid #8f96a0; border-radius: 6px; margin-top: 10px; padding-top: 8px; }}
@@ -42,6 +49,16 @@ QFrame#tour {{ background: #fff6d6; color: #3a2e00; border: 2px solid #b58900; b
 """
 TAB_NAMES = [("Owner", "Owner (Alice)"), ("Receiver", "Receiver (Bob, Carol)"), ("Cloud", "Cloud (storage)"),
              ("Attack Lab", "Attack Lab"), ("Benchmarks", "Benchmarks"), ("Settings", "Settings")]
+
+
+def set_app_id() -> None:
+    """Tell Windows this is its own program, so the taskbar shows our icon (not Python's)."""
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PQSSE.Desktop")
+    except (AttributeError, OSError):
+        pass
 
 
 def use_light_colors(app: QApplication) -> None:
@@ -149,6 +166,17 @@ class MainWindow(QMainWindow):
         help_menu.addAction(learn_action)
         help_menu.addAction(tour_action)
         help_menu.addAction(glossary_action)
+        help_menu.addSeparator()
+        data_action = QAction("Open data folder", self)
+        data_action.triggered.connect(lambda: open_folder(paths.base_dir()))
+        log_action = QAction("Open log folder", self)
+        log_action.triggered.connect(lambda: open_folder(paths.logs_dir()))
+        about_action = QAction(f"About {APP_NAME}", self)
+        about_action.triggered.connect(lambda: self.show_about())
+        help_menu.addAction(data_action)
+        help_menu.addAction(log_action)
+        help_menu.addAction(about_action)
+        help_menu.addSeparator()
         self.glossary_search = QLineEdit()
         self.glossary_search.setPlaceholderText("Search the glossary, then press Enter")
         self.glossary_search.returnPressed.connect(lambda: self.open_glossary(query=self.glossary_search.text()))
@@ -197,6 +225,13 @@ class MainWindow(QMainWindow):
             self.glossary.show()
             self.glossary.raise_()
         return self.glossary
+
+    def show_about(self, execute: bool = True) -> AboutDialog:
+        """Show the About dialog. ``execute=False`` only builds it (used by tests)."""
+        dialog = AboutDialog(self, self.session)
+        if execute:
+            dialog.exec()
+        return dialog
 
     def open_lesson(self) -> None:
         if self.mode != "beginner":
@@ -284,13 +319,28 @@ class MainWindow(QMainWindow):
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    gpu_runtime.prepare()                # packaged GPU build: find the bundled CUDA compiler before CuPy loads
     if args and args[0] == "--cloud":
         from pqsse.cloud.__main__ import main as cloud_main
 
         return cloud_main(args[1:])
+    if args and args[0] in NO_WINDOW_FLAGS:
+        from .smoke import main as smoke_main
+
+        applog.setup()
+        return smoke_main(args)
+    applog.setup()
+    applog.log.info("%s %s starting (%s), data folder %s", APP_NAME, get_version(),
+                    "packaged" if paths.frozen() else "source", paths.base_dir())
+    set_app_id()
     app = QApplication.instance() or QApplication(sys.argv[:1])
+    app.setApplicationName(APP_NAME)
+    app.setApplicationVersion(get_version())
     app.setStyle("Fusion")
     use_light_colors(app)
+    icon = paths.resource(ICON)
+    if icon.exists():
+        app.setWindowIcon(QIcon(str(icon)))
     session = Session()
     if session.first_run:
         session.settings["mode"] = "beginner"      # a new user starts in Beginner Mode
@@ -300,7 +350,10 @@ def main(argv: list[str] | None = None) -> int:
     QTimer.singleShot(0, window.raise_)
     if session.settings.get("show_welcome", True):
         QTimer.singleShot(200, window.show_welcome)
-    return app.exec()
+    code = app.exec()
+    applog.log.info("%s closed", APP_NAME)
+    applog.shutdown()
+    return code
 
 
 if __name__ == "__main__":
