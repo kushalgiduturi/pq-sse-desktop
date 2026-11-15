@@ -16,9 +16,9 @@ import time
 from typing import Any, Callable
 
 from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QDesktopServices, QGuiApplication
 
-from pqsse import attacklab, narrator, paths
+from pqsse import applog, attacklab, narrator, paths, pqbackend
 from pqsse.core.errors import PQSSEError, VerifyError
 from pqsse.owner import DocInput
 from pqsse.version import get_version
@@ -53,6 +53,7 @@ class AppBridge(QObject):
     labChanged = Signal()
     challengesChanged = Signal()
     attackFinished = Signal(str)
+    insightsChanged = Signal()
 
     def __init__(self, session: Session | None = None, sync: bool = False, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -73,6 +74,12 @@ class AppBridge(QObject):
         self._check: dict = {}
         self._outcomes: dict[str, attacklab.Outcome] = {}
         self._attacks_running: set[str] = set()
+        self._gpu_report = ""
+        self._log_tail = ""
+        self._bench_build: list[dict] = []
+        self._bench_ops: list[dict] = []
+        self._bench_raw_build: list[dict] = []
+        self._bench_raw_ops: list[dict] = []
         self.events.added.connect(self._on_record)
         self.runner.busy.connect(self._on_busy)
         self._state = self._snapshot()
@@ -776,6 +783,171 @@ class AppBridge(QObject):
             self.failed.emit(self.last_error)
 
         self.runner.run(lambda progress: attacklab.run_scenario(key), done, error, "Trying the attack on a practice copy", locked=False)
+
+    # ------------------------------------------------------------------ Insights: engine, benchmarks, settings, logs, About
+    @Property(str, notify=settingsChanged)
+    def engineMode(self) -> str:
+        return self.session.settings.get("engine", "auto")
+
+    @Slot(str)
+    def setEngineMode(self, mode: str) -> None:
+        if mode not in ("auto", "cpu", "gpu"):
+            return
+        self.session.settings["engine"] = mode
+        self.session.save_settings()
+        self.settingsChanged.emit()
+        self.runner.run(lambda p: self.session.init_engine(), lambda _: self.stateChanged.emit(),
+                        lambda exc: self.stateChanged.emit(), "Switching the engine", locked=False)
+
+    @Property(str, notify=insightsChanged)
+    def gpuReport(self) -> str:
+        return self._gpu_report
+
+    @Slot()
+    def runGpuSelfTest(self) -> None:
+        """The same report as python -m pqsse.gpu.selftest: GPU results compared byte for byte with hashlib and hmac."""
+        def work(progress) -> str:
+            import contextlib
+            import io
+
+            from pqsse.gpu import selftest
+
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                selftest.main()
+            self.session.init_engine()
+            return buffer.getvalue()
+
+        def done(text: str) -> None:
+            self._gpu_report = text
+            self.insightsChanged.emit()
+            self.stateChanged.emit()
+
+        self.runner.run(work, done, lambda exc: done(f"The self-test could not run: {type(exc).__name__}: {exc}"),
+                        "Running the GPU self-test", locked=False)
+
+    @Property("QVariantList", notify=insightsChanged)
+    def benchBuild(self) -> list[dict]:
+        return self._bench_build
+
+    @Property("QVariantList", notify=insightsChanged)
+    def benchOps(self) -> list[dict]:
+        return self._bench_ops
+
+    @Property(str, notify=insightsChanged)
+    def benchSummary(self) -> str:
+        """One plain sentence about the measured BuildIndex numbers (shown first in Beginner mode)."""
+        gpu_rows = [r for r in self._bench_build if r["gpu"]]
+        if not self._bench_build:
+            return ""
+        if not gpu_rows:
+            return T["benchNoGpu"]
+        big = max(gpu_rows, key=lambda r: r["occurrences"])
+        if big["total_speedup"] >= 1.0:
+            return T["benchSummary"].format(n=f"{big['occurrences']:,}", prf=f"{big['prf_speedup']:.1f}", total=f"{big['total_speedup']:.2f}")
+        return T["benchSummarySlower"].format(n=f"{big['occurrences']:,}", prf=f"{big['prf_speedup']:.1f}",
+                                              cpu=f"{big['total_s'] * big['total_speedup']:.2f}", gpu=f"{big['total_s']:.2f}")
+
+    @Slot(bool)
+    def runBuildBenchmark(self, quick: bool) -> None:
+        from pqsse import bench
+
+        sizes = bench.BUILD_SIZES[:2] if quick else bench.BUILD_SIZES
+
+        def done(rows: list[dict]) -> None:
+            self._bench_raw_build = rows
+            self._bench_build = [{"occurrences": int(r["occurrences"]), "engine": str(r["engine"]),
+                                  "gpu": str(r["engine"]).upper().startswith("GPU"),
+                                  "prf_s": float(r["prf_s"]), "symmetric_s": float(r["prf_s"] + r["chain_s"]),
+                                  "total_s": float(r["total_s"]), "prf_speedup": float(r["prf_speedup"]),
+                                  "symmetric_speedup": float(r["symmetric_speedup"]), "total_speedup": float(r["total_speedup"])}
+                                 for r in rows]
+            self.insightsChanged.emit()
+
+        def work(progress) -> list[dict]:
+            with narrator.scope("practice"):            # measured on a throwaway copy, not on the user's system
+                return bench.run_build_benchmarks(sizes, progress)
+
+        self.runner.run(work, done, self._insight_error,
+                        "Measuring BuildIndex on the CPU and the GPU", locked=False)
+
+    @Slot()
+    def runOperationBenchmark(self) -> None:
+        from pqsse import bench
+
+        def done(rows: list[dict]) -> None:
+            self._bench_raw_ops = rows
+            self._bench_ops = [{"operation": str(r["operation"]), "params": f"{r['kem']} + {r['sig']}",
+                                "ms": float(r["milliseconds"])} for r in rows]
+            self.insightsChanged.emit()
+
+        def work(progress) -> list[dict]:
+            with narrator.scope("practice"):
+                return bench.run_operation_benchmarks(progress=progress)
+
+        self.runner.run(work, done, self._insight_error,
+                        "Measuring the ten operations", locked=False)
+
+    def _insight_error(self, exc: BaseException) -> None:
+        friendly = explain_full(exc)
+        self.last_error = {"what": friendly.what, "why": friendly.why, "next": friendly.next,
+                           "technical": friendly.technical, "where": "insights"}
+        self.failed.emit(self.last_error)
+
+    @Slot(result=str)
+    def exportBenchmarks(self) -> str:
+        """Write the measured rows as CSV files into the data folder and return that folder."""
+        from pqsse import bench
+
+        folder = paths.base_dir() / "bench_results"
+        folder.mkdir(parents=True, exist_ok=True)
+        if self._bench_raw_build:
+            bench.write_csv(folder / "buildindex.csv", self._bench_raw_build, bench.BUILD_COLUMNS)
+        if self._bench_raw_ops:
+            bench.write_csv(folder / "operations.csv", self._bench_raw_ops, bench.OPS_COLUMNS)
+        return str(folder)
+
+    @Property("QVariantMap", notify=settingsChanged)
+    def advanced(self) -> dict:
+        s = self.session.settings
+        return {"kem": s["kem"], "sig": s["sig"], "port": int(s["port"]), "ttl": float(s["state_ttl_hours"]),
+                "kems": list(pqbackend.KEM_NAMES), "sigs": list(pqbackend.SIG_NAMES)}
+
+    @Slot(str, str, int, float)
+    def setAdvanced(self, kem: str, sig: str, port: int, ttl_hours: float) -> None:
+        if kem in pqbackend.KEM_NAMES and sig in pqbackend.SIG_NAMES and 1024 <= int(port) <= 65535 and ttl_hours > 0:
+            self.session.settings.update(kem=kem, sig=sig, port=int(port), state_ttl_hours=float(ttl_hours))
+            self.session.save_settings()
+            self.settingsChanged.emit()
+
+    @Slot(str)
+    def openFolder(self, which: str) -> None:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(self.folder(which)))
+
+    @Property(str, notify=insightsChanged)
+    def logTail(self) -> str:
+        return self._log_tail
+
+    @Slot()
+    def refreshLog(self) -> None:
+        try:
+            lines = applog.log_file().read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            lines = []
+        self._log_tail = "\n".join(lines[-40:])
+        self.insightsChanged.emit()
+
+    @Property("QVariantList", notify=stateChanged)
+    def aboutRows(self) -> list[dict]:
+        from ..about import info_rows
+
+        return [{"label": label, "value": value} for label, value in info_rows(self.session)]
+
+    @Property(str, constant=True)
+    def licenses(self) -> str:
+        from ..about import license_text
+
+        return license_text()
 
     # ------------------------------------------------------------------ end
     def shutdown(self) -> None:

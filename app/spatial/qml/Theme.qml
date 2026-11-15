@@ -32,6 +32,8 @@ QtObject {
     readonly property color fail: dark ? "#FF7A7A" : "#B42318"
     readonly property color warn: dark ? "#FFC857" : "#8A6500"
     readonly property color attacker: dark ? "#FF5C7A" : "#B4233F"
+    readonly property color series1: dark ? "#3987e5" : "#2a78d6"     // chart: CPU (validated with the dataviz validator)
+    readonly property color series2: dark ? "#d95926" : "#eb6834"     // chart: GPU
     readonly property color onRole: dark ? "#07142B" : "#FFFFFF"
     readonly property color shadow: dark ? "#000000" : "#31456B"
 

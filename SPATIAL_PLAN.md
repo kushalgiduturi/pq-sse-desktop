@@ -125,9 +125,9 @@ reads this table and fails if a row has no new location.
 | 18 | Attack Lab: 11 scenarios | Attack Lab tab | Security Lab > attack cards | [x] |
 | 19 | Attack teaching (tries, caught by, without protection) | Attack Lab tab | Security Lab > attack detail; Inspector layer 4 | [x] |
 | 20 | Collusion demo R versus RE | Attack Lab tab, lesson step 11 | Security Lab > "R versus RE" side by side | [x] |
-| 21 | Benchmarks: run, charts, CSV export | Benchmarks tab | Insights > Benchmarks | [ ] |
-| 22 | Parameter set (ML-KEM, ML-DSA), cloud port, freshness window | Settings tab | Insights > Settings > Advanced | [ ] |
-| 23 | Engine mode (auto, CPU, GPU), GPU self-test, calibration | Settings tab | Insights > Engine | [ ] |
+| 21 | Benchmarks: run, charts, CSV export | Benchmarks tab | Insights > Benchmarks | [x] |
+| 22 | Parameter set (ML-KEM, ML-DSA), cloud port, freshness window | Settings tab | Insights > Settings > Advanced | [x] |
+| 23 | Engine mode (auto, CPU, GPU), GPU self-test, calibration | Settings tab | Insights > Engine | [x] |
 | 24 | Text size, reduce motion | Settings tab | Insights > Settings > Appearance (plus theme) | [x] |
 | 25 | Guided lesson: 13 steps, Do it for me, Let me try, Check my work, resume, reset | Learn tab | Journey | [x] |
 | 26 | Challenges (7) | Learn tab | Journey > Challenges | [x] |
@@ -139,8 +139,8 @@ reads this table and fails if a row has no new location.
 | 32 | Welcome screen and tour | First start, Help menu | First start sheet; Journey step 0; palette "Take the tour" | [ ] |
 | 33 | Beginner and Expert mode | Toolbar | Insights > Settings; status chip; palette | [x] |
 | 34 | Friendly three-part errors, Copy technical details | Footer of every tab | Error sheet on the card that failed, same three parts and copy button | [x] |
-| 35 | About (version, backend, GPU, licenses) | Help menu | Insights > About | [ ] |
-| 36 | Open data folder, open log folder | Help menu | Insights > Data and logs; palette | [ ] |
+| 35 | About (version, backend, GPU, licenses) | Help menu | Insights > About | [x] |
+| 36 | Open data folder, open log folder | Help menu | Insights > Data and logs; palette | [x] |
 | 37 | Lesson practice area and "your own data" switch | Learn tab header | Journey header; status chip shows which data is active | [x] |
 | 38 | Engine and backend line in the header | Header | Status chip (click opens Insights > Engine) | [x] |
 | 39 | `--smoke-test`, `--gpu-selftest`, `--version`, `--cloud` | Command line | Unchanged | [x] |

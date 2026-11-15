@@ -71,7 +71,7 @@ def main() -> int:
              lambda: bridge.setRole("bob"), None, lambda: shot("workspace-bob"),
              lambda: bridge.setRole("cloud"), None, lambda: shot("workspace-cloud"),
              lambda: page("lab"), lambda: bridge.runAttack("modify"), lambda: bridge.runAttack("collusion"),
-             lambda: lab().setProperty("chosen", "modify"), None, None, None, None, None, None, lambda: shot("lab"), lambda: page("insights"), lambda: shot("insights")]
+             lambda: lab().setProperty("chosen", "modify"), None, None, None, None, None, None, lambda: shot("lab"), lambda: page("insights"), lambda: bridge.runBuildBenchmark(True), None, None, lambda: shot("insights")]
 
     def step() -> None:
         if not plan:

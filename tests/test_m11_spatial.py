@@ -381,3 +381,43 @@ def test_security_lab_tasks_and_challenges_through_the_bridge(qapp):
         assert LONG_DASH not in json.dumps(bridge.attacks) + json.dumps(ui_copy.TRY) + json.dumps(ui_copy.CHALLENGE_HINTS)
     finally:
         bridge.shutdown()
+
+
+# ---------------------------------------------------------------- milestone 6: Insights
+def test_insights_engine_benchmark_settings_and_about(qapp, monkeypatch):
+    from pqsse import bench
+
+    bridge = AppBridge(new_session(), sync=True)
+    try:
+        fake = [dict(occurrences=1000, engine="CPU (hashlib)", prf_s=0.01, chain_s=0.002, documents_s=0.1, batch_sign_s=0.05,
+                     cloud_store_s=0.01, total_s=0.2, prf_speedup=1.0, symmetric_speedup=1.0, total_speedup=1.0),
+                dict(occurrences=1000, engine="GPU (CUDA)", prf_s=0.002, chain_s=0.001, documents_s=0.1, batch_sign_s=0.05,
+                     cloud_store_s=0.01, total_s=0.25, prf_speedup=5.0, symmetric_speedup=4.0, total_speedup=0.8)]
+        monkeypatch.setattr(bench, "run_build_benchmarks", lambda sizes, progress: fake)
+        bridge.runBuildBenchmark(True)
+        rows = bridge.benchBuild
+        assert [r["gpu"] for r in rows] == [False, True] and rows[1]["prf_speedup"] == 5.0
+        assert "not faster in this run" in bridge.benchSummary          # the summary does not turn a slowdown into a speedup
+        fake[1].update(total_s=0.1, total_speedup=2.0)
+        bridge.runBuildBenchmark(True)
+        assert "2.00 times faster" in bridge.benchSummary and "stay on the CPU" in bridge.benchSummary
+        folder = Path(bridge.exportBenchmarks())
+        assert (folder / "buildindex.csv").read_text(encoding="utf-8").startswith("occurrences,engine")
+
+        bridge.setEngineMode("cpu")
+        assert bridge.engineMode == "cpu" and bridge.engine == "CPU"
+        bridge.setEngineMode("warp")
+        assert bridge.engineMode == "cpu"
+        advanced = bridge.advanced
+        bridge.setAdvanced(advanced["kems"][0], advanced["sigs"][0], 8790, 12.0)
+        assert bridge.advanced["port"] == 8790 and bridge.advanced["ttl"] == 12.0
+        bridge.setAdvanced("nonsense", advanced["sigs"][0], 80, -1.0)
+        assert bridge.advanced["port"] == 8790
+        labels = [row["label"] for row in bridge.aboutRows]
+        assert "Version" in labels and "Data folder" in labels and "GPU" in labels
+        assert "MIT License" in bridge.licenses
+        bridge.refreshLog()
+        assert isinstance(bridge.logTail, str)
+        assert bridge.folder("logs").endswith("logs")
+    finally:
+        bridge.shutdown()
