@@ -6,16 +6,22 @@ First packaged release. Until now the app could only be run from source with Pyt
 
 | File | What it is | Size |
 | --- | --- | --- |
-| `PQ-SSE-Desktop-Setup-0.1.0.exe` | Installer, Standard build (CPU) | about 46 MB |
-| `PQ-SSE-Desktop-Setup-0.1.0-GPU.exe` | Installer, GPU build | about 115 MB |
-| `PQ-SSE-Desktop-0.1.0-portable-standard.zip` | Portable folder, Standard build | about 66 MB |
-| `PQ-SSE-Desktop-0.1.0-portable-gpu.zip` | Portable folder, GPU build | about 180 MB |
+| `PQ-SSE-Desktop-Setup-0.1.0.exe` | Installer, Standard build (CPU) | about 54 MB |
+| `PQ-SSE-Desktop-Setup-0.1.0-GPU.exe` | Installer, GPU build | about 123 MB |
+| `PQ-SSE-Desktop-0.1.0-portable-standard.zip` | Portable folder, Standard build | about 82 MB |
+| `PQ-SSE-Desktop-0.1.0-portable-gpu.zip` | Portable folder, GPU build | about 198 MB |
 | `SHA256SUMS.txt` | Checksums of the four files above | |
 
-Installed size: Standard about 170 MB, GPU about 370 MB.
+Installed size: Standard about 218 MB, GPU about 415 MB. The spatial window (Qt Quick) added about
+48 MB to the installed size and 8 MB to the Standard installer compared with the build before it.
 The exact checksums are in `SHA256SUMS.txt`; they change with every build.
 
 New in the program:
+
+- The **spatial window** is the default: a dock with five destinations (Journey, Stage, Workspace,
+  Security Lab, Insights), a Story bar, a command palette (Ctrl+K) and a Step Inspector that replays
+  every real step at four levels of detail. Start with `--classic` for the earlier six-tab window.
+  If Qt Quick cannot start, the classic window opens by itself.
 
 - Installer: per-user by default (no admin rights), Start Menu entry, optional desktop
   shortcut, entry under "Installed apps", upgrade in place, uninstaller that asks before
@@ -57,7 +63,10 @@ One machine, the development PC:
 
 What `build_release.ps1 -WithGpu` ran and passed there, on 2026-11-15:
 
-- The pytest suite: 125 passed.
+- The pytest suite: 141 passed.
+- For each build, `--ui-selftest` on the built exe, with the graphics chip and with the software
+  renderer: the spatial window loads with zero QML warnings, draws frames, opens all five
+  destinations, runs two real steps and opens the Step Inspector.
 - For each of the two builds, on the built `PQ-SSE-Desktop.exe`:
   - scan of the build folder: no database, key, settings or pairing file;
   - `--smoke-test`, 14 steps, also with `PQSSE_FORCE_CPU=1`: the real cloud child process,
@@ -88,6 +97,12 @@ What `build_release.ps1 -WithGpu` ran and passed there, on 2026-11-15:
   this case: smoke test passed on the CPU). This is not fixed in this release.
 - **The About dialog and the self-test show "CUDA runtime 12.9"** on the test PC. That is
   the CUDA version the installed driver reports, not the version of the bundled compiler (12.0).
+
+- **Installer test identity.** PQ-SSE Desktop was installed on the build PC (for all users) when
+  this release was built. So that install would not be upgraded and removed, the automatic
+  installer test ran on twin installers: the same script and files, compiled with the name
+  "PQ-SSE Desktop Test" and its own AppId. The release setup files themselves were not
+  installed by the test in that run.
 
 ## Not verified
 
@@ -124,5 +139,10 @@ Please read this list before giving the files to someone.
 - **Long sessions and large data in the packaged app.** The smoke test uses 9 small documents.
 - **Third-party files inside `_internal`** were shipped as they come. They were not
   reviewed line by line; only the license collection was cleaned of long dashes.
+- **The spatial window used by hand.** It was driven by scripts and checked on screenshots.
+  Nobody clicked through it; keyboard-only use and screen readers were not tried. Open
+  accessibility items are in `docs/design/accessibility.md`.
+- **The spatial window on weak graphics hardware**, on a 4K screen, and on a PC where Qt Quick
+  fails to start (the fallback to the classic window was not seen happening for real).
 - **Reproducible bytes.** Versions are pinned, but two builds do not give identical
   files (time stamps), so checksums differ between builds.

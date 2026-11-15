@@ -37,9 +37,12 @@ function Invoke-Helper {
 }
 
 # Runs the windowed program without a console, waits, prints its report file, returns the exit code.
-function Invoke-App([string]$Exe, [string]$Flag, [string]$Report) {
+# With -Visible the window is shown (the spatial window self-test must really draw frames).
+function Invoke-App([string]$Exe, [string]$Flag, [string]$Report, [switch]$Visible) {
     if (Test-Path $Report) { Remove-Item $Report -Force }
-    $proc = Start-Process -FilePath $Exe -ArgumentList @($Flag, "--report", "`"$Report`"") -Wait -PassThru -WindowStyle Hidden
+    $Style = "Hidden"
+    if ($Visible) { $Style = "Normal" }
+    $proc = Start-Process -FilePath $Exe -ArgumentList @($Flag, "--report", "`"$Report`"") -Wait -PassThru -WindowStyle $Style
     if (Test-Path $Report) { Get-Content $Report | ForEach-Object { Write-Host "    $_" } }
     else { Write-Host "    (the program wrote no report)" }
     return $proc.ExitCode
@@ -105,8 +108,11 @@ $PyiArgs = @(
     "--exclude-module", "pytest",
     "--exclude-module", "PySide6.QtWebEngineCore",
     "--exclude-module", "PySide6.QtWebEngineWidgets",
-    "--exclude-module", "PySide6.QtQuick",
-    "--exclude-module", "PySide6.QtQml"
+    "--exclude-module", "PySide6.QtQuick3D",
+    "--add-data", ((Join-Path $Root "app\spatial\qml") + ";app/spatial/qml"),
+    "--hidden-import", "PySide6.QtQuick",
+    "--hidden-import", "PySide6.QtQml",
+    "--hidden-import", "PySide6.QtQuickControls2"
 )
 
 if ($WithGpu) {
@@ -140,6 +146,28 @@ if (-not (Test-Path $Exe)) {
     Write-Host "Build finished but the executable was not found at $Exe."
     exit 1
 }
+
+# The spatial window uses Qt Quick. PyInstaller collects every QML module of the Qt
+# install; the app imports only QtQuick, QtQuick.Window, QtQuick.Effects and
+# QtQuick.Dialogs (which needs Controls). Remove the unrelated modules and their
+# libraries. The UI self-test below proves that nothing needed was removed.
+$QtDir = Join-Path $Dist "_internal\PySide6"
+$Before = (Get-ChildItem $Dist -Recurse -File | Measure-Object Length -Sum).Sum
+$QmlRemove = @("Qt3D", "QtQuick3D", "QtWebEngine", "QtWebView", "QtWebChannel", "QtWebSockets", "QtMultimedia", "QtLocation",
+               "QtPositioning", "QtSensors", "QtCharts", "QtDataVisualization", "QtGraphs", "QtScxml", "QtRemoteObjects",
+               "QtTextToSpeech", "QtTest", "QtPdf", "QtQuick\Pdf", "QtQuick\VirtualKeyboard", "QtQuick\Scene2D", "QtQuick\Scene3D",
+               "QtQuick\Timeline", "QtQuick\Particles", "QtQuick\LocalStorage", "QtQuick\VectorImage", "QtQuick\tooling")
+foreach ($Name in $QmlRemove) {
+    $Path = Join-Path $QtDir "qml\$Name"
+    if (Test-Path $Path) { Remove-Item $Path -Recurse -Force }
+}
+$DllRemove = @("Qt6Quick3D*.dll", "Qt63D*.dll", "Qt6VirtualKeyboard*.dll", "Qt6Multimedia*.dll", "Qt6Location*.dll", "Qt6Positioning*.dll",
+               "Qt6Sensors*.dll", "Qt6DataVisualization*.dll", "Qt6Graphs*.dll", "Qt6Scxml*.dll", "Qt6RemoteObjects*.dll",
+               "Qt6TextToSpeech*.dll", "Qt6WebChannel*.dll", "Qt6WebSockets*.dll", "Qt6WebView*.dll", "Qt6Pdf*.dll", "Qt6SpatialAudio*.dll",
+               "Qt6QuickTimeline*.dll", "Qt6QuickParticles*.dll", "Qt6QuickVectorImage*.dll", "Qt6StateMachine*.dll", "Qt6Test*.dll", "Qt6QuickTest*.dll")
+foreach ($Pattern in $DllRemove) { Get-ChildItem $QtDir -Filter $Pattern -File -ErrorAction SilentlyContinue | Remove-Item -Force }
+$After = (Get-ChildItem $Dist -Recurse -File | Measure-Object Length -Sum).Sum
+Write-Host ("Unused Qt modules removed: {0:N0} MB before, {1:N0} MB after." -f ($Before / 1MB), ($After / 1MB))
 
 # Readable files next to the exe: licenses and the user documentation.
 Copy-Item (Join-Path $Root "LICENSE") (Join-Path $Dist "LICENSE.txt") -Force
@@ -185,6 +213,18 @@ if (-not $SkipSmoke) {
     try { $Code = Invoke-App $Exe "--smoke-test" (Join-Path $Reports "smoke-$Tag-forced-cpu.txt") }
     finally { Remove-Item Env:PQSSE_FORCE_CPU -ErrorAction SilentlyContinue }
     if ($Code -ne 0) { Fail "the smoke test with PQSSE_FORCE_CPU=1 did not pass (exit code $Code)." }
+
+    # The spatial window: must load from the built program, with the graphics chip and without it.
+    Write-Host ""
+    Write-Host "Spatial window self-test of the built program:"
+    $Code = Invoke-App $Exe "--ui-selftest" (Join-Path $Reports "ui-$Tag.txt") -Visible
+    if ($Code -ne 0) { Fail "the spatial window did not pass its self-test in the built program (exit code $Code)." }
+    Write-Host ""
+    Write-Host "Spatial window self-test with the software renderer (QT_QUICK_BACKEND=software):"
+    $env:QT_QUICK_BACKEND = "software"
+    try { $Code = Invoke-App $Exe "--ui-selftest" (Join-Path $Reports "ui-$Tag-software.txt") -Visible }
+    finally { Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue }
+    if ($Code -ne 0) { Fail "the spatial window did not pass its self-test with the software renderer (exit code $Code)." }
 
     if ($WithGpu -and -not $SkipGpuSelfTest) {
         # Prove that the bundled runtime is what is used: hide any installed CUDA Toolkit first.

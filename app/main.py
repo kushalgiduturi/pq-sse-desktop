@@ -35,7 +35,7 @@ from .welcome import Tour, WelcomeDialog
 from .workers import TaskRunner
 
 ICON = "assets/pqsse.ico"
-NO_WINDOW_FLAGS = ("--smoke-test", "--gpu-selftest", "--version")
+NO_WINDOW_FLAGS = ("--smoke-test", "--gpu-selftest", "--version", "--ui-selftest")
 FONT_POINTS ={"small": 9, "normal": 10, "large": 13}
 STYLE = """
 QWidget {{ font-size: {pt}pt; }}

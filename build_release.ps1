@@ -118,8 +118,10 @@ function Build-Variant([string]$Name, [string]$OutDir, [switch]$Gpu) {
     return $Dist
 }
 
-function Compile-Installer([string]$Dist, [string]$Variant, [string]$AppVersion, [string]$OutDir, [string]$Base) {
-    & $Iscc /Q "/DAppVersion=$AppVersion" "/DVariant=$Variant" "/DSourceDir=$Dist" "/DOutputDir=$OutDir" "/DOutputBase=$Base" `
+function Compile-Installer([string]$Dist, [string]$Variant, [string]$AppVersion, [string]$OutDir, [string]$Base, [switch]$Twin) {
+    $Extra = @()
+    if ($Twin) { $Extra = @("/DTestInstall=1") }
+    & $Iscc /Q @Extra "/DAppVersion=$AppVersion" "/DVariant=$Variant" "/DSourceDir=$Dist" "/DOutputDir=$OutDir" "/DOutputBase=$Base" `
         (Join-Path $Root "installer\pqsse.iss") | Out-Host
     if ($LASTEXITCODE -ne 0) { Fail "Inno Setup could not compile the $Variant installer." }
     $File = Join-Path $OutDir "$Base.exe"
@@ -244,11 +246,23 @@ if ($SkipInstallerTest) {
     # A throwaway installer with an older version number, from the same files, to test upgrade in place.
     $OlderDir = Join-Path $BuildRoot "work-older-setup"
     if (Test-Path $OlderDir) { Remove-Item $OlderDir -Recurse -Force }
-    $Older = Compile-Installer $Builds[0].Dist "Standard" "0.0.1" $OlderDir "older-setup-for-upgrade-test"
+    # If PQ-SSE Desktop is really installed on this PC, the test must not upgrade and remove it.
+    # Then twin installers are tested instead: the same script and the same files, compiled
+    # with a separate name and AppId. Otherwise the release files themselves are tested.
+    $RealKey = "Software\Microsoft\Windows\CurrentVersion\Uninstall\{6E0B2C54-9D7A-4F5E-8B21-3C4A7D95E1F0}_is1"
+    $UseTwin = (Test-Path "HKCU:\$RealKey") -or (Test-Path "HKLM:\$RealKey")
+    if ($UseTwin) {
+        Write-Host "PQ-SSE Desktop is installed on this PC. Testing twin installers (name 'PQ-SSE Desktop Test') so that install stays untouched."
+        $Older = Compile-Installer $Builds[0].Dist "Standard" "0.0.1" $OlderDir "older-setup-for-upgrade-test" -Twin
+    } else {
+        $Older = Compile-Installer $Builds[0].Dist "Standard" "0.0.1" $OlderDir "older-setup-for-upgrade-test"
+    }
     foreach ($Build in $Builds) {
         Write-Host ""
         Write-Host "Installer, $($Build.Variant) (upgrade over an older Standard install):"
-        & (Join-Path $Root "scripts\test_installer.ps1") -Setup $Build.Setup -OlderSetup $Older -WorkDir (Join-Path $BuildRoot "installer-test") | Out-Host
+        $UnderTest = $Build.Setup
+        if ($UseTwin) { $UnderTest = Compile-Installer $Build.Dist $Build.Variant $Version $OlderDir ("twin-" + $Build.Base) -Twin }
+        & (Join-Path $Root "scripts\test_installer.ps1") -Setup $UnderTest -OlderSetup $Older -WorkDir (Join-Path $BuildRoot "installer-test") -Twin:$UseTwin | Out-Host
         if ($LASTEXITCODE -ne 0) { Fail "the installer test of $($Build.Setup) did not pass." }
     }
     Remove-Item $OlderDir -Recurse -Force -ErrorAction SilentlyContinue

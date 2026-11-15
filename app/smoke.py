@@ -315,11 +315,85 @@ def run_gpu_selftest(report: Path | None = None) -> int:
     return code
 
 
+def run_ui_selftest(report: Path | None = None) -> int:
+    """Open the spatial (Qt Quick) window for a few seconds on throwaway data and check it.
+
+    Proves that a build contains Qt Quick, the QML files and every QML module they import:
+    the window must load without a QML warning, draw frames, show all five destinations,
+    run two real steps (cloud start, owner setup) and open the Step Inspector.
+    """
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QApplication
+
+    data_dir = Path(tempfile.mkdtemp(prefix="pqsse-ui-"))
+    previous = os.environ.get("PQSSE_DATA_DIR")
+    os.environ["PQSSE_DATA_DIR"] = str(data_dir)
+    paths.set_profile("")
+    rows: list[tuple[str, bool, str]] = []
+    frames = [0]
+    try:
+        app = QApplication.instance() or QApplication(sys.argv[:1])
+        session = Session()
+        session.settings.update(port=free_port(), show_welcome=False, theme="dark")
+        try:
+            from .spatial.window import SpatialWindow
+
+            view = SpatialWindow(session, sync=True)
+        except Exception as exc:
+            rows.append(("Spatial window loads", False, f"{type(exc).__name__}: {exc}"))
+            view = None
+        if view is not None:
+            window, bridge = view.window, view.bridge
+            rows.append(("Spatial window loads", True, f"{window.width()} x {window.height()}, renderer: "
+                         f"{'software' if window.property('software') else 'graphics chip'}"))
+            window.frameSwapped.connect(lambda: frames.__setitem__(0, frames[0] + 1))
+            visited: list[str] = []
+            plan = [lambda key=key: (window.setProperty("page", key), visited.append(str(window.property("page"))))
+                    for key in ("journey", "stage", "workspace", "lab", "insights", "stage")]
+            plan += [lambda: bridge.runLessonStep(1), lambda: bridge.runLessonStep(2),
+                     lambda: bridge.runPalette("inspect"), None, None]
+
+            def step() -> None:
+                if not plan:
+                    app.quit()
+                    return
+                action = plan.pop(0)
+                if action is not None:
+                    action()
+                QTimer.singleShot(350, step)
+
+            QTimer.singleShot(600, step)
+            QTimer.singleShot(60000, app.quit)
+            app.exec()
+            kinds = [record["kind"] for record in bridge.events.records]
+            rows.append(("All five destinations open", visited[:5] == ["journey", "stage", "workspace", "lab", "insights"], ", ".join(visited[:5])))
+            rows.append(("Real steps run through the bridge", "cloud.started" in kinds and "setup.owner" in kinds and bridge.last_error is None,
+                         f"{len(kinds)} events recorded; last error: {bridge.last_error}"))
+            rows.append(("Step Inspector opens", window.property("inspectorOpen") is True, f"on event {window.property('inspectIndex')}"))
+            rows.append(("Frames were drawn", frames[0] > 5, f"{frames[0]} frames"))
+            rows.append(("No QML warning", not view.warnings, "; ".join(view.warnings[:3]) or "none"))
+            view.close()
+    finally:
+        if previous is None:
+            os.environ.pop("PQSSE_DATA_DIR", None)
+        else:
+            os.environ["PQSSE_DATA_DIR"] = previous
+        shutil.rmtree(data_dir, ignore_errors=True)
+    ok = bool(rows) and all(good for _, good, _ in rows)
+    lines = [f"{APP_NAME} spatial window self-test", f"version {get_version()} | packaged: {'yes' if paths.frozen() else 'no'}",
+             f"program: {sys.executable}", "-" * 72]
+    lines += [f"{'PASS' if good else 'FAIL'}  {name}: {detail}" for name, good, detail in rows]
+    lines += ["-" * 72, f"RESULT: {'PASS' if ok else 'FAIL'}", ""]
+    write_report("\n".join(lines), report)
+    return 0 if ok else 1
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="PQ-SSE-Desktop", add_help=False)
     parser.add_argument("--smoke-test", action="store_true")
     parser.add_argument("--gpu-selftest", action="store_true")
     parser.add_argument("--version", action="store_true")
+    parser.add_argument("--ui-selftest", action="store_true")
     parser.add_argument("--report", type=Path, default=None)
     args = parser.parse_args(argv)
     if args.version:
@@ -327,4 +401,6 @@ def main(argv: list[str]) -> int:
         return 0
     if args.gpu_selftest:
         return run_gpu_selftest(args.report)
+    if args.ui_selftest:
+        return run_ui_selftest(args.report)
     return run_smoke(args.report)

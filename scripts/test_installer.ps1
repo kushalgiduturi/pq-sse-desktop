@@ -21,11 +21,14 @@ param(
     [Parameter(Mandatory = $true)][string]$Setup,
     [string]$OlderSetup = "",
     [string]$WorkDir = "$env:LOCALAPPDATA\PQ-SSE-Desktop-build\installer-test",
-    [switch]$Force
+    [switch]$Force,
+    [switch]$Twin        # the setup files were built with /DTestInstall=1 (separate name and AppId)
 )
 
 $ErrorActionPreference = "Stop"
 $AppId = "{6E0B2C54-9D7A-4F5E-8B21-3C4A7D95E1F0}_is1"
+$AppName = "PQ-SSE Desktop"
+if ($Twin) { $AppId = "{B3A9E1D2-4C57-4E8A-9F06-5D2C7A1E8B44}_is1"; $AppName = "PQ-SSE Desktop Test" }
 $UninstallKeys = @("HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$AppId",
                    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$AppId")
 $Failures = 0
@@ -79,12 +82,12 @@ if ((Get-Entry) -and -not $Force) {
 
 $Admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)
-$InstallDir = Join-Path $WorkDir "Install Test Dir\PQ-SSE Desktop"
+$InstallDir = Join-Path $WorkDir "Install Test Dir\$AppName"
 $Exe = Join-Path $InstallDir "PQ-SSE-Desktop.exe"
 $TempData = Join-Path $WorkDir "temp-data"
 $RealData = Join-Path $env:LOCALAPPDATA "PQ-SSE-Desktop"
-$StartMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\PQ-SSE Desktop"
-$Desktop = Join-Path ([Environment]::GetFolderPath("Desktop")) "PQ-SSE Desktop.lnk"
+$StartMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\$AppName"
+$Desktop = Join-Path ([Environment]::GetFolderPath("Desktop")) "$AppName.lnk"
 $NewVersion = (Get-Item $Setup).VersionInfo.ProductVersion.Trim()
 
 if (Test-Path $WorkDir) { Remove-Item $WorkDir -Recurse -Force }
@@ -94,6 +97,7 @@ $SavedData = $env:PQSSE_DATA_DIR
 $env:PQSSE_DATA_DIR = $TempData
 
 Write-Host "Installer under test: $Setup (version $NewVersion)"
+if ($Twin) { Write-Host "Twin identity '$AppName': PQ-SSE Desktop itself is installed on this PC and is left untouched." }
 Write-Host "Install folder:        $InstallDir"
 Check (-not $Admin) "running without admin rights"
 
@@ -145,14 +149,14 @@ try {
     $Entry = Get-Entry
     Check ($null -ne $Entry) "uninstall entry exists (Apps and features)"
     if ($Entry) {
-        Check ($Entry.DisplayName -eq "PQ-SSE Desktop") "entry name is 'PQ-SSE Desktop'"
+        Check ($Entry.DisplayName -eq $AppName) "entry name is '$AppName'"
         Check ($Entry.DisplayVersion -eq $NewVersion) "entry version is $NewVersion (is $($Entry.DisplayVersion))"
         Check ($Entry.PSPath -like "*HKEY_CURRENT_USER*") "entry is per user (HKCU), no admin install"
         Check (Test-Path ($Entry.UninstallString.Trim('"'))) "the uninstaller exists"
     }
-    $AppLink = Join-Path $StartMenu "PQ-SSE Desktop.lnk"
+    $AppLink = Join-Path $StartMenu "$AppName.lnk"
     Check (Test-Path $AppLink) "Start Menu shortcut exists"
-    Check (Test-Path (Join-Path $StartMenu "Uninstall PQ-SSE Desktop.lnk")) "Start Menu uninstall shortcut exists"
+    Check (Test-Path (Join-Path $StartMenu "Uninstall $AppName.lnk")) "Start Menu uninstall shortcut exists"
     if (Test-Path $AppLink) {
         $Target = (New-Object -ComObject WScript.Shell).CreateShortcut($AppLink).TargetPath
         Check ($Target -eq $Exe) "the shortcut points to the installed program"

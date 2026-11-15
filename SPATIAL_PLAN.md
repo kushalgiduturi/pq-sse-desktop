@@ -4,9 +4,8 @@ Goal: replace the six flat tabs with a calm, spatial front end (depth, glass, a 
 focused object at a time), a task-based structure, real-event animations and a Step
 Inspector. The protocol, the cryptography, the cloud API and `pqsse/` stay as they are.
 
-Status: Milestones 0 to 4 done (shell, bridge, Stage, Step Inspector, Workspace). This is the
-second STOP: try the app. Journey polish, Security Lab, Insights, the accessibility and copy
-passes and packaging (milestones 5 to 8) are not built yet.
+Status: all milestones (0 to 8) are done. The feature map is fully ticked. What is still
+open is listed under S16 and in `docs/design/accessibility.md` and `docs/design/handoff.md`.
 
 ## 1. Technology decision (Milestone 0)
 
@@ -196,10 +195,16 @@ reads this table and fails if a row has no new location.
   p95 17.29 ms, max 18.05 ms (limits: 50 fps, p95 25 ms). Software renderer: motion is reduced
   automatically and frames are drawn on demand; drawing time per frame mean 0.87 ms, p95
   2.73 ms (limit 50 ms). Window created in 2.2 to 2.7 s including the Python imports.
-- **S16 Known gaps at the milestone 4 stop** (all planned): no document edit button yet (the
-  bridge has it), no tooltips on terms, "Open folder" buttons, Security Lab and Insights are
-  placeholders that point to `--classic`, the avatars are letters, some QML labels are still
-  written in the QML file instead of `copy.py`, and only Bob's and the first doctor's lens exist.
+- **S16 Still open after milestone 8**: Update and Revoke have no animation of their own (they
+  reuse Encrypt and Key exchange); no shared-element transition; avatars are letters and the
+  Canva illustrations were not made; 21 labels are still written in QML files instead of
+  `copy.py`; the lens exists for the first doctor only; focus is not trapped in sheets; no
+  screen reader or keyboard-only walk-through was done; text scales to 125 %, not 200 %.
+- **S17 Packaging.** `build_windows.ps1` bundles the QML files and Qt Quick, removes the Qt
+  modules the app does not import (3D, WebEngine, Multimedia, Charts QML, virtual keyboard and
+  others), and runs `--ui-selftest` on the built exe with the graphics chip and with the
+  software renderer. The test opens the real window, visits the five destinations, runs two
+  real steps and requires zero QML warnings and drawn frames.
 
 ## 7. Risks
 

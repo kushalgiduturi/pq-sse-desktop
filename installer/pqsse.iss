@@ -24,12 +24,20 @@
   #define OutputBase "PQ-SSE-Desktop-Setup-" + AppVersion
 #endif
 
-#define AppName "PQ-SSE Desktop"
+; /DTestInstall=1 builds a twin with its own identity (name, AppId). The installer test uses
+; it when PQ-SSE Desktop is really installed on the build PC, so that install is not touched.
+#ifdef TestInstall
+  #define AppName "PQ-SSE Desktop Test"
+  #define AppIdValue "{{B3A9E1D2-4C57-4E8A-9F06-5D2C7A1E8B44}"
+#else
+  #define AppName "PQ-SSE Desktop"
+  #define AppIdValue "{{6E0B2C54-9D7A-4F5E-8B21-3C4A7D95E1F0}"
+#endif
 #define AppExe "PQ-SSE-Desktop.exe"
 #define DataFolder "PQ-SSE-Desktop"
 
 [Setup]
-AppId={{6E0B2C54-9D7A-4F5E-8B21-3C4A7D95E1F0}
+AppId={#AppIdValue}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}

@@ -34,11 +34,12 @@ The developer setup from source is further down, under "Setup".
 `python -m app` now opens the **spatial window**: a dock with five destinations (Journey,
 Stage, Workspace, Security Lab, Insights), a Story bar that says in one sentence what is
 happening, and a Step Inspector that replays every real step at four levels of detail.
-It is under construction: see [SPATIAL_PLAN.md](SPATIAL_PLAN.md) for what is finished.
+See [SPATIAL_PLAN.md](SPATIAL_PLAN.md) for the plan, the feature map and what is still open.
 
-`python -m app --classic` opens the earlier six-tab window with every feature, including
-the Attack Lab, Benchmarks and the full settings, which have not moved to the new window yet.
-The packaged build still opens the classic window until its packaging milestone.
+`python -m app --classic` (or `PQ-SSE-Desktop.exe --classic`) opens the earlier six-tab
+window. It is kept until you decide it can go. The installed app opens the spatial window
+too; if Qt Quick cannot start on a PC, it opens the classic window by itself and says so
+in the log.
 
 ## New here? Start with Learn Mode
 
