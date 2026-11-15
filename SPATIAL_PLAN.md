@@ -4,8 +4,9 @@ Goal: replace the six flat tabs with a calm, spatial front end (depth, glass, a 
 focused object at a time), a task-based structure, real-event animations and a Step
 Inspector. The protocol, the cryptography, the cloud API and `pqsse/` stay as they are.
 
-Status: Milestone 0 done. Milestone 1 (references, tokens, mockups, feature map) is the
-first STOP: nothing of the real UI is built before you approve it.
+Status: Milestones 0 to 4 done (shell, bridge, Stage, Step Inspector, Workspace). This is the
+second STOP: try the app. Journey polish, Security Lab, Insights, the accessibility and copy
+passes and packaging (milestones 5 to 8) are not built yet.
 
 ## 1. Technology decision (Milestone 0)
 
@@ -104,46 +105,46 @@ reads this table and fails if a row has no new location.
 
 | # | Feature today | Old location | New location | Done |
 | --- | --- | --- | --- | --- |
-| 1 | Create or unlock the owner (Setup) | Owner tab | Workspace > Alice > card "Alice's keys" | [ ] |
-| 2 | Pair owner with cloud (import key files) | Owner tab, Cloud tab | Workspace > Alice > "Alice's keys" > More options; Workspace > Cloud > Server | [ ] |
-| 3 | Create groups | Owner tab | Workspace > Alice > People and access | [ ] |
-| 4 | See and approve join requests, choose groups | Owner tab | Workspace > Alice > People and access | [ ] |
+| 1 | Create or unlock the owner (Setup) | Owner tab | Workspace > Alice > card "Alice's keys" | [x] |
+| 2 | Pair owner with cloud (import key files) | Owner tab, Cloud tab | Workspace > Alice > "Alice's keys" > More options; Workspace > Cloud > Server | [x] |
+| 3 | Create groups | Owner tab | Workspace > Alice > People and access | [x] |
+| 4 | See and approve join requests, choose groups | Owner tab | Workspace > Alice > People and access | [x] |
 | 5 | Add, edit, delete, import documents (.txt, .md, .pdf) | Owner tab | Workspace > Alice > Documents | [ ] |
-| 6 | Build index | Owner tab | Workspace > Alice > Documents (primary button "Lock and upload") | [ ] |
-| 7 | Publish state | Owner tab | Workspace > Alice > Publish | [ ] |
+| 6 | Build index | Owner tab | Workspace > Alice > Documents (primary button "Lock and upload") | [x] |
+| 7 | Publish state | Owner tab | Workspace > Alice > Publish | [x] |
 | 8 | Group overview (epoch, version, entries, dirty) | Owner tab | Workspace > Alice > Publish (summary), Inspector layer 3 | [ ] |
-| 9 | Revoke with policy R or RE | Owner tab | Workspace > Alice > Revoke | [ ] |
-| 10 | Create or unlock a receiver | Receiver tab | Workspace > Bob / Carol > card "Keys" (plus "Add a person" in the rail) | [ ] |
-| 11 | Pair receiver, send join request, fetch mailbox | Receiver tab | Workspace > Bob / Carol > Join | [ ] |
-| 12 | Search a group | Receiver tab | Workspace > Bob / Carol > Search | [ ] |
-| 13 | Verification panel (8 checks) | Receiver tab | Workspace > Bob / Carol > Verify; Inspector on Verify | [ ] |
-| 14 | Open (decrypt) a result | Receiver tab | Workspace > Bob / Carol > Open | [ ] |
-| 15 | Start and stop the cloud, passphrase | Cloud tab | Workspace > Cloud > Server; status chip | [ ] |
-| 16 | Cloud request log | Cloud tab | Workspace > Cloud > Activity log | [ ] |
-| 17 | Cloud statistics and stored data peek | Cloud tab | Workspace > Cloud > What it stores; Stage lens "Cloud sees" | [ ] |
+| 9 | Revoke with policy R or RE | Owner tab | Workspace > Alice > Revoke | [x] |
+| 10 | Create or unlock a receiver | Receiver tab | Workspace > Bob / Carol > card "Keys" (plus "Add a person" in the rail) | [x] |
+| 11 | Pair receiver, send join request, fetch mailbox | Receiver tab | Workspace > Bob / Carol > Join | [x] |
+| 12 | Search a group | Receiver tab | Workspace > Bob / Carol > Search | [x] |
+| 13 | Verification panel (8 checks) | Receiver tab | Workspace > Bob / Carol > Verify; Inspector on Verify | [x] |
+| 14 | Open (decrypt) a result | Receiver tab | Workspace > Bob / Carol > Open | [x] |
+| 15 | Start and stop the cloud, passphrase | Cloud tab | Workspace > Cloud > Server; status chip | [x] |
+| 16 | Cloud request log | Cloud tab | Workspace > Cloud > Activity log | [x] |
+| 17 | Cloud statistics and stored data peek | Cloud tab | Workspace > Cloud > What it stores; Stage lens "Cloud sees" | [x] |
 | 18 | Attack Lab: 11 scenarios | Attack Lab tab | Security Lab > attack cards | [ ] |
 | 19 | Attack teaching (tries, caught by, without protection) | Attack Lab tab | Security Lab > attack detail; Inspector layer 4 | [ ] |
 | 20 | Collusion demo R versus RE | Attack Lab tab, lesson step 11 | Security Lab > "R versus RE" side by side | [ ] |
 | 21 | Benchmarks: run, charts, CSV export | Benchmarks tab | Insights > Benchmarks | [ ] |
 | 22 | Parameter set (ML-KEM, ML-DSA), cloud port, freshness window | Settings tab | Insights > Settings > Advanced | [ ] |
 | 23 | Engine mode (auto, CPU, GPU), GPU self-test, calibration | Settings tab | Insights > Engine | [ ] |
-| 24 | Text size, reduce motion | Settings tab | Insights > Settings > Appearance (plus theme) | [ ] |
+| 24 | Text size, reduce motion | Settings tab | Insights > Settings > Appearance (plus theme) | [x] |
 | 25 | Guided lesson: 13 steps, Do it for me, Let me try, Check my work, resume, reset | Learn tab | Journey | [ ] |
 | 26 | Challenges (7) | Learn tab | Journey > Challenges | [ ] |
-| 27 | Who sees what, "show a document as the cloud sees it" | Learn tab | Stage lens (Everyone, Alice, Bob, Cloud) | [ ] |
-| 28 | Narrator lines with "Tell me more" | Narrator dock | Story bar (current sentence), Inspector layer 1, session timeline | [ ] |
-| 29 | Data-flow diagram with packets | Narrator dock | Stage | [ ] |
-| 30 | Slow motion, pause, packet list | Narrator dock | Inspector controls (play, pause, step, speed, replay), sub-step list | [ ] |
+| 27 | Who sees what, "show a document as the cloud sees it" | Learn tab | Stage lens (Everyone, Alice, Bob, Cloud) | [x] |
+| 28 | Narrator lines with "Tell me more" | Narrator dock | Story bar (current sentence), Inspector layer 1, session timeline | [x] |
+| 29 | Data-flow diagram with packets | Narrator dock | Stage | [x] |
+| 30 | Slow motion, pause, packet list | Narrator dock | Inspector controls (play, pause, step, speed, replay), sub-step list | [x] |
 | 31 | Glossary (F1), glossary search, term tooltips | Help menu, tooltips | Ctrl+K palette, F1 glossary sheet, term chips in the Inspector | [ ] |
 | 32 | Welcome screen and tour | First start, Help menu | First start sheet; Journey step 0; palette "Take the tour" | [ ] |
-| 33 | Beginner and Expert mode | Toolbar | Insights > Settings; status chip; palette | [ ] |
-| 34 | Friendly three-part errors, Copy technical details | Footer of every tab | Error sheet on the card that failed, same three parts and copy button | [ ] |
+| 33 | Beginner and Expert mode | Toolbar | Insights > Settings; status chip; palette | [x] |
+| 34 | Friendly three-part errors, Copy technical details | Footer of every tab | Error sheet on the card that failed, same three parts and copy button | [x] |
 | 35 | About (version, backend, GPU, licenses) | Help menu | Insights > About | [ ] |
 | 36 | Open data folder, open log folder | Help menu | Insights > Data and logs; palette | [ ] |
-| 37 | Lesson practice area and "your own data" switch | Learn tab header | Journey header; status chip shows which data is active | [ ] |
-| 38 | Engine and backend line in the header | Header | Status chip (click opens Insights > Engine) | [ ] |
-| 39 | `--smoke-test`, `--gpu-selftest`, `--version`, `--cloud` | Command line | Unchanged | [ ] |
-| 40 | The whole old window | Default | `--classic` until you say it can go | [ ] |
+| 37 | Lesson practice area and "your own data" switch | Learn tab header | Journey header; status chip shows which data is active | [x] |
+| 38 | Engine and backend line in the header | Header | Status chip (click opens Insights > Engine) | [x] |
+| 39 | `--smoke-test`, `--gpu-selftest`, `--version`, `--cloud` | Command line | Unchanged | [x] |
+| 40 | The whole old window | Default | `--classic` until you say it can go | [x] |
 
 ## 5. Milestones
 
@@ -176,6 +177,29 @@ reads this table and fails if a row has no new location.
 - **S10 QML modules to bundle**: QtQuick, QtQuick.Window, QtQuick.Effects, QtQuick.Controls
   (Basic style only), QtQuick.Layouts, QtQuick.Shapes, QtQuick.Particles. Everything else
   is excluded from the build.
+
+- **S11 Blur only on the floating layer.** The Story bar, dock, inspector, palette and sheets
+  sample one blurred half-size copy of the room. Content cards are a strong tint (86 %) with a
+  rim and a cheap shadow. Reason: many cards are on screen at once, and text contrast must not
+  depend on what is behind a card.
+- **S12 One read-only hook in the core**: `narrator.scope(name)` labels the events a thread
+  emits inside a block, and the Attack Lab runs inside `scope("practice")`. The Stage and the
+  Story bar ignore practice-copy events, so a comparison on a throwaway copy does not look like
+  Alice creating new keys. Nothing about what is emitted changed; covered by a test.
+- **S13 The spatial window is the default.** `--classic` opens the old window. If Qt Quick or
+  the QML files are missing (the current packaged build excludes them until milestone 8), the
+  app opens the classic window by itself and writes that to the log.
+- **S14 "Play the story for me" on the Stage and "Run this step for me" in Journey** call the
+  existing lesson actions in the practice area. They are the same real operations as before.
+- **S15 Measured after milestone 4** (`scripts/spatial_perf.py`, this PC, 1440 x 900, Stage
+  with the inspector replaying BuildIndex): GPU renderer 60.0 fps, frame time mean 16.67 ms,
+  p95 17.29 ms, max 18.05 ms (limits: 50 fps, p95 25 ms). Software renderer: motion is reduced
+  automatically and frames are drawn on demand; drawing time per frame mean 0.87 ms, p95
+  2.73 ms (limit 50 ms). Window created in 2.2 to 2.7 s including the Python imports.
+- **S16 Known gaps at the milestone 4 stop** (all planned): no document edit button yet (the
+  bridge has it), no tooltips on terms, "Open folder" buttons, Security Lab and Insights are
+  placeholders that point to `--classic`, the avatars are letters, some QML labels are still
+  written in the QML file instead of `copy.py`, and only Bob's and the first doctor's lens exist.
 
 ## 7. Risks
 

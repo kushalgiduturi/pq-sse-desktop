@@ -29,6 +29,17 @@ To build the installer and the zip yourself (developers), one command:
 
 The developer setup from source is further down, under "Setup".
 
+## Two windows: spatial (new, default) and classic
+
+`python -m app` now opens the **spatial window**: a dock with five destinations (Journey,
+Stage, Workspace, Security Lab, Insights), a Story bar that says in one sentence what is
+happening, and a Step Inspector that replays every real step at four levels of detail.
+It is under construction: see [SPATIAL_PLAN.md](SPATIAL_PLAN.md) for what is finished.
+
+`python -m app --classic` opens the earlier six-tab window with every feature, including
+the Attack Lab, Benchmarks and the full settings, which have not moved to the new window yet.
+The packaged build still opens the classic window until its packaging milestone.
+
 ## New here? Start with Learn Mode
 
 You do not need to know any cryptography. Start the app and press **Start the guided lesson**

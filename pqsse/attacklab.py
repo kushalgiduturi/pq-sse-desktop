@@ -13,7 +13,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Callable
 
-from . import pqbackend
+from . import narrator, pqbackend
 from .attacks import Recorder, TamperCloud
 from .core import signing, wire
 from .core.errors import PQSSEError, Rejected, VerifyError
@@ -364,6 +364,19 @@ TEACH: dict[str, dict[str, str]] = {
 }
 
 
+def _on_practice_copy(fn: Callable[[], Outcome]) -> Callable[[], Outcome]:
+    """Label the narrator events of a scenario as coming from a throwaway copy."""
+    def run() -> Outcome:
+        with narrator.scope("practice"):
+            return fn()
+
+    run.__name__ = fn.__name__
+    run.__doc__ = fn.__doc__
+    return run
+
+
+collusion_demo = _on_practice_copy(collusion_demo)
+
 SCENARIOS: list[tuple[str, str, str, Callable[[], Outcome]]] = [
     ("drop", "Drop a result", "The cloud omits one matching entry.", drop_result),
     ("modify", "Modify a result", "The cloud changes one returned value.", modify_result),
@@ -384,7 +397,8 @@ def run_scenario(key: str) -> Outcome:
     for name, title, _, fn in SCENARIOS:
         if name == key:
             try:
-                return fn()
+                with narrator.scope("practice"):
+                    return fn()
             except PQSSEError as exc:
                 return Outcome(key, title, False, f"ERROR: {type(exc).__name__}: {exc}")
     raise KeyError(key)

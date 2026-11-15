@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -26,6 +27,7 @@ class Event:
     who: str
     data: dict = field(default_factory=dict)
     ts: float = 0.0
+    scope: str = ""     # "" = the real system; "practice" = a throwaway copy (Attack Lab, comparisons)
 
 
 @dataclass(frozen=True)
@@ -216,6 +218,23 @@ STORIES: dict[str, Story] = {
 
 _lock = threading.Lock()
 _subscribers: list[Callable[[Event], None]] = []
+_local = threading.local()
+
+
+@contextmanager
+def scope(name: str):
+    """Label every event emitted by this thread inside the block (read-only hook for the UI).
+
+    The Attack Lab and the policy comparison run on throwaway copies of the system. They
+    use the same code, so they emit the same events. The label lets a listener tell them
+    apart from events of the real system. It changes nothing about what is emitted.
+    """
+    previous = getattr(_local, "scope", "")
+    _local.scope = name
+    try:
+        yield
+    finally:
+        _local.scope = previous
 
 
 class _Safe(dict):
@@ -256,7 +275,7 @@ def emit(kind: str, who: str = "", **facts: object) -> None:
         return
     for value in facts.values():
         _check(value)
-    event = Event(kind, display_name(who), dict(facts), time.time())
+    event = Event(kind, display_name(who), dict(facts), time.time(), getattr(_local, "scope", ""))
     for fn in targets:
         try:
             fn(event)

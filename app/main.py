@@ -317,7 +317,29 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
 
+def run_spatial(app: QApplication, session: Session) -> int | None:
+    """Open the spatial (Qt Quick) window and run until it closes.
+
+    Returns None when Qt Quick or the QML files are not part of this build, or when the
+    window cannot be loaded. The caller then opens the classic window, so the app always starts.
+    """
+    try:
+        from .spatial.window import SpatialWindow, qml_path
+
+        if not qml_path().exists():
+            return None
+        view = SpatialWindow(session)
+    except Exception as exc:
+        applog.log.warning("Spatial window failed to load: %s", exc)
+        return None
+    for line in view.warnings:
+        applog.log.warning("QML: %s", line)
+    app.aboutToQuit.connect(view.bridge.shutdown)
+    return app.exec()
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Start the app. Flags: --classic (the old window), --cloud, --smoke-test, --gpu-selftest, --version."""
     args = list(sys.argv[1:] if argv is None else argv)
     gpu_runtime.prepare()                # packaged GPU build: find the bundled CUDA compiler before CuPy loads
     if args and args[0] == "--cloud":
@@ -345,6 +367,14 @@ def main(argv: list[str] | None = None) -> int:
     if session.first_run:
         session.settings["mode"] = "beginner"      # a new user starts in Beginner Mode
         session.save_settings()
+    classic = "--classic" in args
+    if not classic:
+        code = run_spatial(app, session)
+        if code is not None:
+            applog.log.info("%s closed", APP_NAME)
+            applog.shutdown()
+            return code
+        applog.log.warning("The spatial window is not available in this build. Opening the classic window.")
     window = MainWindow(session)
     window.show()
     QTimer.singleShot(0, window.raise_)
