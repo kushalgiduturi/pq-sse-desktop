@@ -50,6 +50,11 @@ def main() -> int:
     def shot(name: str) -> None:
         window.grabWindow().save(str(args.out / f"{args.prefix}-{name}.png"))
 
+    def lab():
+        from PySide6.QtCore import QObject
+
+        return next(o for o in window.findChildren(QObject) if o.metaObject().className().startswith("PageLab"))
+
     def page(key: str) -> None:
         window.setProperty("page", key)
 
@@ -65,7 +70,8 @@ def main() -> int:
              lambda: page("workspace"), lambda: bridge.setRole("alice"), None, lambda: shot("workspace-alice"),
              lambda: bridge.setRole("bob"), None, lambda: shot("workspace-bob"),
              lambda: bridge.setRole("cloud"), None, lambda: shot("workspace-cloud"),
-             lambda: page("lab"), lambda: shot("lab"), lambda: page("insights"), lambda: shot("insights")]
+             lambda: page("lab"), lambda: bridge.runAttack("modify"), lambda: bridge.runAttack("collusion"),
+             lambda: lab().setProperty("chosen", "modify"), None, None, None, None, None, None, lambda: shot("lab"), lambda: page("insights"), lambda: shot("insights")]
 
     def step() -> None:
         if not plan:

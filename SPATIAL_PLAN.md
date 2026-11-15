@@ -122,15 +122,15 @@ reads this table and fails if a row has no new location.
 | 15 | Start and stop the cloud, passphrase | Cloud tab | Workspace > Cloud > Server; status chip | [x] |
 | 16 | Cloud request log | Cloud tab | Workspace > Cloud > Activity log | [x] |
 | 17 | Cloud statistics and stored data peek | Cloud tab | Workspace > Cloud > What it stores; Stage lens "Cloud sees" | [x] |
-| 18 | Attack Lab: 11 scenarios | Attack Lab tab | Security Lab > attack cards | [ ] |
-| 19 | Attack teaching (tries, caught by, without protection) | Attack Lab tab | Security Lab > attack detail; Inspector layer 4 | [ ] |
-| 20 | Collusion demo R versus RE | Attack Lab tab, lesson step 11 | Security Lab > "R versus RE" side by side | [ ] |
+| 18 | Attack Lab: 11 scenarios | Attack Lab tab | Security Lab > attack cards | [x] |
+| 19 | Attack teaching (tries, caught by, without protection) | Attack Lab tab | Security Lab > attack detail; Inspector layer 4 | [x] |
+| 20 | Collusion demo R versus RE | Attack Lab tab, lesson step 11 | Security Lab > "R versus RE" side by side | [x] |
 | 21 | Benchmarks: run, charts, CSV export | Benchmarks tab | Insights > Benchmarks | [ ] |
 | 22 | Parameter set (ML-KEM, ML-DSA), cloud port, freshness window | Settings tab | Insights > Settings > Advanced | [ ] |
 | 23 | Engine mode (auto, CPU, GPU), GPU self-test, calibration | Settings tab | Insights > Engine | [ ] |
 | 24 | Text size, reduce motion | Settings tab | Insights > Settings > Appearance (plus theme) | [x] |
-| 25 | Guided lesson: 13 steps, Do it for me, Let me try, Check my work, resume, reset | Learn tab | Journey | [ ] |
-| 26 | Challenges (7) | Learn tab | Journey > Challenges | [ ] |
+| 25 | Guided lesson: 13 steps, Do it for me, Let me try, Check my work, resume, reset | Learn tab | Journey | [x] |
+| 26 | Challenges (7) | Learn tab | Journey > Challenges | [x] |
 | 27 | Who sees what, "show a document as the cloud sees it" | Learn tab | Stage lens (Everyone, Alice, Bob, Cloud) | [x] |
 | 28 | Narrator lines with "Tell me more" | Narrator dock | Story bar (current sentence), Inspector layer 1, session timeline | [x] |
 | 29 | Data-flow diagram with packets | Narrator dock | Stage | [x] |

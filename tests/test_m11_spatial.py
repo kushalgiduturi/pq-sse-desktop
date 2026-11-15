@@ -331,3 +331,53 @@ def test_feature_map_has_a_new_place_for_every_old_feature():
     assert len(check_feature_map.rows(text)) >= 40
     broken = text.replace("| Workspace > Alice > Publish |", "|  |", 1)
     assert broken != text and check_feature_map.check(broken)
+
+
+# ---------------------------------------------------------------- milestone 5: Security Lab, tasks, challenges
+def test_security_lab_tasks_and_challenges_through_the_bridge(qapp):
+    bridge = AppBridge(new_session(), sync=True)
+    navigations, finished = [], []
+    bridge.navigate.connect(navigations.append)
+    bridge.attackFinished.connect(finished.append)
+    try:
+        assert len(bridge.attacks) == 11 and not any(a["ran"] for a in bridge.attacks)
+        assert len(bridge.challengeList) == 7 and not any(c["done"] for c in bridge.challengeList)
+        for item in bridge.challengeList:
+            assert item["hint"] and "tab" not in item["hint"].lower()        # hints describe the new window
+
+        bridge.runAttack("modify")
+        bridge.runAttack("collusion")
+        assert finished == ["modify", "collusion"]
+        modify = next(a for a in bridge.attacks if a["key"] == "modify")
+        assert modify["ran"] and modify["passed"] and "hash chain" in modify["caughtBy"]
+        assert modify["checks"] and modify["checks"][-1][1] is False          # the check that caught it is the last one reached
+        assert modify["tries"] and modify["without"]
+        collusion = next(a for a in bridge.attacks if a["key"] == "collusion")
+        assert collusion["ran"] and len(collusion["lines"]) >= 3
+        attack_records = [r for r in bridge.events.records if r["kind"] == "attack"]
+        assert len(attack_records) == 2 and attack_records[0]["scope"] == ""
+        assert all(r["scope"] == "practice" for r in bridge.events.records if r["kind"] != "attack")
+        done = {c["key"] for c in bridge.challengeList if c["done"]}
+        assert {"attack", "compare"} <= done
+
+        # "Let me try": the task opens where it is done, in the practice area, and "Check my work" follows reality.
+        bridge.tryLessonStep(1)
+        assert bridge.practice and bridge.task["step"] == 1 and "Start the cloud" in bridge.task["text"]
+        assert navigations[-1] == "workspace" and bridge.role == "cloud"
+        bridge.checkLessonStep(1)
+        assert bridge.lessonCheck == {"step": 1, "ok": False, "text": ui_copy.T["checkNo"]}
+        bridge.startCloud("lesson")
+        bridge.checkLessonStep(1)
+        assert bridge.lessonCheck["ok"] is True and bridge.task == {} and "cloud" in bridge.lessonDone
+        for key, (where, text) in ui_copy.TRY.items():
+            assert key in {s.key for s in lesson.STEPS} and where in ("alice", "bob", "cloud", "lab") and text
+
+        for index in range(2, 6):
+            bridge.runLessonStep(index)
+        bridge.noteCloudView()
+        assert "cloudview" in {c["key"] for c in bridge.challengeList if c["done"]}
+        bridge.resetChallenges()
+        assert not any(c["done"] for c in bridge.challengeList)
+        assert LONG_DASH not in json.dumps(bridge.attacks) + json.dumps(ui_copy.TRY) + json.dumps(ui_copy.CHALLENGE_HINTS)
+    finally:
+        bridge.shutdown()

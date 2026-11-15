@@ -101,7 +101,7 @@ Glass {
                 Loader {
                     anchors.fill: parent; anchors.margins: 12
                     active: ins.shown !== null
-                    source: !ins.shown ? "" : ({ encrypt: "AnimEncrypt.qml", kem: "AnimKem.qml", sign: "AnimSign.qml",
+                    source: !ins.shown ? "" : ins.shown.kind.indexOf("attack:") === 0 ? "AnimAttack.qml" : ({ encrypt: "AnimEncrypt.qml", kem: "AnimKem.qml", sign: "AnimSign.qml",
                                                  search: "AnimSearch.qml", verify: "AnimVerify.qml" })[ins.shown.anim] || "AnimMove.qml"
                     onLoaded: {
                         item.record = Qt.binding(function () { return ins.shown })

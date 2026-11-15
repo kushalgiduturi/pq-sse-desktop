@@ -8,6 +8,7 @@ Item {
     property bool active: false
     property int lens: 0                    // 0 everyone, 1 Alice, 2 first doctor, 3 cloud
     property string lit: ""                 // the zone that acted last
+    onLensChanged: if (lens === 3) app.noteCloudView()
     signal inspect(int index)
 
     readonly property var owner: app.state.owner

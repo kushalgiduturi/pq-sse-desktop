@@ -25,6 +25,7 @@ Window {
 
     function go(key) { if (pages.indexOf(key) >= 0) page = key }
     function inspect(index) {
+        inspector.override = null
         if (events.count === 0) { inspectIndex = -1; inspectorOpen = true; return }
         inspectIndex = Math.max(0, Math.min(events.count - 1, index))
         inspectorOpen = true
@@ -136,7 +137,7 @@ Window {
         Page { key: "journey"; PageJourney { anchors.fill: parent; onInspect: (i) => win.inspect(i) } }
         Page { key: "stage"; PageStage { anchors.fill: parent; active: win.page === "stage"; onInspect: (i) => win.inspect(i) } }
         Page { key: "workspace"; PageWorkspace { anchors.fill: parent; onInspect: (i) => win.inspect(i) } }
-        Page { key: "lab"; PageLab { anchors.fill: parent } }
+        Page { key: "lab"; PageLab { anchors.fill: parent; onInspect: (record) => { inspector.override = record; win.inspectorOpen = true } } }
         Page { key: "insights"; PageInsights { anchors.fill: parent } }
     }
 

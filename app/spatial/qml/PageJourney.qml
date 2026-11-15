@@ -1,5 +1,6 @@
-// Journey: the guided lesson. The steps run on the real system in the practice area.
-// (The fully visual path, challenges and "Let me try" arrive in milestone 5.)
+// Journey: the guided lesson as a path of steps. Each step can be run for you on the real
+// system ("Run this step for me") or done by hand ("Let me try", then "Check my work").
+// Challenges sit beside it. Everything happens in the practice area.
 import QtQuick
 
 Item {
@@ -8,7 +9,11 @@ Item {
     readonly property var steps: app.lessonSteps
     readonly property int current: app.lessonStep
     readonly property var step: steps[current]
+    readonly property var challenges: app.challengeList
+    readonly property int challengesDone: challenges.filter(function (c) { return c.done }).length
+    property string hintFor: ""
     function isDone(key) { return app.lessonDone.indexOf(key) >= 0 }
+    function fill(text, map) { for (var k in map) text = text.split("{" + k + "}").join(map[k]); return text }
 
     Column {
         id: header
@@ -18,7 +23,7 @@ Item {
         Lbl { text: T.journeySub; tone: "secondary"; size: Theme.bodyLarge; width: parent.width }
     }
 
-    // the path
+    // ---------------------------------------------------------------- the path
     Glass {
         id: path
         anchors.top: header.bottom; anchors.topMargin: Theme.s16
@@ -39,13 +44,21 @@ Item {
                     height: parent.height
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
-                    Accessible.name: "Step " + (index + 1) + ": " + modelData.title + (done ? ". " + T.journeyDone : "")
+                    Accessible.name: page.fill(T.journeyStepOf, { n: index + 1, all: page.steps.length }) + ": " + modelData.title + (done ? ". " + T.journeyDone : "")
                     Keys.onReturnPressed: app.setLessonStep(index)
-                    Rectangle {          // link to the next step
+                    Keys.onSpacePressed: app.setLessonStep(index)
+                    Rectangle {
                         visible: node.index < page.steps.length - 1
-                        x: parent.width / 2 + 16; y: 16
-                        width: parent.width - 32; height: 3; radius: 2
+                        x: parent.width / 2 + 18; y: 16
+                        width: parent.width - 36; height: 3; radius: 2
                         color: node.done ? Theme.ok : Theme.tint(Theme.glassStroke, 0.7)
+                        Behavior on color { ColorAnimation { duration: Theme.slow } }
+                    }
+                    Rectangle {          // the current step has a soft ring around it
+                        visible: node.on
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: -5; width: 44; height: 44; radius: 22
+                        color: Theme.tint(Theme.accent, 0.25)
                     }
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -65,8 +78,8 @@ Item {
                     Lbl {
                         visible: node.on || hov.hovered || node.activeFocus
                         anchors.horizontalCenter: parent.horizontalCenter
-                        y: 40
-                        width: Math.max(parent.width, 170); horizontalAlignment: Text.AlignHCenter
+                        y: 42
+                        width: Math.max(parent.width, 190); horizontalAlignment: Text.AlignHCenter
                         text: node.modelData.title
                         size: Theme.caption; strong: node.on
                         maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap
@@ -78,12 +91,12 @@ Item {
         }
     }
 
-    // the focused step
+    // ---------------------------------------------------------------- the focused step
     Glass {
         id: focus
         anchors.top: path.bottom; anchors.topMargin: Theme.s16
         anchors.bottom: parent.bottom
-        width: parent.width * 0.62
+        width: parent.width * 0.60
         rim: Theme.accent; rimWidth: 2
         Flickable {
             anchors.fill: parent
@@ -94,7 +107,7 @@ Item {
                 id: text
                 width: parent.width
                 spacing: 10
-                Chip { text: "Step " + (page.current + 1) + " of " + page.steps.length; mark: page.isDone(page.step.key) ? "ok" : "" }
+                Chip { text: page.fill(T.journeyStepOf, { n: page.current + 1, all: page.steps.length }); mark: page.isDone(page.step.key) ? "ok" : "" }
                 Lbl { width: parent.width; text: page.step.title; size: Theme.headline; strong: true }
                 Lbl {
                     width: parent.width
@@ -102,61 +115,100 @@ Item {
                     textFormat: Text.RichText
                     tone: "secondary"; size: Theme.bodyLarge * 0.95
                     onLinkActivated: (link) => app.runPalette(link)
-                    HoverHandler { cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor }
+                }
+                Rectangle {          // the result of "Check my work"
+                    visible: app.lessonCheck.step === page.current
+                    width: parent.width; height: checkText.implicitHeight + 20; radius: 12
+                    color: Theme.tint(app.lessonCheck.ok ? Theme.ok : Theme.warn, 0.16)
+                    border.width: 1; border.color: app.lessonCheck.ok ? Theme.ok : Theme.warn
+                    Lbl { id: checkText; x: 12; width: parent.width - 24; anchors.verticalCenter: parent.verticalCenter
+                          text: (app.lessonCheck.ok ? "✓ " : "⚠ ") + (app.lessonCheck.text || "") }
                 }
             }
         }
-        Row {
+        Flow {
             id: actions
             anchors.bottom: parent.bottom
+            width: parent.width
             spacing: 10
             PButton { visible: page.step.runnable; primary: true; enabled: !app.busy; text: T.journeyRun; onClicked: app.runLessonStep(page.current) }
+            PButton { visible: page.step.runnable; enabled: !app.busy; text: T.journeyTry; onClicked: app.tryLessonStep(page.current) }
+            PButton { visible: page.step.runnable; enabled: !app.busy; text: T.journeyCheck; onClicked: app.checkLessonStep(page.current) }
             PButton { enabled: page.current > 0; text: T.journeyBack; onClicked: app.setLessonStep(page.current - 1) }
             PButton { enabled: page.current < page.steps.length - 1; primary: !page.step.runnable; text: T.journeyNext; onClicked: app.setLessonStep(page.current + 1) }
         }
     }
 
-    // what just happened, and housekeeping
-    Glass {
+    // ---------------------------------------------------------------- what happened, challenges, reset
+    Flickable {
         anchors.top: path.bottom; anchors.topMargin: Theme.s16
         anchors.left: focus.right; anchors.leftMargin: Theme.s16
         anchors.right: parent.right
-        anchors.bottom: house.top; anchors.bottomMargin: Theme.s16
-        Flickable {
-            anchors.fill: parent
-            contentHeight: result.implicitHeight
-            clip: true
-            Column {
-                id: result
+        anchors.bottom: parent.bottom
+        contentHeight: sideColumn.implicitHeight + 12
+        clip: true
+        Column {
+            id: sideColumn
+            width: parent.width
+            spacing: Theme.s16
+
+            TaskCard {
                 width: parent.width
-                spacing: 8
-                Lbl { text: "What just happened"; size: Theme.title; strong: true }
+                title: T.journeyHappened
                 Lbl {
                     width: parent.width
                     textFormat: Text.RichText
                     tone: "secondary"
-                    text: app.lessonResult.length > 0 ? app.lessonResult : "Run the step. What it did on the real system appears here, and on the Stage."
+                    text: app.lessonResult.length > 0 ? app.lessonResult : T.journeyHappenedEmpty
                     onLinkActivated: (link) => app.runPalette(link)
                 }
                 PButton { visible: events.count > 0; text: T.inspectorOpen; onClicked: page.inspect(events.count - 1) }
             }
-        }
-    }
-    Glass {
-        id: house
-        anchors.left: focus.right; anchors.leftMargin: Theme.s16
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: houseColumn.implicitHeight + 2 * padding
-        Column {
-            id: houseColumn
-            width: parent.width
-            spacing: 8
-            Lbl { width: parent.width; text: T.journeyResetNote; tone: "secondary"; size: Theme.caption }
-            Row {
-                spacing: 10
-                PButton { text: T.journeyReset; enabled: !app.busy; onClicked: app.resetLesson() }
-                PButton { visible: app.practice; text: T.journeyLeave; enabled: !app.busy; onClicked: app.leavePractice() }
+
+            TaskCard {
+                width: parent.width
+                title: T.journeyChallenges
+                summary: page.fill(T.journeyChallengesSub, { done: page.challengesDone, all: page.challenges.length })
+                Rectangle {
+                    width: parent.width; height: 8; radius: 4; color: Theme.tint(Theme.glassRaised, 1)
+                    Rectangle { width: parent.width * page.challengesDone / Math.max(1, page.challenges.length); height: 8; radius: 4; color: Theme.ok
+                                Behavior on width { NumberAnimation { duration: Theme.moveSlow; easing.type: Easing.OutCubic } } }
+                }
+                Repeater {
+                    model: page.challenges
+                    Column {
+                        id: item
+                        required property var modelData
+                        width: parent.width
+                        spacing: 4
+                        Row {
+                            spacing: 8
+                            Text { width: 16; text: item.modelData.done ? "✓" : "○"; color: item.modelData.done ? Theme.ok : Theme.textMuted
+                                   font.pixelSize: Theme.bodyLarge; font.weight: Font.Bold
+                                   Accessible.name: item.modelData.done ? T.journeyDone : T.notChecked }
+                            Lbl { width: item.width - 28; text: item.modelData.title; strong: true }
+                        }
+                        Lbl { x: 24; width: parent.width - 24; text: item.modelData.task; tone: "secondary"; size: Theme.caption }
+                        Lbl { x: 24; width: parent.width - 24; visible: page.hintFor === item.modelData.key; text: item.modelData.hint; size: Theme.caption }
+                        Row {
+                            x: 16; spacing: 4
+                            visible: !item.modelData.done
+                            PButton { quiet: true; text: T.journeyHint; onClicked: page.hintFor = page.hintFor === item.modelData.key ? "" : item.modelData.key }
+                            PButton { quiet: true; text: T.journeyGo; onClicked: app.navigate(item.modelData.where) }
+                        }
+                    }
+                }
+            }
+
+            TaskCard {
+                width: parent.width
+                title: T.journeyLesson
+                summary: T.journeyResetNote
+                Row {
+                    spacing: 10
+                    PButton { text: T.journeyReset; enabled: !app.busy; onClicked: { app.resetLesson(); app.resetChallenges() } }
+                    PButton { visible: app.practice; text: T.journeyLeave; enabled: !app.busy; onClicked: app.leavePractice() }
+                }
             }
         }
     }

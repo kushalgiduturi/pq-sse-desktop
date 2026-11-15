@@ -110,6 +110,26 @@ Item {
                 Lbl { text: T.workspaceSub + (app.practice ? " " + T.practicePass : ""); tone: "secondary"; width: parent.width }
             }
 
+            // "Let me try": the task from Journey stays visible while it is done by hand.
+            Glass {
+                visible: app.task.text !== undefined && app.task.text !== ""
+                width: parent.width
+                height: taskColumn.implicitHeight + 2 * padding
+                rim: Theme.accent; rimWidth: 2
+                Column {
+                    id: taskColumn
+                    width: parent.width
+                    spacing: 8
+                    Lbl { text: T.journeyTask + ": " + (app.task.title || ""); strong: true; size: Theme.bodyLarge; width: parent.width }
+                    Lbl { text: app.task.text || ""; tone: "secondary"; width: parent.width }
+                    Lbl { visible: app.lessonCheck.step === app.task.step && app.lessonCheck.ok === false; text: "⚠ " + (app.lessonCheck.text || ""); width: parent.width }
+                    Row { spacing: 10
+                          PButton { primary: true; enabled: !app.busy; text: T.journeyCheck
+                                    onClicked: { var step = app.task.step; app.checkLessonStep(step); if (app.lessonCheck.ok) app.navigate("journey") } }
+                          PButton { text: T.journeyTaskClose; onClicked: app.clearTask() } }
+                }
+            }
+
             // ============================================================ Alice
             Flow {
                 visible: page.isAlice

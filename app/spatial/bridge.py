@@ -18,17 +18,18 @@ from typing import Any, Callable
 from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
-from pqsse import paths
+from pqsse import attacklab, narrator, paths
 from pqsse.core.errors import PQSSEError, VerifyError
 from pqsse.owner import DocInput
 from pqsse.version import get_version
 
-from .. import lesson
+from .. import challenges, lesson
 from ..glossary import GLOSSARY
 from ..session import LESSON_PASSPHRASE, LESSON_PROFILE, Session, explain_full
 from ..workers import TaskRunner
+from . import inspector
 from . import settings as ui_settings
-from .copy import DESTINATIONS, T
+from .copy import CHALLENGE_HINTS, CHALLENGE_PLACES, DESTINATIONS, TRY, T
 from .events import EventLog
 
 log = logging.getLogger("pqsse.app")
@@ -49,6 +50,9 @@ class AppBridge(QObject):
     navigate = Signal(str)                   # destination key
     glossaryRequested = Signal("QVariantMap")
     inspectRequested = Signal(int)           # index into the event log
+    labChanged = Signal()
+    challengesChanged = Signal()
+    attackFinished = Signal(str)
 
     def __init__(self, session: Session | None = None, sync: bool = False, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -65,6 +69,10 @@ class AppBridge(QObject):
         self._ctx = lesson.Ctx(self.session)
         self._lesson_html = ""
         self.last_error: dict | None = None
+        self._task: dict = {}
+        self._check: dict = {}
+        self._outcomes: dict[str, attacklab.Outcome] = {}
+        self._attacks_running: set[str] = set()
         self.events.added.connect(self._on_record)
         self.runner.busy.connect(self._on_busy)
         self._state = self._snapshot()
@@ -74,6 +82,7 @@ class AppBridge(QObject):
     # ------------------------------------------------------------------ plumbing
     def _on_record(self, record: dict) -> None:
         self._ctx.seen.add(record["kind"])
+        self._update_challenges()
         if record.get("scope") == "practice" and record["kind"] != "attack":
             return                      # a throwaway copy is at work: the Story bar keeps describing the real system
         role = {"alice": "alice", "cloud": "cloud", "security": "security"}.get(record["tag"], (record["who"] or "").lower())
@@ -101,6 +110,7 @@ class AppBridge(QObject):
             self._state = snapshot
             if after is not None:
                 after(result)
+            self._update_challenges()
             self.stateChanged.emit()
             self.succeeded.emit(name)
 
@@ -637,6 +647,135 @@ class AppBridge(QObject):
     @Slot(str, result=str)
     def folder(self, which: str) -> str:
         return str(paths.logs_dir() if which == "logs" else paths.base_dir())
+
+    # ------------------------------------------------------------------ Journey: let me try, check my work, challenges
+    @Property("QVariantMap", notify=lessonChanged)
+    def task(self) -> dict:
+        """The "Let me try" task that is open right now: {step, title, text}, or empty."""
+        return self._task
+
+    @Slot(int)
+    def tryLessonStep(self, index: int) -> None:
+        """Send the learner to the place where this step is done by hand, in the practice area."""
+        index = max(0, min(len(lesson.STEPS) - 1, int(index)))
+        step = lesson.STEPS[index]
+        where, text = TRY.get(step.key, ("journey", ""))
+
+        def work() -> None:
+            self._enter_practice()
+            lesson.ensure(self._ctx, index)             # everything the earlier steps built
+
+        def after(_: Any) -> None:
+            self._task = {"step": index, "title": step.title, "text": text}
+            self._check = {}
+            self.lessonChanged.emit()
+            if where in ("alice", "cloud", "bob"):
+                self.setRole(where)
+                self.navigate.emit("workspace")
+            else:
+                self.navigate.emit(where)
+
+        self._run("try:" + step.key, "Getting the practice area ready", work, after)
+
+    @Slot()
+    def clearTask(self) -> None:
+        self._task = {}
+        self.lessonChanged.emit()
+
+    @Property("QVariantMap", notify=lessonChanged)
+    def lessonCheck(self) -> dict:
+        """Result of the last "Check my work": {step, ok, text}, or empty."""
+        return self._check
+
+    @Slot(int)
+    def checkLessonStep(self, index: int) -> None:
+        index = max(0, min(len(lesson.STEPS) - 1, int(index)))
+        step = lesson.STEPS[index]
+        try:
+            with self.session.lock:
+                ok = bool(step.check(self._ctx)) if step.check is not None else True
+        except Exception:
+            ok = False
+        if ok:
+            done = set(self.session.settings.get("lesson_done", []))
+            done.add(step.key)
+            self.session.settings["lesson_done"] = sorted(done)
+            self.session.save_settings()
+            self._task = {}
+        self._check = {"step": index, "ok": ok, "text": T["checkYes"] if ok else T["checkNo"]}
+        self.lessonChanged.emit()
+
+    def _update_challenges(self) -> None:
+        saved = set(self.session.settings.get("challenges_done", []))
+        if not self.session.lock.acquire(blocking=False):
+            return                      # a worker is busy: checked again when it finishes
+        try:
+            now = challenges.completed(self.session, self.events.raw)
+        finally:
+            self.session.lock.release()
+        if not now <= saved:
+            self.session.settings["challenges_done"] = sorted(saved | now)
+            self.session.save_settings()
+            self.challengesChanged.emit()
+
+    @Property("QVariantList", notify=challengesChanged)
+    def challengeList(self) -> list[dict]:
+        done = set(self.session.settings.get("challenges_done", []))
+        return [{"key": c.key, "title": c.title, "task": c.task, "hint": CHALLENGE_HINTS.get(c.key, ""),
+                 "where": CHALLENGE_PLACES.get(c.key, "workspace"), "done": c.key in done} for c in challenges.CHALLENGES]
+
+    @Slot()
+    def resetChallenges(self) -> None:
+        self.session.settings["challenges_done"] = []
+        self.session.save_settings()
+        self.challengesChanged.emit()
+
+    @Slot()
+    def noteCloudView(self) -> None:
+        """The learner looked through the cloud's eyes at real stored data (Stage lens)."""
+        stored = self._state.get("cloud", {}).get("storedDocs", [])
+        if stored:
+            narrator.emit("cloud_view", "Cloud", bytes=int(stored[0]["bytes"]))
+
+    # ------------------------------------------------------------------ Security Lab
+    @Property("QVariantList", notify=labChanged)
+    def attacks(self) -> list[dict]:
+        out = []
+        for key, _, _, _ in attacklab.SCENARIOS:
+            outcome = self._outcomes.get(key)
+            record = inspector.build_attack(key, outcome)
+            record.update(key=key, ran=outcome is not None, lines=list(outcome.lines) if outcome else [],
+                          caughtBy=outcome.caught_by if outcome else "", verdict=outcome.verdict if outcome else "",
+                          tries=attacklab.TEACH[key]["tries"], without=attacklab.TEACH[key]["without"],
+                          running=key in self._attacks_running)
+            out.append(record)
+        return out
+
+    @Slot(str)
+    def runAttack(self, key: str) -> None:
+        """Run one attack on a throwaway copy of the system (never on the user's data)."""
+        if key not in attacklab.TEACH or key in self._attacks_running:
+            return
+        self._attacks_running.add(key)
+        self.labChanged.emit()
+
+        def done(outcome: attacklab.Outcome) -> None:
+            self._attacks_running.discard(key)
+            self._outcomes[key] = outcome
+            narrator.emit("attack", "", key=outcome.key, title=outcome.title, ok=outcome.passed,
+                          result="caught" if outcome.passed else "NOT caught", caught_by=outcome.caught_by or "nothing")
+            self.labChanged.emit()
+            self.attackFinished.emit(key)
+
+        def error(exc: BaseException) -> None:
+            self._attacks_running.discard(key)
+            self.labChanged.emit()
+            friendly = explain_full(exc)
+            self.last_error = {"what": friendly.what, "why": friendly.why, "next": friendly.next,
+                               "technical": friendly.technical, "where": "attack:" + key}
+            self.failed.emit(self.last_error)
+
+        self.runner.run(lambda progress: attacklab.run_scenario(key), done, error, "Trying the attack on a practice copy", locked=False)
 
     # ------------------------------------------------------------------ end
     def shutdown(self) -> None:
