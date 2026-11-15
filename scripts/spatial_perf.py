@@ -48,7 +48,7 @@ def main() -> int:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         session.settings["port"] = sock.getsockname()[1]
-    session.settings.update(theme="dark", reduce_motion=False)
+    session.settings.update(theme="dark", reduce_motion=False, show_welcome=False)
     started = time.perf_counter()
     view = SpatialWindow(session, sync=True)
     window, bridge = view.window, view.bridge

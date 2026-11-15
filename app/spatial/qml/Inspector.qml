@@ -199,6 +199,13 @@ Glass {
                     }
                 }
             }
+            Lbl { visible: app.detailLevel === 2 && ins.shown && ins.shown.terms.length > 0; text: T.termsTitle; tone: "muted"; size: Theme.caption }
+            Flow {
+                visible: app.detailLevel === 2
+                width: parent.width; spacing: 6
+                Repeater { model: ins.shown ? ins.shown.terms : []
+                           Chip { required property var modelData; text: modelData.name; clickable: true; onClicked: app.runPalette("glossary:" + modelData.key) } }
+            }
             // Layer 4: why it is safe
             Column {
                 visible: app.detailLevel === 3

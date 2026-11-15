@@ -109,10 +109,10 @@ reads this table and fails if a row has no new location.
 | 2 | Pair owner with cloud (import key files) | Owner tab, Cloud tab | Workspace > Alice > "Alice's keys" > More options; Workspace > Cloud > Server | [x] |
 | 3 | Create groups | Owner tab | Workspace > Alice > People and access | [x] |
 | 4 | See and approve join requests, choose groups | Owner tab | Workspace > Alice > People and access | [x] |
-| 5 | Add, edit, delete, import documents (.txt, .md, .pdf) | Owner tab | Workspace > Alice > Documents | [ ] |
+| 5 | Add, edit, delete, import documents (.txt, .md, .pdf) | Owner tab | Workspace > Alice > Documents | [x] |
 | 6 | Build index | Owner tab | Workspace > Alice > Documents (primary button "Lock and upload") | [x] |
 | 7 | Publish state | Owner tab | Workspace > Alice > Publish | [x] |
-| 8 | Group overview (epoch, version, entries, dirty) | Owner tab | Workspace > Alice > Publish (summary), Inspector layer 3 | [ ] |
+| 8 | Group overview (epoch, version, entries, dirty) | Owner tab | Workspace > Alice > Publish (summary), Inspector layer 3 | [x] |
 | 9 | Revoke with policy R or RE | Owner tab | Workspace > Alice > Revoke | [x] |
 | 10 | Create or unlock a receiver | Receiver tab | Workspace > Bob / Carol > card "Keys" (plus "Add a person" in the rail) | [x] |
 | 11 | Pair receiver, send join request, fetch mailbox | Receiver tab | Workspace > Bob / Carol > Join | [x] |
@@ -135,8 +135,8 @@ reads this table and fails if a row has no new location.
 | 28 | Narrator lines with "Tell me more" | Narrator dock | Story bar (current sentence), Inspector layer 1, session timeline | [x] |
 | 29 | Data-flow diagram with packets | Narrator dock | Stage | [x] |
 | 30 | Slow motion, pause, packet list | Narrator dock | Inspector controls (play, pause, step, speed, replay), sub-step list | [x] |
-| 31 | Glossary (F1), glossary search, term tooltips | Help menu, tooltips | Ctrl+K palette, F1 glossary sheet, term chips in the Inspector | [ ] |
-| 32 | Welcome screen and tour | First start, Help menu | First start sheet; Journey step 0; palette "Take the tour" | [ ] |
+| 31 | Glossary (F1), glossary search, term tooltips | Help menu, tooltips | Ctrl+K palette, F1 glossary sheet, term chips in the Inspector | [x] |
+| 32 | Welcome screen and tour | First start, Help menu | First start sheet; Journey step 0; palette "Take the tour" | [x] |
 | 33 | Beginner and Expert mode | Toolbar | Insights > Settings; status chip; palette | [x] |
 | 34 | Friendly three-part errors, Copy technical details | Footer of every tab | Error sheet on the card that failed, same three parts and copy button | [x] |
 | 35 | About (version, backend, GPU, licenses) | Help menu | Insights > About | [x] |

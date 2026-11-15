@@ -21,6 +21,7 @@ Item {
     property string revokeUid: ""
     property string policy: "R"
     property var approve: ({})              // uid -> list of group names ticked
+    property int editId: -1                 // the document being edited, or -1 for a new one
     readonly property string activeGroup: {
         var names = owner.groups.map(function (g) { return g.name })
         return names.indexOf(group) >= 0 ? group : (names.length > 0 ? names[0] : "")
@@ -170,7 +171,10 @@ Item {
                             required property var modelData
                             width: parent.width; height: Math.max(40, docTitle.implicitHeight + 14); radius: 10
                             color: Theme.tint(Theme.glassRaised, 0.8); border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.5)
-                            Lbl { id: docTitle; x: 12; width: parent.width - 110; anchors.verticalCenter: parent.verticalCenter; text: docRow.modelData.title; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap }
+                            PButton { anchors.right: parent.right; anchors.rightMargin: 84; anchors.verticalCenter: parent.verticalCenter; quiet: true; text: T.docsEdit
+                                      Accessible.name: T.docsEdit + " " + docRow.modelData.title
+                                      onClicked: { page.editId = docRow.modelData.id; docTitleField.text = docRow.modelData.title; docText.text = docRow.modelData.text } }
+                            Lbl { id: docTitle; x: 12; width: parent.width - 180; anchors.verticalCenter: parent.verticalCenter; text: docRow.modelData.title; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap }
                             PButton { anchors.right: parent.right; anchors.rightMargin: 4; anchors.verticalCenter: parent.verticalCenter; quiet: true; text: T.docsDelete
                                       enabled: !app.busy; Accessible.name: T.docsDelete + " " + docRow.modelData.title
                                       onClicked: app.deleteDocument(page.activeGroup, docRow.modelData.id) }
@@ -191,8 +195,11 @@ Item {
                         }
                     }
                     PButton { id: docAdd; visible: page.owner.groups.length > 0; primary: page.aliceNext === "documents"; enabled: !app.busy && docText.text.trim().length > 0
-                              text: T.docsAddBtn
-                              onClicked: { app.addDocument(page.activeGroup, docTitleField.text, docText.text); docTitleField.clear(); docText.text = "" } }
+                              text: page.editId >= 0 ? T.docsSave : T.docsAddBtn
+                              onClicked: { if (page.editId >= 0) app.editDocument(page.activeGroup, page.editId, docTitleField.text, docText.text)
+                                           else app.addDocument(page.activeGroup, docTitleField.text, docText.text)
+                                           page.editId = -1; docTitleField.clear(); docText.text = "" } }
+                    PButton { visible: page.editId >= 0; quiet: true; text: T.docsCancelEdit; onClicked: { page.editId = -1; docTitleField.clear(); docText.text = "" } }
                     extra: [ PButton { text: T.docsImport; enabled: !app.busy; onClicked: fileDialog.open() } ]
                 }
 
@@ -246,7 +253,7 @@ Item {
                             required property var modelData
                             width: parent.width; spacing: 6
                             Lbl { width: parent.width
-                                  text: page.fill(T.publishState, { g: pub.modelData.name, ver: pub.modelData.version, e: pub.modelData.epoch,
+                                  text: page.fill(T.publishState, { g: pub.modelData.name, ver: pub.modelData.version, e: pub.modelData.epoch, n: pub.modelData.entries,
                                                                     fresh: pub.modelData.dirty ? T.publishDirty : T.publishClean + " Valid for " + pub.modelData.freshHours + " more hours." })
                                   tone: pub.modelData.dirty ? "primary" : "secondary" }
                             PButton { primary: pub.modelData.dirty; enabled: !app.busy; text: T.publishBtn + ": " + pub.modelData.name; onClicked: app.publish(pub.modelData.name) }

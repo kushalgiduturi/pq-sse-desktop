@@ -184,6 +184,17 @@ Window {
     CommandPalette { id: palette; z: 10 }
     Sheet { id: errorSheet; z: 11; error: true }
     Sheet { id: glossarySheet; z: 11 }
+    Sheet {
+        id: welcomeSheet
+        z: 12
+        title: T.welcomeTitle
+        rows: [{ head: "", body: T.welcomeIdea }, { head: "", body: T.welcomeCast }, { head: "", body: T.welcomeHow }, { head: "", body: T.welcomeHonest }]
+        actionText: T.welcomeStart
+        closeText: T.welcomeLater
+        onAction: app.dismissWelcome(true)
+        onDismissed: app.dismissWelcome(false)
+    }
+    Timer { interval: 400; running: app.showWelcome; onTriggered: welcomeSheet.show() }
 
     // ------------------------------------------------------------------ keys and signals
     Shortcut { sequence: "Ctrl+K"; onActivated: palette.open ? palette.hide() : palette.show() }
@@ -209,5 +220,6 @@ Window {
         function onFailed(e) { win.showError(e) }
         function onGlossaryRequested(g) { win.showGlossary(g) }
         function onInspectRequested(i) { win.inspect(i) }
+        function onWelcomeRequested() { welcomeSheet.show() }
     }
 }

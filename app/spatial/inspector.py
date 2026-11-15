@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from pqsse import attacklab, narrator
 
-from .copy import ATTACK_STEPS, INSPECT, PRIMITIVES, T
+from ..glossary import GLOSSARY
+from .copy import ATTACK_STEPS, INSPECT, PRIMITIVES, TERMS, T
 
 ANIMATIONS = ("encrypt", "kem", "sign", "search", "verify", "move")
 
@@ -57,6 +58,7 @@ def build(event: narrator.Event, took_ms: float | None = None) -> dict:
         "metaphor": spec["metaphor"],
         "simplification": spec.get("simplification", ""),
         "facts": {k: str(v) for k, v in facts.items()},
+        "terms": [{"key": key, "name": GLOSSARY[key].name} for key in dict.fromkeys(TERMS[p] for p in spec["prims"]) if key in GLOSSARY],
         "ts": event.ts,
         "tookMs": -1.0 if took_ms is None else round(took_ms, 1),
         "replayNote": T["replayNoteUnknown"] if took_ms is None else T["replayNote"].format(ms=f"{took_ms:.0f}"),
@@ -104,6 +106,7 @@ def build_attack(key: str, outcome: attacklab.Outcome | None = None) -> dict:
         "metaphor": INSPECT["attack"]["metaphor"],
         "simplification": teach.get("unprotected", ""),
         "facts": {k: str(v) for k, v in facts.items()},
+        "terms": [{"key": key, "name": GLOSSARY[key].name} for key in ("signature", "hash-chain", "freshness") if key in GLOSSARY],
         "ts": 0.0,
         "tookMs": -1.0,
         "replayNote": T["replayNoteUnknown"],

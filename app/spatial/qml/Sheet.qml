@@ -9,6 +9,10 @@ Item {
     property string technical: ""
     property bool error: false
     property bool copied: false
+    property string closeText: T.close
+    property string actionText: ""        // an optional second, filled button
+    signal action()
+    signal dismissed()
 
     anchors.fill: parent
     visible: opacity > 0.01
@@ -48,7 +52,8 @@ Item {
             }
             Row {
                 spacing: 10
-                PButton { id: closeButton; text: T.close; primary: true; onClicked: sheet.open = false }
+                PButton { visible: sheet.actionText.length > 0; text: sheet.actionText; primary: true; onClicked: { sheet.open = false; sheet.action() } }
+                PButton { id: closeButton; text: sheet.closeText; primary: sheet.actionText.length === 0; onClicked: { sheet.open = false; sheet.dismissed() } }
                 PButton {
                     visible: sheet.technical.length > 0
                     text: sheet.copied ? T.errorCopied : T.errorCopy

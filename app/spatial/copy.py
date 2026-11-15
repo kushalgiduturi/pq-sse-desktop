@@ -125,7 +125,7 @@ T = {
     "peopleRefresh": "Look for new requests",
     "peopleRevoked": "access taken away",
     "cardPublish": "Publish",
-    "publishState": "{g}: summary version {ver}, key period {e}. {fresh}",
+    "publishState": "{g}: summary version {ver}, key period {e}, {n} index entries. {fresh}",
     "publishDirty": "Changes are waiting. Doctors do not see them until you publish.",
     "publishClean": "Everything is published.",
     "publishBtn": "Publish summary",
@@ -272,6 +272,17 @@ T = {
     "logNote": "The log never contains passphrases or keys.",
     "aboutLicenses": "Licenses",
     "aboutResearch": "Research software. Not audited. Do not use it to protect real records.",
+    "termsTitle": "Words used here (click for the meaning)",
+    "welcomeTitle": "Welcome to PQ-SSE Desktop",
+    "welcomeIdea": "Alice keeps her files locked, yet Bob can still search them through the cloud, and the cloud learns almost nothing, even against future quantum computers.",
+    "welcomeCast": "Alice is a hospital records manager: she owns the documents. Bob and Carol are doctors: they may search what Alice allows. The Cloud is rented storage: it keeps everything, and nobody trusts it.",
+    "welcomeHow": "Journey walks you through it in thirteen short steps on the real system. Stage shows what moves between them. The dock at the bottom takes you everywhere; Ctrl+K finds anything.",
+    "welcomeHonest": "Research software: not audited, not for real records.",
+    "welcomeStart": "Start the guided lesson",
+    "welcomeLater": "Look around first",
+    "docsEdit": "Edit",
+    "docsSave": "Save the changed document",
+    "docsCancelEdit": "Cancel",
     "errorWhat": "What happened",
     "errorWhy": "Why it matters",
     "errorNext": "What to do next",
@@ -290,6 +301,8 @@ PRIMITIVES = {
     "hash": "SHA3-256: fingerprints and the hash chain",
     "kdf": "HKDF-SHA3-256 and scrypt: deriving and protecting stored keys",
 }
+
+TERMS = {"kem": "ml-kem", "sig": "ml-dsa", "aead": "aes-gcm", "prf": "index", "hash": "hash-chain", "kdf": "passphrase"}
 
 _STAMP = "The stamp is a picture for an ML-DSA signature: a number computed from the content and Alice's private key."
 _BOX = "The locked box is a picture for AES-256-GCM encryption. What is really stored are bytes that look random."

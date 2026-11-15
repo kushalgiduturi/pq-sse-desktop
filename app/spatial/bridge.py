@@ -54,6 +54,7 @@ class AppBridge(QObject):
     challengesChanged = Signal()
     attackFinished = Signal(str)
     insightsChanged = Signal()
+    welcomeRequested = Signal()
 
     def __init__(self, session: Session | None = None, sync: bool = False, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -603,7 +604,8 @@ class AppBridge(QObject):
         roles = [ROLE_ALICE] + [r["name"] for r in self._state.get("receivers", [])] + [ROLE_CLOUD]
         items += [{"id": "role:" + r, "group": "Work as", "label": r[:1].upper() + r[1:], "hint": "Open the Workspace as this role"}
                   for r in roles]
-        items += [{"id": "inspect", "group": "Do", "label": T["inspectorOpen"], "hint": T["inspectorOpenHint"]}]
+        items += [{"id": "inspect", "group": "Do", "label": T["inspectorOpen"], "hint": T["inspectorOpenHint"]},
+                  {"id": "welcome", "group": "Do", "label": "Show the welcome screen and take the tour", "hint": T["welcomeIdea"]}]
         items += [{"id": f"lesson:{i}", "group": "Lesson step", "label": f"{i + 1}. {s.title}", "hint": "Open this step in Journey"}
                   for i, s in enumerate(lesson.STEPS)]
         items += [{"id": "set:theme:" + t, "group": "Setting", "label": "Theme: " + T["theme" + t.capitalize()], "hint": ""}
@@ -626,6 +628,9 @@ class AppBridge(QObject):
         elif kind == "role":
             self.setRole(rest)
             self.navigate.emit("workspace")
+        elif kind == "welcome":
+            self._set("show_welcome", True)
+            self.welcomeRequested.emit()
         elif kind == "inspect":
             self.inspectRequested.emit(self.events.count - 1)
         elif kind == "lesson":
@@ -644,6 +649,17 @@ class AppBridge(QObject):
         if entry is None:
             return {}
         return {"key": key, "name": entry.name, "plain": entry.plain, "more": entry.more, "simplification": entry.simplification}
+
+    @Property(bool, notify=settingsChanged)
+    def showWelcome(self) -> bool:
+        return bool(self.session.settings.get("show_welcome", True))
+
+    @Slot(bool)
+    def dismissWelcome(self, start_lesson: bool) -> None:
+        self._set("show_welcome", False)
+        if start_lesson:
+            self.setLessonStep(0)
+            self.navigate.emit("journey")
 
     @Slot(str)
     def copyText(self, text: str) -> None:

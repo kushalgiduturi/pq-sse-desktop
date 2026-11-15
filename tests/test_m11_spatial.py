@@ -421,3 +421,29 @@ def test_insights_engine_benchmark_settings_and_about(qapp, monkeypatch):
         assert bridge.folder("logs").endswith("logs")
     finally:
         bridge.shutdown()
+
+
+# ---------------------------------------------------------------- milestone 7: contrast, welcome, terms
+def test_theme_tokens_meet_wcag_contrast():
+    import check_contrast
+
+    lines, failures = check_contrast.check()
+    assert len(lines) >= 50 and failures == []
+
+
+def test_welcome_terms_and_palette_extras(qapp):
+    bridge = AppBridge(new_session(), sync=True)
+    navigations, welcomes = [], []
+    bridge.navigate.connect(navigations.append)
+    bridge.welcomeRequested.connect(lambda: welcomes.append(1))
+    try:
+        assert bridge.showWelcome is True
+        bridge.dismissWelcome(True)
+        assert bridge.showWelcome is False and navigations == ["journey"] and bridge.lessonStep == 0
+        bridge.runPalette("welcome")
+        assert welcomes == [1] and bridge.showWelcome is True
+        record = inspector.build(narrator.Event("join.approved", "Bob", {"groups": ["Finance"]}, 0.0))
+        keys = [term["key"] for term in record["terms"]]
+        assert "ml-kem" in keys and "ml-dsa" in keys and all(key in glossary.GLOSSARY for key in keys)
+    finally:
+        bridge.shutdown()
