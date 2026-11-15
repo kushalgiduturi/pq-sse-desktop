@@ -86,14 +86,27 @@ Each milestone: tests, commit.
   DLL search path. The only outside requirement is the NVIDIA driver. If the driver is
   missing or the self-test fails, the existing CPU fallback applies and says why.
   The CuPy kernel cache is moved to `%LOCALAPPDATA%\PQ-SSE-Desktop\cupy_cache`.
+  What testing showed (all handled now):
+  - CuPy 14 also needs the CUDA header files, not only the compiler DLL. The app ships a
+    minimal CUDA folder `_internal\cuda_runtime` (`bin` with 3 DLLs, `include` with the
+    headers, 50 MB) and sets `CUDA_PATH` to it for its own process only.
+  - PyInstaller silently copied cuBLAS, cuFFT and other libraries from the CUDA Toolkit
+    installed on the build PC: 1,648 MB instead of 407 MB. The build script now hides the
+    Toolkit (PATH, CUDA_PATH) while packaging and fails if such a library is in the output.
+  - A standard-library module (`graphlib`) that CuPy imports from compiled code had to be
+    listed by hand.
+  - The bundled compiler is the CUDA 12.0 Update 1 release (oldest 12.x, so it asks least
+    of the driver). NVIDIA's release notes state Windows driver 528.33 or newer for it. The
+    "525.60" in the task text is the Linux number. Tested only with driver 610.62.
 - **P8 License: MIT** (none existed; you can change it). Copyright line says
   "PQ-SSE Desktop authors"; put your name there if you prefer. Third-party license texts are
   collected from the build environment into `THIRD-PARTY-LICENSES.txt`. Long dashes inside
   those third-party texts are replaced by hyphens to keep rule 1, and the file says so.
 - **P9 Lock files** hold the versions of the working environment. The GPU extras are in
   their own file so the Standard build never installs them.
-- **P10 Inno Setup is not installed on this PC.** I will install it per user, without admin:
-  `winget install -e --id JRSoftware.InnoSetup --override "/VERYSILENT /CURRENTUSER /NORESTART"`.
+- **P10 Inno Setup was not installed on this PC.** Installed per user, without admin (done,
+  version 6.7.3, in `%LOCALAPPDATA%\Programs\Inno Setup 6`):
+  `winget install -e --id JRSoftware.InnoSetup --source winget --override "/VERYSILENT /CURRENTUSER /NORESTART"`.
   The build script looks for `ISCC.exe` on PATH, under `%LOCALAPPDATA%\Programs\Inno Setup 6`
   and under Program Files, and stops with that install command otherwise.
 - **P11 Signing is off.** `-SignCert <pfx>` with the password from the environment variable
@@ -105,6 +118,22 @@ Each milestone: tests, commit.
 - **P13 Firewall.** The cloud binds to 127.0.0.1 only (asserted in a test and in the smoke
   test). Windows shows no firewall prompt for loopback-only listeners. The installer test
   also checks that no firewall rule for the exe exists afterwards.
+
+- **P14 Build environment uses the two PySide6 parts** (Essentials and Addons) instead of
+  the umbrella package, so WebEngine and Pdf are not even installed there.
+- **P15 The portable test simulates a non-ASCII user name** by pointing LOCALAPPDATA,
+  APPDATA, USERPROFILE, TEMP and TMP at a folder with accented and Japanese characters. A
+  real Windows account with such a name was not created.
+- **P16 The builds in this work session ran inside the Claude desktop app**, which redirects
+  everything written under `%LOCALAPPDATA%` to a private folder
+  (`%LOCALAPPDATA%\Packages\Claude_...\LocalCache\Local`). The scripts are unchanged by
+  this; run from a normal PowerShell they use the real `%LOCALAPPDATA%`. The release was
+  copied to a normal folder with `-CopyTo`. The installer test therefore ran against the
+  redirected Start Menu and registry view; run `scripts\test_installer.ps1` once from a
+  normal PowerShell to repeat it against the real ones.
+- **P17 The interactive "delete my data too?" question of the uninstaller** cannot be
+  answered by a script without risking the real data folder, so only the silent path (data
+  always kept) is tested automatically.
 
 ## 5. Risks
 

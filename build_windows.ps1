@@ -154,6 +154,10 @@ foreach ($Doc in @("INSTALL.md", "START_HERE.md", "cheatsheet.md", "concepts.md"
 Write-Host ""
 Write-Host "Checks on the build output:"
 if ($WithGpu) {
+    # PyInstaller also collects the NVIDIA pip packages as they are. The app uses its own
+    # cuda_runtime folder (see pqsse/gpu/runtime.py), so drop the second copy (about 50 MB).
+    $Duplicate = Join-Path $Dist "_internal\nvidia"
+    if (Test-Path $Duplicate) { Remove-Item $Duplicate -Recurse -Force }
     # Only the bundled compiler and runtime may be in the app, never Toolkit libraries from this PC.
     $Stray = @(Get-ChildItem $Dist -Recurse -File -Include "cublas*.dll", "cufft*.dll", "curand*.dll", "cusolver*.dll",
                              "cusparse*.dll", "nvjitlink*.dll", "cudnn*.dll", "cutensor*.dll")

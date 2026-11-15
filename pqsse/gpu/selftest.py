@@ -6,8 +6,10 @@ threshold. Exit code 0 = GPU usable, 1 = self-test failed, 2 = no usable GPU (CP
 """
 from __future__ import annotations
 
+import os
 import sys
 
+from .. import paths
 from . import runtime, status
 from .calibrate import NEVER, calibrate
 
@@ -25,7 +27,9 @@ def main() -> int:
         print(f"Bundled CUDA : {bundled or 'none (using what is installed on this PC)'}")
         print("NVIDIA libraries loaded by this process:")
         for path in runtime.loaded_cuda_modules():
-            origin = "bundled with the app" if bundled and path.lower().startswith(bundled.lower()) else "from this PC"
+            roots = (str(paths.install_dir()).lower(), os.path.dirname(os.path.abspath(sys.executable)).lower())
+            inside = paths.frozen() and path.lower().startswith(roots)
+            origin = "bundled with the app" if inside else "from this PC"
             print(f"  {path}  ({origin})")
     if info.selftest is not None:
         print("-" * 60)

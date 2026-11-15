@@ -8,10 +8,31 @@ It is a Windows desktop application with three real parties (data owner, receive
 cloud server), real post-quantum cryptography (ML-KEM, ML-DSA), and a GPU batch engine
 for the heavy symmetric work.
 
+## Install (no Python needed)
+
+For people who just want to use the app on Windows 10 or 11 (64-bit):
+
+1. Get `PQ-SSE-Desktop-Setup-<version>.exe` (or the portable zip) from the release folder.
+2. Double-click it. If Windows shows "Windows protected your PC", click **More info**, then
+   **Run anyway**: the app is not code signed.
+3. Choose "Install for me only". No admin rights are needed. Start it from the Start Menu.
+
+Full guide with update, uninstall and troubleshooting: [docs/INSTALL.md](docs/INSTALL.md).
+Why the warning appears, checksums, signing: [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+What was tested and what was not: [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
+
+To build the installer and the zip yourself (developers), one command:
+
+```powershell
+.\build_release.ps1 -WithGpu
+```
+
+The developer setup from source is further down, under "Setup".
+
 ## New here? Start with Learn Mode
 
 You do not need to know any cryptography. Start the app and press **Start the guided lesson**
-on the welcome screen:
+on the welcome screen. Installed app: Start Menu > PQ-SSE Desktop. From source:
 
 ```powershell
 & "$env:USERPROFILE\.venvs\pqsse\Scripts\python.exe" -m app
@@ -115,8 +136,20 @@ implemented but untested here.
 & "$env:USERPROFILE\.venvs\pqsse\Scripts\python.exe" -m pqsse.gpu.selftest  # GPU self-test
 & "$env:USERPROFILE\.venvs\pqsse\Scripts\python.exe" -m pqsse.bench         # benchmarks to CSV
 & "$env:USERPROFILE\.venvs\pqsse\Scripts\python.exe" -m pqsse.cloud --port 8765   # cloud server alone
-.\build_windows.ps1                                                         # packaged build
+.\build_windows.ps1                                                         # one-folder build, then smoke test of the built exe
+.\build_release.ps1 -WithGpu                                                # everything: tests, both builds, installers, zips, checksums
 ```
+
+The packaged program has three extra flags for checking it without a window. They write
+their report to the file given with `--report`:
+
+```powershell
+PQ-SSE-Desktop.exe --smoke-test   --report report.txt   # whole protocol against the real cloud child process
+PQ-SSE-Desktop.exe --gpu-selftest --report report.txt   # GPU engine against hashlib and hmac, with timings
+PQ-SSE-Desktop.exe --version      --report report.txt
+```
+
+From source the same flags work with `python -m app` and print to the console.
 
 Data lives in `%LOCALAPPDATA%\PQ-SSE-Desktop` (one SQLite file per role, `pubkeys\`,
 `settings.json`). Delete that folder to start from scratch.
@@ -213,8 +246,9 @@ text does not fix are listed in [PLAN.md](PLAN.md) under "Decisions".
 ## Not verified by the author of this build
 
 - `liboqs-python` backend (not installed on the development machine).
-- The GPU build of the packaged app (`build_windows.ps1 -WithGpu`). The default CPU build
-  was built (174 MB) and checked only this far: its `--cloud` mode answered requests and
-  its window process started and stayed up. No full scenario was run inside the packaged app.
+- The packaged builds are now tested by the build itself (smoke test, GPU self-test,
+  installer test). What is still unverified for them is listed in
+  [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) under "Not verified": a clean PC without
+  Python, a PC without an NVIDIA GPU, Windows 10, older drivers, code signing.
 - Any GPU other than the RTX 4060 Laptop GPU, and CuPy builds other than `cupy-cuda12x`.
 - The app was exercised through the offscreen test; visual layout on screen was not reviewed.
