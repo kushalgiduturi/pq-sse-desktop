@@ -1,6 +1,6 @@
 [project]
 name = "pqsse-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "PQ-SSE Desktop: MU-PQ-SSE v3 with ML-KEM, ML-DSA and a GPU batch engine"
 requires-python = ">=3.11"
 

@@ -347,7 +347,9 @@ def markdown(text: str, skip_sections: tuple[str, ...] = ()) -> str:
 
 
 def notes_blocks(content: dict, manifest: dict, flat: dict) -> dict:
-    notes = (ROOT / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+    # notes of an earlier release are kept under docs/release-notes/<version>.md; the current one is RELEASE_NOTES.md
+    archived = ROOT / "docs" / "release-notes" / f"{flat['version']}.md"
+    notes = (archived if archived.is_file() else ROOT / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     body = markdown(notes, skip_sections=("What is included",))
     section = (f'<section class="sp-section" id="v{esc(flat["version"])}" aria-labelledby="v-title">'
                f'<div class="sp-section-head"><h2 class="sp-section-title" id="v-title">PQ-SSE Desktop <span class="sp-mono">{esc(flat["version"])}</span></h2>'
