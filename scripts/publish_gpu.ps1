@@ -69,13 +69,18 @@ finally { Remove-Item $Readme -Force -ErrorAction SilentlyContinue }
 
 Step "3. The release's file list, with the GPU build added and signed"
 $Manifest = Join-Path $Work "latest.json"
-if ($DryRun) {
-    $Local = Join-Path $Root "site\public\latest.json"
-    Copy-Item $Local $Manifest
-    Write-Host "Dry run: using $Local instead of downloading it from the release."
-} else {
+$Online = $false
+if (Get-Command gh -ErrorAction SilentlyContinue) { & gh auth status *> $null; $Online = ($LASTEXITCODE -eq 0) }
+if ($Online) {
+    # also in a dry run, so the prepared files are exactly what a real run would upload
     & gh release download "v$Version" --repo $Repo --pattern "latest.json" --pattern "SHA256SUMS.txt" --dir $Work --clobber
     if ($LASTEXITCODE -ne 0) { Fail "could not download latest.json from release v$Version." }
+} elseif ($DryRun) {
+    $Local = Join-Path $Root "site\public\latest.json"
+    Copy-Item $Local $Manifest
+    Write-Host "Dry run without the GitHub CLI: using $Local; SHA256SUMS.txt will list only the GPU files."
+} else {
+    Fail "the GitHub CLI is not signed in."
 }
 & $Python (Join-Path $Root "scripts\make_manifest.py") $Work --add-gpu $Manifest --sign | Out-Host
 if ($LASTEXITCODE -ne 0) { Fail "the file list could not be updated or signed." }
