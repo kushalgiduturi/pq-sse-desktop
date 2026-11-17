@@ -185,7 +185,7 @@ def styleguide_blocks(content: dict, manifest: dict) -> dict:
     swatches = [("Accent", "--sp-accent"), ("Accent text", "--sp-accent-text"), ("Text", "--sp-text"), ("Text 2", "--sp-text-2"),
                 ("Text 3", "--sp-text-3"), ("OK", "--sp-ok"), ("Warning", "--sp-warn"), ("Bad", "--sp-bad"), ("Info", "--sp-info"),
                 ("World", "--sp-world")]
-    sw = "".join(f'<li class="sp-swatch"><i class="sw-{token[5:]}"></i><b>{esc(name)}</b><span>{esc(token)}</span></li>' for name, token in swatches)
+    sw = "".join(f'<li class="sp-swatch"><i class="sw-{token[5:]}"></i><b>{esc(name)}</b><span>{esc(token.lstrip("-"))}</span></li>' for name, token in swatches)
     depths = "".join(f'<div class="{cls}"><b>{esc(title)}</b><br><span class="sp-muted">{esc(text)}</span></div>' for cls, title, text in sg["depths"])
     seg = "".join(f'<button type="button" aria-pressed="{"true" if i == 0 else "false"}">{esc(label)}</button>' for i, label in enumerate(sg["seg"]))
     flat = flat_manifest(manifest)
@@ -196,6 +196,174 @@ def styleguide_blocks(content: dict, manifest: dict) -> dict:
                "</div>")
     return {"type_items": types, "swatch_items": sw, "depth_items": depths, "seg_items": seg, "metrics_strip": metrics,
             "files_table": files_table(manifest, content)}
+
+
+
+# ------------------------------------------------------------------ the other pages
+SMARTSCREEN_SVG = (
+    '<svg class="sp-drawing" viewBox="0 0 560 250" role="img" aria-labelledby="ss-cap" xmlns="http://www.w3.org/2000/svg">'
+    '<rect class="dr-fill" x="1" y="1" width="558" height="248" rx="14" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+    '<text class="dr-text" x="28" y="52">Windows protected your PC</text>'
+    '<text class="dr-sub" x="28" y="88">Microsoft Defender SmartScreen prevented an unrecognized app</text>'
+    '<text class="dr-sub" x="28" y="108">from starting. Running this app might put your PC at risk.</text>'
+    '<text class="dr-link" x="28" y="138">More info</text>'
+    '<text class="dr-sub" x="28" y="178">After More info: App: PQ-SSE-Web-Setup.exe   Publisher: Unknown publisher</text>'
+    '<rect x="300" y="198" width="118" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+    '<text class="dr-sub" x="320" y="220">Run anyway</text>'
+    '<rect x="430" y="198" width="104" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+    '<text class="dr-sub" x="456" y="220">Don\'t run</text>'
+    '</svg>')
+
+
+def rows(items, fmt) -> str:
+    return "".join(fmt(*item) if isinstance(item, (list, tuple)) else fmt(item) for item in items)
+
+
+def text_sections(items) -> str:
+    """Titled paragraphs, flat: a bold lead line and the text."""
+    return "".join(f'<h3 class="sp-h3">{esc(title)}</h3><p class="sp-prose">{esc(text)}</p>' for title, text in items)
+
+
+def download_blocks(content: dict, manifest: dict, flat: dict, config: dict) -> dict:
+    d = content["download_page"]
+    web, std = manifest.get("web_setup", {}), manifest["channels"]["standard"]
+    best = web if web.get("available") else std
+    label = d["web_button"] if best is web else d["full_button"]
+    button = f'<a class="sp-btn sp-btn--primary sp-btn--lg" href="{esc(best["url"])}">{ICON_HTML["download"]}{esc(label)}</a>'
+    note = esc(d["size_note"]).replace("{file}", f'<span class="sp-mono">{esc(best["file"])}</span>').replace("{size}", f'<span class="sp-mono sp-nowrap">{mb(best["size"])}</span>') \
+        .replace("{version}", f'<span class="sp-mono">{esc(flat["version"])}</span>') \
+        .replace("{released}", f'<span class="sp-mono sp-nowrap">{esc(flat["released"])}</span>')
+    gpu_notice = "" if manifest["channels"]["gpu"].get("available") else \
+        f'<div class="sp-alert sp-mt-5">{ICON_HTML["info"]}<p>{esc(d["gpu_unavailable"])}</p></div>'
+    pick = rows(d["pick"], lambda t, x: f'<li class="sp-list-row"><span class="sp-grow"><b>{esc(t)}</b><span class="sp-sub">{esc(x)}</span></span></li>')
+    req = rows(d["req"], lambda x: f"<li>{esc(x.replace('{min_driver}', flat['min_driver']))}</li>")
+    winget = ""
+    if config.get("winget", {}).get("published"):
+        cmd = f'winget install --id {config["winget"]["id"]} -e'
+        winget = (f'<section class="sp-section" aria-labelledby="winget-title"><div class="sp-section-head"><h2 class="sp-section-title" id="winget-title">'
+                  f'{esc(d["winget_title"])}</h2></div><p>{esc(d["winget_text"])}</p><pre class="sp-code"><code>{esc(cmd)}</code></pre></section>')
+    windows_text = d["detect_windows"] if best is web else d["detect_windows_full"]
+    fallback = "" if best is not web else (f'<h3 class="sp-h3">{esc(d["fallback_title"])}</h3>'
+                                         f'<p class="sp-prose sp-muted">{esc(d["fallback"])}</p>')
+    return {"windows_text": windows_text, "fallback_block": fallback, "recommended_button": button, "recommended_note": note, "gpu_notice": gpu_notice, "pick_items": pick, "req_items": req,
+            "winget_section": winget, "driver_note": d["driver_note"].replace("{min_driver}", flat["min_driver"]),
+            "files_table": files_table(manifest, content)}
+
+
+def install_blocks(content: dict, flat: dict) -> dict:
+    ins = content["install"]
+    out = []
+    for key, title, paragraphs in ins["steps"]:
+        body = "".join(f"<p>{esc(p)}</p>" for p in paragraphs)
+        if key == "smartscreen":
+            body += f'<figure class="sp-shot sp-mt-5">{SMARTSCREEN_SVG}<figcaption id="ss-cap">{esc(ins["smartscreen_drawing"])}</figcaption></figure>'
+        if key == "checksum":
+            name = flat["web_file"] or flat["standard_file"]
+            body += (f'<pre class="sp-code"><code>Get-FileHash -Algorithm SHA256 .\\{esc(name)}</code></pre>'
+                     f'<p class="sp-mt-3">{esc(ins["checksum_compare"])}</p>'
+                     f'<p><a href="verify.html">{esc(ins["checksum_web"])}</a></p>')
+        out.append(f'<section class="sp-section" id="{esc(key)}" aria-labelledby="st-{esc(key)}"><div class="sp-section-head">'
+                   f'<h2 class="sp-section-title" id="st-{esc(key)}">{esc(title)}</h2></div><div class="sp-prose">{body}</div></section>')
+    trouble = rows(ins["trouble"], lambda q, a: f'<details><summary>{esc(q)}</summary><div class="sp-accordion-body"><p>{esc(a)}</p></div></details>')
+    return {"install_steps": "".join(out), "trouble_items": trouble}
+
+
+def how_blocks(content: dict, shots: dict) -> dict:
+    h = content["how"]
+    algos = rows(h["algos"], lambda n, name, text: (
+        f'<li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">{esc(name)}</span>'
+        f'<span class="sp-algo-num">Algorithm {esc(n)}</span></span><span class="sp-sub">{esc(text)}</span></span></li>'))
+    figs = []
+    for name, alt in h["shots"]:
+        w, ht = shots[name]
+        figs.append(f'<figure class="sp-shot"><img src="img/{name}.webp" width="{w}" height="{ht}" alt="{esc(alt)}" loading="lazy" decoding="async">'
+                    f"<figcaption>{esc(alt)}</figcaption></figure>")
+    return {"algo_items": algos, "how_shots": "".join(figs), "limit_items": text_sections(h["limits"]),
+            "how": {**h, "paper_url": h["paper_link"][0], "paper_label": h["paper_link"][1]}}
+
+
+def security_blocks(content: dict) -> dict:
+    s = content["security"]
+    li = lambda x: f"<li>{esc(x)}</li>"  # noqa: E731
+    return {"stores_items": rows(s["stores"], li), "leaves_items": rows(s["leaves"], li), "report_items": rows(s["report"], li),
+            "trust_items": text_sections(s["trust"]), "signing_items": text_sections(s["signing"]),
+            "security": {**s, "report_url": s["report_link"][0], "report_label": s["report_link"][1],
+                         "licenses_url": s["licenses_link"][0], "licenses_label": s["licenses_link"][1]}}
+
+
+def inline_md(text: str) -> str:
+    out = esc(text)
+    out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
+    out = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", out)
+    out = re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2">\1</a>', out)
+    return out
+
+
+def markdown(text: str, skip_sections: tuple[str, ...] = ()) -> str:
+    """The small part of Markdown the release notes use: headings, paragraphs, lists, tables."""
+    html_out, para, items, table, skipping = [], [], [], [], False
+
+    def flush():
+        nonlocal para, items, table
+        if para:
+            html_out.append(f"<p>{inline_md(' '.join(para))}</p>")
+        if items:
+            html_out.append("<ul>" + "".join(f"<li>{inline_md(i)}</li>" for i in items) + "</ul>")
+        if table:
+            rows_ = [r for r in table if not re.fullmatch(r"\|[\s:|-]+\|", r)]
+            cells = [[c.strip() for c in r.strip("|").split("|")] for r in rows_]
+            head, body = cells[0], cells[1:]
+            html_out.append('<div class="sp-table-wrap"><table><thead><tr>' + "".join(f"<th>{inline_md(c)}</th>" for c in head)
+                            + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{inline_md(c)}</td>" for c in r) + "</tr>" for r in body)
+                            + "</tbody></table></div>")
+        para, items, table = [], [], []
+
+    for line in text.splitlines():
+        heading = re.match(r"^(#{2,3}) (.*)", line)
+        if heading:
+            flush()
+            skipping = heading.group(2).strip() in skip_sections
+            if not skipping:
+                html_out.append(f"<h3>{inline_md(heading.group(2))}</h3>")
+            continue
+        if skipping or line.startswith("# "):
+            continue
+        if not line.strip():
+            flush()
+        elif line.startswith("|"):
+            if para or items:
+                flush()
+            table.append(line.strip())
+        elif re.match(r"^\s*[-*] ", line):
+            if para:
+                flush()
+            items.append(re.sub(r"^\s*[-*] ", "", line))
+        elif items and line.startswith("  "):
+            items[-1] += " " + line.strip()
+        else:
+            para.append(line.strip())
+    flush()
+    return "\n".join(html_out)
+
+
+def notes_blocks(content: dict, manifest: dict, flat: dict) -> dict:
+    notes = (ROOT / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+    body = markdown(notes, skip_sections=("What is included",))
+    section = (f'<section class="sp-section" id="v{esc(flat["version"])}" aria-labelledby="v-title">'
+               f'<div class="sp-section-head"><h2 class="sp-section-title" id="v-title">PQ-SSE Desktop <span class="sp-mono">{esc(flat["version"])}</span></h2>'
+               f'<span class="sp-muted sp-mono">{esc(flat["released"])}</span></div>'
+               f'<h3 class="sp-h3">{esc(content["notes"]["files_title"])}</h3>{files_table(manifest, content)}'
+               f'<div class="sp-notes sp-prose">{body}</div></section>')
+    return {"release_notes": section}
+
+
+def verify_blocks(content: dict, manifest: dict) -> dict:
+    hashes = {}
+    for e in [manifest["channels"]["standard"], manifest["channels"]["gpu"], manifest["portable"]["standard"],
+              manifest["portable"]["gpu"], manifest.get("web_setup", {})]:
+        if e.get("available"):
+            hashes[e["sha256"]] = e["file"]
+    return {"hash_list": json.dumps(hashes, separators=(",", ":")), "files_table": files_table(manifest, content)}
 
 
 SWATCH_CSS = "".join(f"html.sp-ui .sw-{t} {{ background: var(--sp-{t}); }}\n"
@@ -216,7 +384,7 @@ def build(manifest: dict, out: Path = OUT) -> list[Path]:
         raise SystemExit("FAILED: site.css must hold the light token marker twice")
     css = css.replace("/* @light-tokens */", light) + "\n/* swatches of the style guide */\n" + SWATCH_CSS
     (out / "assets" / "site.css").write_text(css, encoding="utf-8")
-    for name in ("site.js", "theme.js"):
+    for name in ("site.js", "theme.js", "download.js", "install.js", "verify.js"):
         shutil.copy2(SRC / "assets" / name, out / "assets" / name)
     shutil.copytree(SRC / "fonts", out / "fonts")
     (out / "assets" / "icon.svg").write_text(
@@ -230,7 +398,10 @@ def build(manifest: dict, out: Path = OUT) -> list[Path]:
     with open(licenses, "a", encoding="utf-8") as handle:
         handle.write("\n\nThis website uses the same two fonts (Onest, Share Tech Mono) as WOFF2 files; their licenses are in fonts/.\n")
 
-    shot_names = [name for name, _ in content["home"]["shots"]]
+    with open(ROOT / "packaging" / "release.toml", "rb") as handle:
+        config = tomllib.load(handle)
+    site_root = "/" + config["project"]["site_url"].split("://", 1)[1].split("/", 1)[1]
+    shot_names = sorted({name for name, _ in content["home"]["shots"]} | {name for name, _ in content["how"]["shots"]})
     shots = convert_shots(shot_names, out / "img")
     flat = flat_manifest(manifest)
     stage_svg = (SRC / "stage.svg").read_text(encoding="utf-8")
@@ -253,14 +424,34 @@ def build(manifest: dict, out: Path = OUT) -> list[Path]:
             ctx.update(home_blocks(content, shots, flat))
         if meta["key"] == "styleguide":
             ctx.update(styleguide_blocks(content, manifest))
+        if meta["key"] == "download":
+            ctx.update(download_blocks(content, manifest, flat, config))
+        if meta["key"] == "install":
+            ctx.update(install_blocks(content, flat))
+        if meta["key"] == "how":
+            ctx.update(how_blocks(content, shots))
+        if meta["key"] == "security":
+            ctx.update(security_blocks(content))
+        if meta["key"] == "notes":
+            ctx.update(notes_blocks(content, manifest, flat))
+        if meta["key"] == "verify":
+            ctx.update(verify_blocks(content, manifest))
+        for section in ("download_page", "install", "how", "security", "notes", "verify", "notfound"):
+            ctx.setdefault(section, content[section])
         body = render(body_template, ctx)
         ctx["page"] = {"title": lookup(ctx, meta["title"]) if "." in meta["title"] else meta["title"],
                        "description": lookup(ctx, meta["description"]), "body": body, "head_extra": ""}
+        if meta.get("script"):
+            ctx["page"]["head_extra"] = f'<script src="assets/{esc(meta["script"])}" defer></script>'
         if meta["key"] != "home":
             ctx["page"]["title"] = f'{ctx["page"]["title"]} - {content["site"]["name"]}'
         ctx["nav_links"] = nav_links(content, meta["key"])
+        page_html = render(base, ctx)
+        if meta["key"] == "notfound":
+            # served at any depth by the host: every local link and asset from the site root
+            page_html = re.sub(r'(href|src)="(?!https?:|#|/|data:|mailto:)', lambda m: f'{m.group(1)}="{site_root}', page_html)
         target = out / page.name
-        target.write_text(render(base, ctx), encoding="utf-8")
+        target.write_text(page_html, encoding="utf-8")
         written.append(target)
     return written
 

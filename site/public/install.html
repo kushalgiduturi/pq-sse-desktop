@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" class="sp-ui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Install guide - PQ-SSE Desktop</title>
+<meta name="description" content="From download to first run, including what Windows will say about new software and how to check that your file is the real one.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/site.js" defer></script>
+<script src="assets/install.js" defer></script>
+</head>
+<body>
+<a class="sp-skip" href="#main">Skip to the content</a>
+<div class="sp-world" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" focusable="false">
+  
+  <g class="w-faint" stroke-width="1.5">
+    <path d="M250 470 C 380 330, 470 250, 560 230" />
+    <path d="M560 230 C 690 230, 790 300, 860 400" />
+    <path d="M560 230 C 700 300, 800 480, 860 610" />
+    <path d="M250 470 C 430 690, 690 720, 860 610" stroke-dasharray="4 10" />
+  </g>
+  <g stroke-width="1.5">
+    <circle cx="250" cy="470" r="96" />
+    <circle cx="250" cy="450" r="17" />
+    <path d="M216 512 c 2 -21 16 -33 34 -33 s 32 12 34 33" />
+    <circle cx="560" cy="230" r="78" />
+    <path d="M534 249 h 56 a 19 19 0 0 0 0 -38 a 27 27 0 0 0 -51 -5 a 20 20 0 0 0 -5 43 z" />
+    <circle cx="860" cy="400" r="82" />
+    <circle cx="860" cy="383" r="15" />
+    <path d="M831 436 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+    <circle cx="860" cy="610" r="82" />
+    <circle cx="860" cy="593" r="15" />
+    <path d="M831 646 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+  </g>
+</svg></div>
+
+<header class="sp-bar sp-glass sp-d3">
+  <a class="sp-bar-brand" href="index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></svg><span>PQ-SSE Desktop</span></a>
+  <nav class="sp-bar-nav" id="site-nav" aria-label="Site"><a href="index.html">Home</a><a href="download.html">Download</a><a href="install.html" aria-current="page">Install guide</a><a href="how-it-works.html">How it works</a><a href="security.html">Security and privacy</a><a href="release-notes.html">Release notes</a></nav>
+  <div class="sp-bar-end">
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" data-theme-toggle hidden
+            data-label-light="Switch to the light theme" data-label-dark="Switch to the dark theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"/></svg></button>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon sp-menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+    <a class="sp-btn sp-btn--primary sp-btn--sm sp-noprint" href="download.html">Download</a>
+  </div>
+</header>
+
+<main id="main" class="sp-page" tabindex="-1">
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">Install guide</h1>
+    <p class="sp-lede">From download to first run, including what Windows will say about new software and how to check that your file is the real one.</p>
+    <div class="sp-actions sp-mt-5 sp-noprint"><button class="sp-btn" type="button" data-print hidden>Print this guide</button></div>
+  </header>
+  <section class="sp-section" id="download" aria-labelledby="st-download"><div class="sp-section-head"><h2 class="sp-section-title" id="st-download">Download</h2></div><div class="sp-prose"><p>Open the Download page and choose the web installer. The browser may say the file is not commonly downloaded: choose Keep. That message means few people have downloaded it yet, not that something is wrong with it.</p></div></section><section class="sp-section" id="smartscreen" aria-labelledby="st-smartscreen"><div class="sp-section-head"><h2 class="sp-section-title" id="st-smartscreen">Windows protected your PC</h2></div><div class="sp-prose"><p>When you run a new program that is not code signed, Microsoft Defender SmartScreen shows a blue window titled Windows protected your PC. It means Windows does not know this file yet. It does not mean a virus was found.</p><p>Check the checksum first (next step). Then click More info, check that the file name is the one you downloaded, and click Run anyway.</p><p>PQ-SSE Desktop is not code signed today. Signing would show a publisher name instead of Unknown publisher; it would not make the warning disappear on the first day either, because SmartScreen also waits until a file has been seen many times.</p><figure class="sp-shot sp-mt-5"><svg class="sp-drawing" viewBox="0 0 560 250" role="img" aria-labelledby="ss-cap" xmlns="http://www.w3.org/2000/svg"><rect class="dr-fill" x="1" y="1" width="558" height="248" rx="14" fill="none" stroke="currentColor" stroke-width="1.5"/><text class="dr-text" x="28" y="52">Windows protected your PC</text><text class="dr-sub" x="28" y="88">Microsoft Defender SmartScreen prevented an unrecognized app</text><text class="dr-sub" x="28" y="108">from starting. Running this app might put your PC at risk.</text><text class="dr-link" x="28" y="138">More info</text><text class="dr-sub" x="28" y="178">After More info: App: PQ-SSE-Web-Setup.exe   Publisher: Unknown publisher</text><rect x="300" y="198" width="118" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.5"/><text class="dr-sub" x="320" y="220">Run anyway</text><rect x="430" y="198" width="104" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.5"/><text class="dr-sub" x="456" y="220">Don't run</text></svg><figcaption id="ss-cap">A drawing of the SmartScreen window, not a screenshot: the More info link is under the first paragraph, and Run anyway appears after you click it.</figcaption></figure></div></section><section class="sp-section" id="checksum" aria-labelledby="st-checksum"><div class="sp-section-head"><h2 class="sp-section-title" id="st-checksum">Check the file before running it</h2></div><div class="sp-prose"><p>Open PowerShell in your Downloads folder (in File Explorer: right-click the folder background, Open in Terminal) and run:</p><pre class="sp-code"><code>Get-FileHash -Algorithm SHA256 .\PQ-SSE-Desktop-Setup-0.1.0.exe</code></pre><p class="sp-mt-3">Compare the Hash it prints with the SHA-256 for the same file on the Download page. Capital or small letters do not matter. If every character matches, the file is exactly the one that was published. If not, delete it and download it again.</p><p><a href="verify.html">Or use the Verify a download page: it computes the checksum in your browser, without uploading the file.</a></p></div></section><section class="sp-section" id="install" aria-labelledby="st-install"><div class="sp-section-head"><h2 class="sp-section-title" id="st-install">Install</h2></div><div class="sp-prose"><p>The installer asks no admin password: it installs for your Windows account only, into your user folder. Read the welcome page, then choose Install. The web installer shows what it downloads and checks each file before running it.</p></div></section><section class="sp-section" id="first-run" aria-labelledby="st-first-run"><div class="sp-section-head"><h2 class="sp-section-title" id="st-first-run">First run</h2></div><div class="sp-prose"><p>PQ-SSE Desktop opens on the Journey: a guided lesson in thirteen short steps on a practice copy, so your own data is never touched. The cloud part starts as a second program on the same PC and listens on 127.0.0.1 only, so Windows does not ask for a firewall permission.</p></div></section><section class="sp-section" id="data" aria-labelledby="st-data"><div class="sp-section-head"><h2 class="sp-section-title" id="st-data">Where your data is</h2></div><div class="sp-prose"><p>Your keys, settings and documents are stored in %LOCALAPPDATA%\PQ-SSE-Desktop, separate from the program. Keys are kept encrypted with your passphrase. Installing, updating and uninstalling do not delete this folder.</p></div></section><section class="sp-section" id="uninstall" aria-labelledby="st-uninstall"><div class="sp-section-head"><h2 class="sp-section-title" id="st-uninstall">Uninstall</h2></div><div class="sp-prose"><p>Windows Settings, Apps, Installed apps, PQ-SSE Desktop, Uninstall. The uninstaller asks before touching your data and keeps it by default. To remove your data too, delete %LOCALAPPDATA%\PQ-SSE-Desktop afterwards.</p></div></section><section class="sp-section" id="update" aria-labelledby="st-update"><div class="sp-section-head"><h2 class="sp-section-title" id="st-update">Update</h2></div><div class="sp-prose"><p>In the app, open About and choose Check for updates. It asks this site for the signed file list only when you click, never by itself. A new version installs over the old one and keeps your data.</p></div></section>
+  <section class="sp-section" aria-labelledby="trouble-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="trouble-title">Troubleshooting</h2></div>
+    <div class="sp-accordion"><details><summary>The web installer says it has no connection</summary><div class="sp-accordion-body"><p>It talks only to this site and to GitHub, over HTTPS. A company proxy or filter may block it. Download the full installer from the Download page instead: it needs no connection while installing.</p></div></details><details><summary>An antivirus program blocks or removes the file</summary><div class="sp-accordion-body"><p>New unsigned programs are sometimes flagged by mistake. Check the checksum first. If it matches, report the false alert to the antivirus maker (for Microsoft Defender: microsoft.com/wdsi/filesubmission) and restore the file. If it does not match, delete it.</p></div></details><details><summary>The GPU build says the GPU path is off</summary><div class="sp-accordion-body"><p>The NVIDIA driver is older than the minimum, or the Windows user name contains letters outside plain English, which NVIDIA&#x27;s compiler cannot handle. Update the driver from nvidia.com. Everything keeps working on the normal processor.</p></div></details></div>
+  </section>
+</div>
+
+</main>
+
+<footer class="sp-foot">
+  <nav aria-label="More"><a href="verify.html">Verify a download</a><a href="security.html#report">Report a problem</a><a href="third-party-licenses.txt">Third-party licenses</a><a href="https://github.com/kushalgiduturi/pq-sse-desktop">Source code</a></nav>
+  <p>PQ-SSE Desktop is research and teaching software under the MIT License. It has not been audited: do not use it to protect real records. This site sets no cookies, runs no analytics and loads nothing from other sites.</p>
+</footer>
+
+<div class="sp-toast" role="status" aria-live="polite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg><span></span></div>
+</body>
+</html>

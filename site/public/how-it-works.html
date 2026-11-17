@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" class="sp-ui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>How it works - PQ-SSE Desktop</title>
+<meta name="description" content="Ten algorithms, each one a real step you can run and replay in the app. The words below are the app&#x27;s own plain-language layer; the step inspector shows the bytes.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/site.js" defer></script>
+
+</head>
+<body>
+<a class="sp-skip" href="#main">Skip to the content</a>
+<div class="sp-world" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" focusable="false">
+  
+  <g class="w-faint" stroke-width="1.5">
+    <path d="M250 470 C 380 330, 470 250, 560 230" />
+    <path d="M560 230 C 690 230, 790 300, 860 400" />
+    <path d="M560 230 C 700 300, 800 480, 860 610" />
+    <path d="M250 470 C 430 690, 690 720, 860 610" stroke-dasharray="4 10" />
+  </g>
+  <g stroke-width="1.5">
+    <circle cx="250" cy="470" r="96" />
+    <circle cx="250" cy="450" r="17" />
+    <path d="M216 512 c 2 -21 16 -33 34 -33 s 32 12 34 33" />
+    <circle cx="560" cy="230" r="78" />
+    <path d="M534 249 h 56 a 19 19 0 0 0 0 -38 a 27 27 0 0 0 -51 -5 a 20 20 0 0 0 -5 43 z" />
+    <circle cx="860" cy="400" r="82" />
+    <circle cx="860" cy="383" r="15" />
+    <path d="M831 436 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+    <circle cx="860" cy="610" r="82" />
+    <circle cx="860" cy="593" r="15" />
+    <path d="M831 646 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+  </g>
+</svg></div>
+
+<header class="sp-bar sp-glass sp-d3">
+  <a class="sp-bar-brand" href="index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></svg><span>PQ-SSE Desktop</span></a>
+  <nav class="sp-bar-nav" id="site-nav" aria-label="Site"><a href="index.html">Home</a><a href="download.html">Download</a><a href="install.html">Install guide</a><a href="how-it-works.html" aria-current="page">How it works</a><a href="security.html">Security and privacy</a><a href="release-notes.html">Release notes</a></nav>
+  <div class="sp-bar-end">
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" data-theme-toggle hidden
+            data-label-light="Switch to the light theme" data-label-dark="Switch to the dark theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"/></svg></button>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon sp-menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+    <a class="sp-btn sp-btn--primary sp-btn--sm sp-noprint" href="download.html">Download</a>
+  </div>
+</header>
+
+<main id="main" class="sp-page" tabindex="-1">
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">How it works</h1>
+    <p class="sp-lede">Ten algorithms, each one a real step you can run and replay in the app. The words below are the app&#x27;s own plain-language layer; the step inspector shows the bytes.</p>
+  </header>
+  <section class="sp-section" aria-label="How it works">
+    <ul class="sp-list"><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Setup</span><span class="sp-algo-num">Algorithm 1</span></span><span class="sp-sub">Alice, the Cloud and each doctor make their own key pairs: ML-KEM for sealed envelopes, ML-DSA for stamps. Private keys never leave the PC that made them.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Join</span><span class="sp-algo-num">Algorithm 2</span></span><span class="sp-sub">Bob asks to join with his public keys and a stamped request. Alice approves him for some groups, and sends him those groups&#x27; keys in a sealed envelope only he can open.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">BuildIndex</span><span class="sp-algo-num">Algorithm 3</span></span><span class="sp-sub">Alice locks each document with AES-256-GCM and builds a search index: for every word, a list of addresses that look random and point at locked entries.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Update</span><span class="sp-algo-num">Algorithm 4</span></span><span class="sp-sub">Adding or deleting documents appends new, stamped batches. Old searches cannot find new documents (forward privacy), and deleted ones stay hidden (backward privacy).</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Publish</span><span class="sp-algo-num">Algorithm 5</span></span><span class="sp-sub">Alice stamps a short summary of each group: its version, how many entries, and a running fingerprint of everything in it. The Cloud keeps the newest one.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">TokenGen</span><span class="sp-algo-num">Algorithm 6</span></span><span class="sp-sub">Bob turns a word into a sealed search slip: the addresses to look up, locked so that only the Cloud can read the slip and still not learn the word.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Search</span><span class="sp-algo-num">Algorithm 7</span></span><span class="sp-sub">The Cloud checks that Bob may search that group, looks up the addresses, and returns the locked entries with its own stamp. It never sees the word or the documents.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Verify</span><span class="sp-algo-num">Algorithm 8</span></span><span class="sp-sub">Bob checks the Cloud&#x27;s answer against Alice&#x27;s stamped summary: nothing dropped, nothing changed, nothing replayed, and the summary is fresh.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Decrypt</span><span class="sp-algo-num">Algorithm 9</span></span><span class="sp-sub">Bob fetches a locked document and opens it with his group key, after checking Alice&#x27;s stamp on it.</span></span></li><li class="sp-list-row"><span class="sp-grow"><span class="sp-step-head"><span class="sp-algo-name">Revoke</span><span class="sp-algo-num">Algorithm 10</span></span><span class="sp-sub">Alice takes a doctor&#x27;s access away by changing the locks of his groups and giving the new keys only to those who stay.</span></span></li></ul>
+  </section>
+  <section class="sp-section">
+    <div class="sp-shots"><figure class="sp-shot"><img src="img/dark-inspector-encrypt.webp" width="1280" height="800" alt="BuildIndex in the step inspector: readable text in, scrambled bytes out." loading="lazy" decoding="async"><figcaption>BuildIndex in the step inspector: readable text in, scrambled bytes out.</figcaption></figure><figure class="sp-shot"><img src="img/light-inspector-search.webp" width="1280" height="800" alt="Search in the step inspector: the Cloud returns two scrambled entries with its stamp." loading="lazy" decoding="async"><figcaption>Search in the step inspector: the Cloud returns two scrambled entries with its stamp.</figcaption></figure></div>
+  </section>
+  <section class="sp-section" aria-labelledby="limits-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="limits-title">Honest limits</h2></div>
+    <h3 class="sp-h3">Policy R or policy RE</h3><p class="sp-prose">Revoking with policy R is quick: everything written after the change uses the new key. Documents from before it stay locked with the old key, which the revoked doctor still has; if he teams up with the Cloud, he can read those. Policy RE also locks every old document again with the new key and makes the Cloud delete the old copies. It closes that gap and takes longer. The Security Lab runs both and shows the difference.</p><h3 class="sp-h3">What the GPU does</h3><p class="sp-prose">The graphics chip only speeds up the symmetric batch work (computing many addresses and masks with SHA3) when a large index is built. ML-KEM and ML-DSA always run on the normal processor. At small sizes the GPU is not faster, and the app says so with measured numbers.</p><h3 class="sp-h3">What the Cloud still learns</h3><p class="sp-prose">Like every practical searchable encryption scheme, the Cloud sees which stored entries a search touches and when, and how many there are. It does not learn the word, the documents or the keys. The app shows exactly what the Cloud holds in its Cloud sees lens.</p><h3 class="sp-h3">Not audited</h3><p class="sp-prose">The post-quantum code is a pure Python implementation of the NIST standards: slow and not constant time. This is teaching and research software.</p>
+    <p class="sp-mt-8">The protocol and its terms are summarised in the project&#x27;s concepts document. <a href="https://github.com/kushalgiduturi/pq-sse-desktop/blob/master/docs/concepts.md">Read the concepts document</a>.</p>
+  </section>
+</div>
+
+</main>
+
+<footer class="sp-foot">
+  <nav aria-label="More"><a href="verify.html">Verify a download</a><a href="security.html#report">Report a problem</a><a href="third-party-licenses.txt">Third-party licenses</a><a href="https://github.com/kushalgiduturi/pq-sse-desktop">Source code</a></nav>
+  <p>PQ-SSE Desktop is research and teaching software under the MIT License. It has not been audited: do not use it to protect real records. This site sets no cookies, runs no analytics and loads nothing from other sites.</p>
+</footer>
+
+<div class="sp-toast" role="status" aria-live="polite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg><span></span></div>
+</body>
+</html>

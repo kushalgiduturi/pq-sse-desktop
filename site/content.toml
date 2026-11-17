@@ -144,3 +144,183 @@ zip_gpu = ["Portable zip, GPU", "The GPU build as a folder."]
 version_label = "Version"
 released_label = "Released"
 size_label = "Full installer, Standard"
+
+# ------------------------------------------------------------------ download page
+[download_page]
+title = "Download"
+lede = "PQ-SSE Desktop for Windows. Free and open source, under the MIT License."
+detect_windows = "You are on Windows. The web installer is the simplest way: it picks the right package for this PC and checks it before running it."
+detect_windows_full = "You are on Windows. This is the full installer: everything in one file, and it works offline. A smaller web installer will follow."
+detect_other = "This looks like a different system. PQ-SSE Desktop runs on Windows 10 and 11 (64-bit) only; you can still download the files for a Windows PC."
+detect_nojs = "PQ-SSE Desktop runs on Windows 10 and 11 (64-bit)."
+recommended = "Recommended for this PC"
+web_button = "Download the web installer"
+full_button = "Download the full installer"
+size_note = "{file}, {size}, version {version}, released {released}"
+fallback_title = "If the web installer cannot run"
+fallback = "Some networks block small programs that download other programs. The full installer contains everything and works offline: download it below and run it the same way."
+all_title = "All files"
+all_lede = "Every file of this release, with its size and SHA-256 checksum. Compare the checksum after downloading: the install guide shows how."
+pick_title = "Which one do I pick?"
+pick = [
+  ["Web installer", "Small. It reads the signed file list from this site, downloads the right package for your PC, checks it, and installs it. Pick this one unless you have a reason not to."],
+  ["Full installer", "Everything in one file. Works offline after downloading, and on PCs where the web installer is blocked. Standard runs everywhere; GPU is for PCs with an NVIDIA graphics chip."],
+  ["Portable zip", "No installation. Unzip it into a folder and run PQ-SSE-Desktop.exe. Nothing is added to the Start menu, and updates are up to you."],
+  ["Standard or GPU", "The GPU build can use an NVIDIA graphics chip to speed up one step, building a large index. Everything else, including all post-quantum work, runs on the normal processor in both builds. If unsure, pick Standard."],
+]
+req_title = "Requirements"
+req = [
+  "Windows 10 version 1809 or newer, or Windows 11, 64-bit.",
+  "About 220 MB of disk space for the Standard build and about 420 MB for the GPU build.",
+  "No admin rights: it installs for your Windows account only.",
+  "GPU build only: an NVIDIA graphics chip and driver {min_driver} or newer. The CUDA Toolkit is not needed. With an older driver or no NVIDIA chip, the GPU build runs on the normal processor and says so.",
+]
+driver_note = "NVIDIA lists 525.60 as the minimum driver for this CUDA version on Linux; on Windows it is {min_driver}, which is the figure that applies here."
+gpu_unavailable = "The GPU build of this version is not available yet. The Standard build has every feature; only one step runs a little slower on large indexes."
+winget_title = "With winget"
+winget_text = "If you use the Windows package manager:"
+signing_title = "About trust"
+signing = "The files are not code signed, so Windows may warn before running them. The install guide explains the warning and how to check a file before you run it. The security page explains what the checksums and the signed file list do and do not prove."
+
+# ------------------------------------------------------------------ install guide
+[install]
+title = "Install guide"
+lede = "From download to first run, including what Windows will say about new software and how to check that your file is the real one."
+print = "Print this guide"
+steps = [
+  ["download", "Download", [
+    "Open the Download page and choose the web installer. The browser may say the file is not commonly downloaded: choose Keep. That message means few people have downloaded it yet, not that something is wrong with it.",
+  ]],
+  ["smartscreen", "Windows protected your PC", [
+    "When you run a new program that is not code signed, Microsoft Defender SmartScreen shows a blue window titled Windows protected your PC. It means Windows does not know this file yet. It does not mean a virus was found.",
+    "Check the checksum first (next step). Then click More info, check that the file name is the one you downloaded, and click Run anyway.",
+    "PQ-SSE Desktop is not code signed today. Signing would show a publisher name instead of Unknown publisher; it would not make the warning disappear on the first day either, because SmartScreen also waits until a file has been seen many times.",
+  ]],
+  ["checksum", "Check the file before running it", [
+    "Open PowerShell in your Downloads folder (in File Explorer: right-click the folder background, Open in Terminal) and run:",
+  ]],
+  ["install", "Install", [
+    "The installer asks no admin password: it installs for your Windows account only, into your user folder. Read the welcome page, then choose Install. The web installer shows what it downloads and checks each file before running it.",
+  ]],
+  ["first-run", "First run", [
+    "PQ-SSE Desktop opens on the Journey: a guided lesson in thirteen short steps on a practice copy, so your own data is never touched. The cloud part starts as a second program on the same PC and listens on 127.0.0.1 only, so Windows does not ask for a firewall permission.",
+  ]],
+  ["data", "Where your data is", [
+    "Your keys, settings and documents are stored in %LOCALAPPDATA%\\PQ-SSE-Desktop, separate from the program. Keys are kept encrypted with your passphrase. Installing, updating and uninstalling do not delete this folder.",
+  ]],
+  ["uninstall", "Uninstall", [
+    "Windows Settings, Apps, Installed apps, PQ-SSE Desktop, Uninstall. The uninstaller asks before touching your data and keeps it by default. To remove your data too, delete %LOCALAPPDATA%\\PQ-SSE-Desktop afterwards.",
+  ]],
+  ["update", "Update", [
+    "In the app, open About and choose Check for updates. It asks this site for the signed file list only when you click, never by itself. A new version installs over the old one and keeps your data.",
+  ]],
+]
+checksum_compare = "Compare the Hash it prints with the SHA-256 for the same file on the Download page. Capital or small letters do not matter. If every character matches, the file is exactly the one that was published. If not, delete it and download it again."
+checksum_web = "Or use the Verify a download page: it computes the checksum in your browser, without uploading the file."
+smartscreen_drawing = "A drawing of the SmartScreen window, not a screenshot: the More info link is under the first paragraph, and Run anyway appears after you click it."
+trouble_title = "Troubleshooting"
+trouble = [
+  ["The web installer says it has no connection", "It talks only to this site and to GitHub, over HTTPS. A company proxy or filter may block it. Download the full installer from the Download page instead: it needs no connection while installing."],
+  ["An antivirus program blocks or removes the file", "New unsigned programs are sometimes flagged by mistake. Check the checksum first. If it matches, report the false alert to the antivirus maker (for Microsoft Defender: microsoft.com/wdsi/filesubmission) and restore the file. If it does not match, delete it."],
+  ["The GPU build says the GPU path is off", "The NVIDIA driver is older than the minimum, or the Windows user name contains letters outside plain English, which NVIDIA's compiler cannot handle. Update the driver from nvidia.com. Everything keeps working on the normal processor."],
+]
+
+# ------------------------------------------------------------------ how it works
+[how]
+title = "How it works"
+lede = "Ten algorithms, each one a real step you can run and replay in the app. The words below are the app's own plain-language layer; the step inspector shows the bytes."
+algos = [
+  ["1", "Setup", "Alice, the Cloud and each doctor make their own key pairs: ML-KEM for sealed envelopes, ML-DSA for stamps. Private keys never leave the PC that made them."],
+  ["2", "Join", "Bob asks to join with his public keys and a stamped request. Alice approves him for some groups, and sends him those groups' keys in a sealed envelope only he can open."],
+  ["3", "BuildIndex", "Alice locks each document with AES-256-GCM and builds a search index: for every word, a list of addresses that look random and point at locked entries."],
+  ["4", "Update", "Adding or deleting documents appends new, stamped batches. Old searches cannot find new documents (forward privacy), and deleted ones stay hidden (backward privacy)."],
+  ["5", "Publish", "Alice stamps a short summary of each group: its version, how many entries, and a running fingerprint of everything in it. The Cloud keeps the newest one."],
+  ["6", "TokenGen", "Bob turns a word into a sealed search slip: the addresses to look up, locked so that only the Cloud can read the slip and still not learn the word."],
+  ["7", "Search", "The Cloud checks that Bob may search that group, looks up the addresses, and returns the locked entries with its own stamp. It never sees the word or the documents."],
+  ["8", "Verify", "Bob checks the Cloud's answer against Alice's stamped summary: nothing dropped, nothing changed, nothing replayed, and the summary is fresh."],
+  ["9", "Decrypt", "Bob fetches a locked document and opens it with his group key, after checking Alice's stamp on it."],
+  ["10", "Revoke", "Alice takes a doctor's access away by changing the locks of his groups and giving the new keys only to those who stay."],
+]
+shots = [
+  ["dark-inspector-encrypt", "BuildIndex in the step inspector: readable text in, scrambled bytes out."],
+  ["light-inspector-search", "Search in the step inspector: the Cloud returns two scrambled entries with its stamp."],
+]
+limits_title = "Honest limits"
+limits = [
+  ["Policy R or policy RE", "Revoking with policy R is quick: everything written after the change uses the new key. Documents from before it stay locked with the old key, which the revoked doctor still has; if he teams up with the Cloud, he can read those. Policy RE also locks every old document again with the new key and makes the Cloud delete the old copies. It closes that gap and takes longer. The Security Lab runs both and shows the difference."],
+  ["What the GPU does", "The graphics chip only speeds up the symmetric batch work (computing many addresses and masks with SHA3) when a large index is built. ML-KEM and ML-DSA always run on the normal processor. At small sizes the GPU is not faster, and the app says so with measured numbers."],
+  ["What the Cloud still learns", "Like every practical searchable encryption scheme, the Cloud sees which stored entries a search touches and when, and how many there are. It does not learn the word, the documents or the keys. The app shows exactly what the Cloud holds in its Cloud sees lens."],
+  ["Not audited", "The post-quantum code is a pure Python implementation of the NIST standards: slow and not constant time. This is teaching and research software."],
+]
+paper = "The protocol and its terms are summarised in the project's concepts document."
+paper_link = ["https://github.com/kushalgiduturi/pq-sse-desktop/blob/master/docs/concepts.md", "Read the concepts document"]
+
+# ------------------------------------------------------------------ security and privacy
+[security]
+title = "Security and privacy"
+lede = "What PQ-SSE Desktop stores, what leaves your PC, and exactly what the checks on the downloads do and do not prove."
+stores_title = "What the app stores, and where"
+stores = [
+  "Everything is in %LOCALAPPDATA%\\PQ-SSE-Desktop on your PC: settings, logs, the practice data and your own data.",
+  "Private keys are stored encrypted with your passphrase. They are never written to a log and never shown.",
+  "The cloud part is a second program on the same PC. Its database holds only locked documents and index entries; the smoke test scans it for plaintext on every build.",
+]
+leaves_title = "What leaves your PC"
+leaves = [
+  "Nothing, by itself. The app does not phone home, has no telemetry and sends no crash reports.",
+  "Only what you start: a download from this site, or Check for updates in About, which reads the signed file list from this site once. You can hide that menu item in the settings.",
+  "This website sets no cookies, runs no analytics and loads nothing from other sites. Fonts and pictures are served from here.",
+]
+trust_title = "How far you can trust a download"
+trust = [
+  ["What a checksum proves", "A SHA-256 checksum compared with the one on this site proves the file was not damaged or swapped on the way, as long as the checksum itself is genuine. If someone controlled both this site and the files, a matching checksum would prove nothing."],
+  ["The signed file list", "The file list (latest.json) and every package carry a signature made with a private key that is not in the code repository: the maintainer keeps it, and the release workflow can use it only as an encrypted GitHub Actions secret. The web installer has the matching public key built in, and refuses a list or a file whose signature does not match. Someone who changes the files or the list without that key is caught; someone who steals the key is not."],
+  ["Two places", "The checksums are published here and in the GitHub release notes. The site and the files are on different GitHub hosts, but GitHub runs both, so this is a weak second source."],
+  ["Not code signed", "None of this is Windows code signing. Windows names the publisher as unknown and SmartScreen may warn. Code signing would add a publisher name that a certificate authority checked; it is not set up today."],
+]
+signing_title = "Code signing, researched"
+signing = [
+  ["Azure Artifact Signing", "Microsoft's signing service, about 9.99 US dollars a month. Microsoft answers from 2026 say individuals are accepted only in the USA and Canada. Not verified on an official eligibility page."],
+  ["OV or EV certificate", "A certificate from a commercial authority, a few hundred US dollars a year, with the key on a hardware token or in a cloud store. Microsoft says EV no longer removes the SmartScreen warning at once. Prices not verified with sellers."],
+  ["SignPath Foundation", "Free signing for open-source projects with a public repository and an OSI license; the certificate names SignPath Foundation as the publisher. Whether this project would be accepted is not verified."],
+]
+report_title = "Report a problem"
+report = [
+  "A security problem in the app or the website: open a private security advisory on GitHub (Security tab of the repository, Report a vulnerability). Please do not open a public issue for it.",
+  "A false antivirus alert: check the checksum first, then report it to the antivirus maker (for Microsoft Defender: microsoft.com/wdsi/filesubmission) and, if you like, open an issue on GitHub so others know.",
+]
+report_link = ["https://github.com/kushalgiduturi/pq-sse-desktop/security", "Security page of the repository"]
+licenses_title = "Third-party licenses"
+licenses = "PQ-SSE Desktop is under the MIT License. It ships Qt for Python (LGPL 3), Python, cryptography, NumPy and other libraries, two fonts under the SIL Open Font License, and in the GPU build the NVIDIA CUDA runtime and NVRTC files that NVIDIA's license allows to be redistributed."
+licenses_link = ["third-party-licenses.txt", "All third-party licenses"]
+
+# ------------------------------------------------------------------ release notes
+[notes]
+title = "Release notes"
+lede = "Every version, newest first. The file list, sizes and checksums come from the signed file list of each release."
+files_title = "Files"
+
+# ------------------------------------------------------------------ verify
+[verify]
+title = "Verify a download"
+lede = "Check that a file you downloaded is exactly the one that was published. The checksum is computed here, in your browser. The file is never uploaded."
+file_label = "Choose the downloaded file"
+file_hint = "The file stays on your PC. Large files take a few seconds."
+paste_label = "Or paste the SHA-256 that PowerShell printed"
+paste_hint = "64 characters, letters a to f and digits. Capital or small letters do not matter."
+check = "Check"
+computing = "Computing the checksum of {name}..."
+match = "This is {file}, version {version}, exactly as published."
+match_name_differs = "The checksum is the one of {file}, version {version}. Your copy has a different name ({name}), which does not matter."
+nomatch = "This checksum does not match any file of version {version}. Delete the file and download it again from the Download page."
+bad_input = "That is not a SHA-256 checksum: it needs 64 characters, letters a to f and digits."
+no_crypto = "This browser cannot compute checksums here (it needs a secure https page). Use PowerShell instead, as the install guide shows."
+nojs = "This check needs JavaScript. Without it, use PowerShell and compare with the Download page, as the install guide shows."
+compare_title = "The published checksums"
+
+# ------------------------------------------------------------------ 404
+[notfound]
+title = "Page not found"
+lede = "There is no page at this address. It may have moved."
+home = "Go to the home page"
+download = "Go to the download page"

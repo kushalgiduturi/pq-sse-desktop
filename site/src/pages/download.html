@@ -1,0 +1,42 @@
+<!-- page: key=download; title=download_page.title; description=download_page.lede; script=download.js -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ download_page.title }}</h1>
+    <p class="sp-lede">{{ download_page.lede }}</p>
+  </header>
+
+  <section class="sp-section" aria-labelledby="rec-title">
+    <div class="sp-section-head">
+      <h2 class="sp-section-title" id="rec-title">{{ download_page.recommended }}</h2>
+      <span class="sp-pill sp-pill--warn">{{ status.warn }}</span>
+    </div>
+    <p class="sp-prose" data-detect data-windows="{{ windows_text }}" data-other="{{ download_page.detect_other }}">{{ download_page.detect_nojs }}</p>
+    <div class="sp-actions sp-mt-5">{{{ recommended_button }}}</div>
+    <p class="sp-muted sp-mt-3">{{{ recommended_note }}}</p>
+    {{{ gpu_notice }}}
+    {{{ fallback_block }}}
+  </section>
+
+  <section class="sp-section" aria-labelledby="all-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="all-title">{{ download_page.all_title }}</h2></div>
+    <p class="sp-prose sp-muted">{{ download_page.all_lede }}</p>
+    <div class="sp-mt-5">{{{ files_table }}}</div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="pick-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="pick-title">{{ download_page.pick_title }}</h2></div>
+    <ul class="sp-list">{{{ pick_items }}}</ul>
+  </section>
+
+  <section class="sp-section" aria-labelledby="req-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="req-title">{{ download_page.req_title }}</h2></div>
+    <div class="sp-prose"><ul>{{{ req_items }}}</ul><p class="sp-muted">{{ driver_note }}</p></div>
+  </section>
+
+  {{{ winget_section }}}
+
+  <section class="sp-section" aria-labelledby="trust-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="trust-title">{{ download_page.signing_title }}</h2></div>
+    <div class="sp-alert">{{{ icon.info }}}<p>{{ download_page.signing }} <a href="install.html#smartscreen">{{ nav_label.install }}</a>, <a href="security.html#trust">{{ nav_label.security }}</a>.</p></div>
+  </section>
+</div>

@@ -1,0 +1,32 @@
+<!-- page: key=verify; title=verify.title; description=verify.lede; script=verify.js -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ verify.title }}</h1>
+    <p class="sp-lede">{{ verify.lede }}</p>
+  </header>
+  <section class="sp-section" id="verify" data-version="{{ manifest.version }}" data-hashes="{{ hash_list }}"
+           data-msg-computing="{{ verify.computing }}" data-msg-match="{{ verify.match }}" data-msg-match-name="{{ verify.match_name_differs }}"
+           data-msg-nomatch="{{ verify.nomatch }}" data-msg-bad="{{ verify.bad_input }}" data-msg-nocrypto="{{ verify.no_crypto }}">
+    <p class="sp-alert sp-js-hide">{{{ icon.info }}}<span>{{ verify.nojs }} <a href="install.html#checksum">{{ nav_label.install }}</a>.</span></p>
+    <div class="sp-js-only">
+      <div class="sp-field sp-narrow">
+        <label class="sp-label" for="vf-file">{{ verify.file_label }}</label>
+        <span class="sp-file"><input id="vf-file" type="file"></span>
+        <span class="sp-hint">{{ verify.file_hint }}</span>
+      </div>
+      <div class="sp-field sp-narrow sp-mt-5">
+        <label class="sp-label" for="vf-hash">{{ verify.paste_label }}</label>
+        <div class="sp-actions">
+          <input class="sp-input sp-mono sp-grow" id="vf-hash" inputmode="text" autocomplete="off" spellcheck="false" maxlength="80">
+          <button class="sp-btn" type="button" id="vf-check">{{ verify.check }}</button>
+        </div>
+        <span class="sp-hint">{{ verify.paste_hint }}</span>
+      </div>
+      <div class="sp-mt-5" id="vf-result" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+  <section class="sp-section" aria-labelledby="pub-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="pub-title">{{ verify.compare_title }}</h2></div>
+    {{{ files_table }}}
+  </section>
+</div>

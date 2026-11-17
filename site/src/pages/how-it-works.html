@@ -1,0 +1,18 @@
+<!-- page: key=how; title=how.title; description=how.lede -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ how.title }}</h1>
+    <p class="sp-lede">{{ how.lede }}</p>
+  </header>
+  <section class="sp-section" aria-label="{{ how.title }}">
+    <ul class="sp-list">{{{ algo_items }}}</ul>
+  </section>
+  <section class="sp-section">
+    <div class="sp-shots">{{{ how_shots }}}</div>
+  </section>
+  <section class="sp-section" aria-labelledby="limits-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="limits-title">{{ how.limits_title }}</h2></div>
+    {{{ limit_items }}}
+    <p class="sp-mt-8">{{ how.paper }} <a href="{{ how.paper_url }}">{{ how.paper_label }}</a>.</p>
+  </section>
+</div>

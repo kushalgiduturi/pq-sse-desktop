@@ -1,0 +1,13 @@
+<!-- page: key=install; title=install.title; description=install.lede; script=install.js -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ install.title }}</h1>
+    <p class="sp-lede">{{ install.lede }}</p>
+    <div class="sp-actions sp-mt-5 sp-noprint"><button class="sp-btn" type="button" data-print hidden>{{ install.print }}</button></div>
+  </header>
+  {{{ install_steps }}}
+  <section class="sp-section" aria-labelledby="trouble-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="trouble-title">{{ install.trouble_title }}</h2></div>
+    <div class="sp-accordion">{{{ trouble_items }}}</div>
+  </section>
+</div>

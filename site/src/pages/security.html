@@ -1,0 +1,31 @@
+<!-- page: key=security; title=security.title; description=security.lede -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ security.title }}</h1>
+    <p class="sp-lede">{{ security.lede }}</p>
+  </header>
+  <section class="sp-section" aria-labelledby="stores-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="stores-title">{{ security.stores_title }}</h2></div>
+    <div class="sp-prose"><ul>{{{ stores_items }}}</ul></div>
+  </section>
+  <section class="sp-section" aria-labelledby="leaves-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="leaves-title">{{ security.leaves_title }}</h2></div>
+    <div class="sp-prose"><ul>{{{ leaves_items }}}</ul></div>
+  </section>
+  <section class="sp-section" id="trust" aria-labelledby="trust-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="trust-title">{{ security.trust_title }}</h2></div>
+    {{{ trust_items }}}
+  </section>
+  <section class="sp-section" aria-labelledby="signing-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="signing-title">{{ security.signing_title }}</h2></div>
+    {{{ signing_items }}}
+  </section>
+  <section class="sp-section" id="report" aria-labelledby="report-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="report-title">{{ security.report_title }}</h2></div>
+    <div class="sp-prose"><ul>{{{ report_items }}}</ul><p><a href="{{ security.report_url }}">{{ security.report_label }}</a></p></div>
+  </section>
+  <section class="sp-section" aria-labelledby="lic-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="lic-title">{{ security.licenses_title }}</h2></div>
+    <p class="sp-prose">{{ security.licenses }} <a href="{{ security.licenses_url }}">{{ security.licenses_label }}</a>.</p>
+  </section>
+</div>

@@ -15,10 +15,6 @@
     <ul class="sp-swatches">{{{ swatch_items }}}</ul>
   </section>
 
-  <section class="sp-section" aria-labelledby="sg-depth">
-    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-depth">{{ styleguide.depth_title }}</h2></div>
-    <div class="sp-depths">{{{ depth_items }}}</div>
-  </section>
 
   <section class="sp-section" aria-labelledby="sg-buttons">
     <div class="sp-section-head"><h2 class="sp-section-title" id="sg-buttons">{{ styleguide.buttons_title }}</h2></div>
@@ -75,3 +71,8 @@
     </div>
   </section>
 </div>
+<!-- the depths are shown on the world, outside the panel: a surface is never put inside another -->
+<section class="sp-depth-band" aria-labelledby="sg-depth">
+  <h2 class="sp-section-title" id="sg-depth">{{ styleguide.depth_title }}</h2>
+  <div class="sp-depths">{{{ depth_items }}}</div>
+</section>

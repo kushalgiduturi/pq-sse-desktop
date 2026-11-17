@@ -64,13 +64,9 @@
 
   <section class="sp-section" aria-labelledby="sg-color">
     <div class="sp-section-head"><h2 class="sp-section-title" id="sg-color">Colour</h2></div>
-    <ul class="sp-swatches"><li class="sp-swatch"><i class="sw-accent"></i><b>Accent</b><span>--sp-accent</span></li><li class="sp-swatch"><i class="sw-accent-text"></i><b>Accent text</b><span>--sp-accent-text</span></li><li class="sp-swatch"><i class="sw-text"></i><b>Text</b><span>--sp-text</span></li><li class="sp-swatch"><i class="sw-text-2"></i><b>Text 2</b><span>--sp-text-2</span></li><li class="sp-swatch"><i class="sw-text-3"></i><b>Text 3</b><span>--sp-text-3</span></li><li class="sp-swatch"><i class="sw-ok"></i><b>OK</b><span>--sp-ok</span></li><li class="sp-swatch"><i class="sw-warn"></i><b>Warning</b><span>--sp-warn</span></li><li class="sp-swatch"><i class="sw-bad"></i><b>Bad</b><span>--sp-bad</span></li><li class="sp-swatch"><i class="sw-info"></i><b>Info</b><span>--sp-info</span></li><li class="sp-swatch"><i class="sw-world"></i><b>World</b><span>--sp-world</span></li></ul>
+    <ul class="sp-swatches"><li class="sp-swatch"><i class="sw-accent"></i><b>Accent</b><span>sp-accent</span></li><li class="sp-swatch"><i class="sw-accent-text"></i><b>Accent text</b><span>sp-accent-text</span></li><li class="sp-swatch"><i class="sw-text"></i><b>Text</b><span>sp-text</span></li><li class="sp-swatch"><i class="sw-text-2"></i><b>Text 2</b><span>sp-text-2</span></li><li class="sp-swatch"><i class="sw-text-3"></i><b>Text 3</b><span>sp-text-3</span></li><li class="sp-swatch"><i class="sw-ok"></i><b>OK</b><span>sp-ok</span></li><li class="sp-swatch"><i class="sw-warn"></i><b>Warning</b><span>sp-warn</span></li><li class="sp-swatch"><i class="sw-bad"></i><b>Bad</b><span>sp-bad</span></li><li class="sp-swatch"><i class="sw-info"></i><b>Info</b><span>sp-info</span></li><li class="sp-swatch"><i class="sw-world"></i><b>World</b><span>sp-world</span></li></ul>
   </section>
 
-  <section class="sp-section" aria-labelledby="sg-depth">
-    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-depth">Depth</h2></div>
-    <div class="sp-depths"><div class="d0"><b>0, the world</b><br><span class="sp-muted">The ground everything floats over.</span></div><div class="d1"><b>1, inset</b><br><span class="sp-muted">Fields, code and tracks. Never blurred.</span></div><div class="d2"><b>2, the panel</b><br><span class="sp-muted">One per page. Blur 18 px on the real panel.</span></div><div class="d3"><b>3, raised</b><br><span class="sp-muted">The top bar island. Blur 16 px.</span></div><div class="d4"><b>4, floating</b><br><span class="sp-muted">Toasts and menus. A dense fill.</span></div></div>
-  </section>
 
   <section class="sp-section" aria-labelledby="sg-buttons">
     <div class="sp-section-head"><h2 class="sp-section-title" id="sg-buttons">Buttons</h2></div>
@@ -127,6 +123,11 @@
     </div>
   </section>
 </div>
+<!-- the depths are shown on the world, outside the panel: a surface is never put inside another -->
+<section class="sp-depth-band" aria-labelledby="sg-depth">
+  <h2 class="sp-section-title" id="sg-depth">Depth</h2>
+  <div class="sp-depths"><div class="d0"><b>0, the world</b><br><span class="sp-muted">The ground everything floats over.</span></div><div class="d1"><b>1, inset</b><br><span class="sp-muted">Fields, code and tracks. Never blurred.</span></div><div class="d2"><b>2, the panel</b><br><span class="sp-muted">One per page. Blur 18 px on the real panel.</span></div><div class="d3"><b>3, raised</b><br><span class="sp-muted">The top bar island. Blur 16 px.</span></div><div class="d4"><b>4, floating</b><br><span class="sp-muted">Toasts and menus. A dense fill.</span></div></div>
+</section>
 
 </main>
 

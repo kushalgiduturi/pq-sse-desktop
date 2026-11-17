@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en" class="sp-ui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Security and privacy - PQ-SSE Desktop</title>
+<meta name="description" content="What PQ-SSE Desktop stores, what leaves your PC, and exactly what the checks on the downloads do and do not prove.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/site.js" defer></script>
+
+</head>
+<body>
+<a class="sp-skip" href="#main">Skip to the content</a>
+<div class="sp-world" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" focusable="false">
+  
+  <g class="w-faint" stroke-width="1.5">
+    <path d="M250 470 C 380 330, 470 250, 560 230" />
+    <path d="M560 230 C 690 230, 790 300, 860 400" />
+    <path d="M560 230 C 700 300, 800 480, 860 610" />
+    <path d="M250 470 C 430 690, 690 720, 860 610" stroke-dasharray="4 10" />
+  </g>
+  <g stroke-width="1.5">
+    <circle cx="250" cy="470" r="96" />
+    <circle cx="250" cy="450" r="17" />
+    <path d="M216 512 c 2 -21 16 -33 34 -33 s 32 12 34 33" />
+    <circle cx="560" cy="230" r="78" />
+    <path d="M534 249 h 56 a 19 19 0 0 0 0 -38 a 27 27 0 0 0 -51 -5 a 20 20 0 0 0 -5 43 z" />
+    <circle cx="860" cy="400" r="82" />
+    <circle cx="860" cy="383" r="15" />
+    <path d="M831 436 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+    <circle cx="860" cy="610" r="82" />
+    <circle cx="860" cy="593" r="15" />
+    <path d="M831 646 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+  </g>
+</svg></div>
+
+<header class="sp-bar sp-glass sp-d3">
+  <a class="sp-bar-brand" href="index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></svg><span>PQ-SSE Desktop</span></a>
+  <nav class="sp-bar-nav" id="site-nav" aria-label="Site"><a href="index.html">Home</a><a href="download.html">Download</a><a href="install.html">Install guide</a><a href="how-it-works.html">How it works</a><a href="security.html" aria-current="page">Security and privacy</a><a href="release-notes.html">Release notes</a></nav>
+  <div class="sp-bar-end">
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" data-theme-toggle hidden
+            data-label-light="Switch to the light theme" data-label-dark="Switch to the dark theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"/></svg></button>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon sp-menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+    <a class="sp-btn sp-btn--primary sp-btn--sm sp-noprint" href="download.html">Download</a>
+  </div>
+</header>
+
+<main id="main" class="sp-page" tabindex="-1">
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">Security and privacy</h1>
+    <p class="sp-lede">What PQ-SSE Desktop stores, what leaves your PC, and exactly what the checks on the downloads do and do not prove.</p>
+  </header>
+  <section class="sp-section" aria-labelledby="stores-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="stores-title">What the app stores, and where</h2></div>
+    <div class="sp-prose"><ul><li>Everything is in %LOCALAPPDATA%\PQ-SSE-Desktop on your PC: settings, logs, the practice data and your own data.</li><li>Private keys are stored encrypted with your passphrase. They are never written to a log and never shown.</li><li>The cloud part is a second program on the same PC. Its database holds only locked documents and index entries; the smoke test scans it for plaintext on every build.</li></ul></div>
+  </section>
+  <section class="sp-section" aria-labelledby="leaves-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="leaves-title">What leaves your PC</h2></div>
+    <div class="sp-prose"><ul><li>Nothing, by itself. The app does not phone home, has no telemetry and sends no crash reports.</li><li>Only what you start: a download from this site, or Check for updates in About, which reads the signed file list from this site once. You can hide that menu item in the settings.</li><li>This website sets no cookies, runs no analytics and loads nothing from other sites. Fonts and pictures are served from here.</li></ul></div>
+  </section>
+  <section class="sp-section" id="trust" aria-labelledby="trust-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="trust-title">How far you can trust a download</h2></div>
+    <h3 class="sp-h3">What a checksum proves</h3><p class="sp-prose">A SHA-256 checksum compared with the one on this site proves the file was not damaged or swapped on the way, as long as the checksum itself is genuine. If someone controlled both this site and the files, a matching checksum would prove nothing.</p><h3 class="sp-h3">The signed file list</h3><p class="sp-prose">The file list (latest.json) and every package carry a signature made with a private key that is not in the code repository: the maintainer keeps it, and the release workflow can use it only as an encrypted GitHub Actions secret. The web installer has the matching public key built in, and refuses a list or a file whose signature does not match. Someone who changes the files or the list without that key is caught; someone who steals the key is not.</p><h3 class="sp-h3">Two places</h3><p class="sp-prose">The checksums are published here and in the GitHub release notes. The site and the files are on different GitHub hosts, but GitHub runs both, so this is a weak second source.</p><h3 class="sp-h3">Not code signed</h3><p class="sp-prose">None of this is Windows code signing. Windows names the publisher as unknown and SmartScreen may warn. Code signing would add a publisher name that a certificate authority checked; it is not set up today.</p>
+  </section>
+  <section class="sp-section" aria-labelledby="signing-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="signing-title">Code signing, researched</h2></div>
+    <h3 class="sp-h3">Azure Artifact Signing</h3><p class="sp-prose">Microsoft&#x27;s signing service, about 9.99 US dollars a month. Microsoft answers from 2026 say individuals are accepted only in the USA and Canada. Not verified on an official eligibility page.</p><h3 class="sp-h3">OV or EV certificate</h3><p class="sp-prose">A certificate from a commercial authority, a few hundred US dollars a year, with the key on a hardware token or in a cloud store. Microsoft says EV no longer removes the SmartScreen warning at once. Prices not verified with sellers.</p><h3 class="sp-h3">SignPath Foundation</h3><p class="sp-prose">Free signing for open-source projects with a public repository and an OSI license; the certificate names SignPath Foundation as the publisher. Whether this project would be accepted is not verified.</p>
+  </section>
+  <section class="sp-section" id="report" aria-labelledby="report-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="report-title">Report a problem</h2></div>
+    <div class="sp-prose"><ul><li>A security problem in the app or the website: open a private security advisory on GitHub (Security tab of the repository, Report a vulnerability). Please do not open a public issue for it.</li><li>A false antivirus alert: check the checksum first, then report it to the antivirus maker (for Microsoft Defender: microsoft.com/wdsi/filesubmission) and, if you like, open an issue on GitHub so others know.</li></ul><p><a href="https://github.com/kushalgiduturi/pq-sse-desktop/security">Security page of the repository</a></p></div>
+  </section>
+  <section class="sp-section" aria-labelledby="lic-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="lic-title">Third-party licenses</h2></div>
+    <p class="sp-prose">PQ-SSE Desktop is under the MIT License. It ships Qt for Python (LGPL 3), Python, cryptography, NumPy and other libraries, two fonts under the SIL Open Font License, and in the GPU build the NVIDIA CUDA runtime and NVRTC files that NVIDIA&#x27;s license allows to be redistributed. <a href="third-party-licenses.txt">All third-party licenses</a>.</p>
+  </section>
+</div>
+
+</main>
+
+<footer class="sp-foot">
+  <nav aria-label="More"><a href="verify.html">Verify a download</a><a href="security.html#report">Report a problem</a><a href="third-party-licenses.txt">Third-party licenses</a><a href="https://github.com/kushalgiduturi/pq-sse-desktop">Source code</a></nav>
+  <p>PQ-SSE Desktop is research and teaching software under the MIT License. It has not been audited: do not use it to protect real records. This site sets no cookies, runs no analytics and loads nothing from other sites.</p>
+</footer>
+
+<div class="sp-toast" role="status" aria-live="polite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg><span></span></div>
+</body>
+</html>
