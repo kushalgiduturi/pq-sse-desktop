@@ -103,7 +103,12 @@ $env:PQSSE_DATA_DIR = $TempData
 Write-Host "Installer under test: $Setup (version $NewVersion)"
 if ($Twin) { Write-Host "Twin identity '$AppName': PQ-SSE Desktop itself is installed on this PC and is left untouched." }
 Write-Host "Install folder:        $InstallDir"
-Check (-not $Admin) "running without admin rights"
+if ($Admin -and $env:GITHUB_ACTIONS -eq "true") {
+    # GitHub's Windows runner account is always an administrator; the per-user (HKCU) install is still checked below
+    Write-Host "  NOTE  running with admin rights (GitHub Actions runner); the per-user install is checked by its HKCU entry"
+} else {
+    Check (-not $Admin) "running without admin rights"
+}
 
 try {
     if ($OlderSetup) {
