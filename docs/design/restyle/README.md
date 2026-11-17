@@ -72,6 +72,24 @@ Both were measured with the same script, which keeps a 1 px item turning so the 
 every frame (see R25). Without it the new UI draws nothing while nothing moves: the old drifting
 lights forced a redraw every frame, the still world does not.
 
+## Release build after the restyle
+
+`build_release.ps1 -WithGpu` passed every step: both builds, the spatial self-test on the GPU and
+the software renderer, the GPU self-test, the portable zips, and the installer tests (silent
+install, upgrade over an older version, smoke test from the installed location, uninstall). The
+real PQ-SSE Desktop installed on this PC was left untouched (the tests use a twin identity).
+Copied to `C:\Users\Kushal\PQ-SSE-Desktop-release\restyle\0.1.0`.
+
+| File | Before | After |
+| --- | --- | --- |
+| Installer, Standard | 54.2 MB | 54.3 MB |
+| Installer, GPU | 122.8 MB | 122.9 MB |
+| Portable zip, Standard | 82.3 MB | 82.4 MB |
+| Portable zip, GPU | 198.1 MB | 198.2 MB |
+| Installed size, Standard / GPU | 218 / 415 MB | 219 / 416 MB |
+
+The difference is the two bundled fonts (Onest variable and Share Tech Mono, with their OFL licenses).
+
 ## Not verified
 
 - Nobody has clicked through the restyled window by hand; it was driven by scripts and checked

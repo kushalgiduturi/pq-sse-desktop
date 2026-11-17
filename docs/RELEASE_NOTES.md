@@ -18,6 +18,13 @@ The exact checksums are in `SHA256SUMS.txt`; they change with every build.
 
 New in the program:
 
+- **Quiet glass look.** The spatial window was restyled: a still, quiet background, one glass
+  panel per page, a pill top bar, a small dock, flat lists with hairlines, status-only pills,
+  and two themes (light: blue and white; dark: red and black). Text is set in Onest, ids and
+  sizes in Share Tech Mono (both bundled, OFL). The window title bar follows the theme. With
+  the Windows transparency effects switched off, or on the software renderer, glass becomes a
+  dense fill. Details and screenshots: `docs/design/restyle/`.
+
 - The **spatial window** is the default: a dock with five destinations (Journey, Stage, Workspace,
   Security Lab, Insights), a Story bar, a command palette (Ctrl+K) and a Step Inspector that replays
   every real step at four levels of detail. Start with `--classic` for the earlier six-tab window.
