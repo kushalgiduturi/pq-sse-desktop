@@ -105,12 +105,20 @@ tests/
 - Runs the full installer with `/SILENT` or `/VERYSILENT` passed through, `/DIR=` passed through,
   offers to launch at the end, deletes its temporary files, logs to
   `%LOCALAPPDATA%\PQ-SSE-Desktop\logs\web-setup.log`.
-- Gaps, stated honestly: Inno's downloader follows HTTP redirects itself, so the stub cannot
-  refuse a redirect to a host outside the allowlist **before** it happens. It checks the final
-  URL's host after the download and refuses to run anything from elsewhere, and the signature
-  check makes a swapped file fail regardless of where it came from. It does not resume a broken
-  download from the middle: it retries from the start (the Standard package is 54 MB). I will
-  verify both behaviors in tests and change this text if Inno does better.
+- As built and tested (M2): the stub follows redirects itself, one hop at a time, with WinHTTP
+  (`WinHttp.WinHttpRequest.5.1`, automatic redirects off) and refuses a host outside the list
+  **before** it requests anything from it; only the final, checked URL goes to Inno's downloader.
+  A server could still answer the second request differently; the signature and SHA-256 checks
+  catch any file that is not the signed one. It does **not resume** a broken download: it stops
+  with a clear message and nothing runs (tested); running it again starts over (Standard package
+  54 MB). The redirect check uses WinHTTP, which follows the WinHTTP proxy setting
+  (`netsh winhttp`), not the browser's proxy setting; behind a proxy that only the browser knows,
+  the stub says it has no connection and points to the full installer (not tested behind a proxy).
+  If a package carries an Authenticode signature, PowerShell's `Get-AuthenticodeSignature` must
+  report it valid, else it is refused; unsigned packages pass (today all are unsigned).
+- Measured: 2.1 MB; real run on this PC in 30 s (WMI read NVIDIA driver 610.62 correctly, chose
+  Standard because the manifest had no GPU build, installed into a folder with spaces, installed
+  app passed `--smoke-test`, uninstall removed it).
 
 **Alternative: a small Go stub** (Go 1.26 is on this PC; Rust is not). Full control: refuse any
 redirect off the allowlist before following it, resume with HTTP range requests, Ed25519. Costs:

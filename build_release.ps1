@@ -235,6 +235,16 @@ foreach ($Build in $Builds) {
     Write-Host "Installer: $($Build.Setup)"
     $Build.Zip = Make-Zip $Build.Dist $Build.Variant $Build.Note
 }
+# The web installer (a few MB): built when the public signing key is in the project.
+$PublicKey = Join-Path $Root "installer\issig-public-key.txt"
+if (Test-Path $PublicKey) {
+    & $VenvPython (Join-Path $Root "scripts\build_web_setup.py") --out $ReleaseDir --version $Version | Out-Host
+    if ($LASTEXITCODE -ne 0) { Fail "the web installer did not build." }
+    Sign-File (Join-Path $ReleaseDir "PQ-SSE-Web-Setup.exe")
+    if (-not $SignManifest) { Write-Host "WARNING: the web installer was built, but without -SignManifest it cannot install this release." }
+} else {
+    Write-Host "Web installer: SKIPPED (no installer\issig-public-key.txt yet; run scripts\new_signing_key.ps1 once)."
+}
 
 # ---------------------------------------------------------------------------------------
 Step "5. Tests of the release files"
@@ -270,6 +280,10 @@ if ($SkipInstallerTest) {
         if ($LASTEXITCODE -ne 0) { Fail "the installer test of $($Build.Setup) did not pass." }
     }
     Remove-Item $OlderDir -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host ""
+    Write-Host "Web installer, real run against a local server (twin identity, throwaway key):"
+    & $VenvPython (Join-Path $Root "scripts\test_web_setup_real.py") --dist $Builds[0].Dist | Out-Host
+    if ($LASTEXITCODE -ne 0) { Fail "the web installer real run did not pass." }
 }
 
 # ---------------------------------------------------------------------------------------
