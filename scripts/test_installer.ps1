@@ -63,7 +63,11 @@ function Install([string]$Exe, [string]$Dir, [string]$Log) {
 }
 
 function Start-AppWindow([string]$Exe) {
-    $App = Start-Process -FilePath $Exe -PassThru
+    # a real window: drop a QT_QPA_PLATFORM=offscreen inherited from the build (CI sets it for the tests)
+    $Platform = $env:QT_QPA_PLATFORM
+    Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
+    try { $App = Start-Process -FilePath $Exe -PassThru }
+    finally { if ($Platform) { $env:QT_QPA_PLATFORM = $Platform } }
     $Deadline = (Get-Date).AddSeconds(60)
     while ((Get-Date) -lt $Deadline -and -not $App.HasExited) {
         $App.Refresh()
