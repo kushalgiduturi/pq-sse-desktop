@@ -23,10 +23,9 @@ read at docs.nvidia.com/cuda/archive/12.0.1/eula) lists as redistributable on Wi
 `v0.1.0` Release created earlier today.
 
 Proposal (decision W1):
-1. Now, with your yes: remove `PQ-SSE-Desktop-Setup-0.1.0-GPU.exe` from the v0.1.0 Release
-   (`gh release delete-asset v0.1.0 PQ-SSE-Desktop-Setup-0.1.0-GPU.exe -R kushalgiduturi/pq-sse-desktop`)
-   and edit the notes to say the GPU build is not available yet. The Standard installer has
-   no NVIDIA files and stays.
+1. Proposed: remove `PQ-SSE-Desktop-Setup-0.1.0-GPU.exe` from the v0.1.0 Release until the fix.
+   **Your decision (2026-11-17): keep it for now.** It stays published as is; the next release
+   replaces it with a package that holds only Attachment A files (step 2).
 2. In milestone 1: find the smallest header set the app's kernels really need, by building the
    GPU variant with only the four allowed headers and running `--gpu-selftest`. If that passes,
    ship only those. If CuPy needs more headers, the GPU package becomes a separate "GPU pack"
