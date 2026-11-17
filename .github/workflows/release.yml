@@ -1,12 +1,16 @@
-# Builds the Standard (CPU) variant when a version tag such as v0.1.0 is pushed, runs the
-# tests and the smoke test of the built program, builds the installer and the portable
-# zip, and attaches the files to a GitHub Release.
+# Release workflow: on a version tag such as v0.2.0 it builds, tests and publishes the Standard
+# variant, the web installer, the signed file list and the website.
 #
-# The GPU variant is NOT built here: GitHub's runners have no NVIDIA GPU, so its GPU
-# self-test cannot run. Build it locally with:  .\build_release.ps1 -WithGpu
+#   1. tests, Standard build, smoke tests, installer and portable tests, web installer (build_release.ps1)
+#   2. latest.json and SHA256SUMS.txt; with the secret ISSIG_PRIVATE_KEY set, latest.json and every
+#      package are signed (Inno Setup .issig) and the web installer can install this release
+#   3. a GitHub Release with every file
+#   4. the website built from that latest.json, checked, and deployed to GitHub Pages
 #
-# No secrets are used. The files are not code signed.
-# Status: written for this project but not run yet (the project has no GitHub remote).
+# The GPU variant is not built here: GitHub's runners have no NVIDIA GPU, so its self-test cannot
+# run. scripts/publish_gpu.ps1 builds it on the maintainer's PC and adds it to the Release.
+# Secrets: only ISSIG_PRIVATE_KEY (optional), set by the maintainer in the repository settings.
+# It is written to the runner's temporary folder for the signing step and deleted right after.
 
 name: release
 
@@ -19,10 +23,16 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  build-standard:
+  build:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,27 +40,57 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Inno Setup when the runner does not have it
+      - name: Install Inno Setup 6.7 (ISCC and ISSigTool)
         shell: pwsh
         run: |
-          $paths = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe")
-          if (-not ($paths | Where-Object { Test-Path $_ })) { choco install innosetup --no-progress -y }
+          choco install innosetup --version 6.7.3 --no-progress -y
+          if ($LASTEXITCODE -ne 0) { choco install innosetup --no-progress -y }
+          $tool = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISSigTool.exe", "$env:ProgramFiles\Inno Setup 6\ISSigTool.exe") | Where-Object { Test-Path $_ }
+          if (-not $tool) { throw "Inno Setup 6.5 or newer (with ISSigTool) is needed" }
 
-      - name: Check that the tag matches the version in pyproject.toml
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Read the version and check it against the tag
+        id: version
         shell: pwsh
         run: |
           $version = (python scripts/build_helpers.py version).Trim()
-          if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match version $version" }
+          if ("${{ github.ref_type }}" -eq "tag" -and "v$version" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match version $version in pyproject.toml"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Build, test and package (Standard variant)
+      - name: Signing key from the repository secret (optional)
+        id: key
+        shell: pwsh
+        env:
+          ISSIG_PRIVATE_KEY: ${{ secrets.ISSIG_PRIVATE_KEY }}
+        run: |
+          if ($env:ISSIG_PRIVATE_KEY) {
+            $file = Join-Path $env:RUNNER_TEMP "pqsse-release.key"
+            Set-Content -Path $file -Value $env:ISSIG_PRIVATE_KEY -NoNewline -Encoding ascii
+            "ISSIGTOOL_KEY_FILE=$file" >> $env:GITHUB_ENV
+            "signed=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "No ISSIG_PRIVATE_KEY secret: the file list will not be signed and the web installer will refuse it."
+            "signed=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Build, test and package (Standard variant and web installer)
         shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
           $python = (Get-Command python).Source
-          ./build_release.ps1 -Python $python -BuildRoot "$env:RUNNER_TEMP\pqsse-build" -CopyTo "$env:GITHUB_WORKSPACE\release-out"
+          $options = @{ Python = $python; BuildRoot = "$env:RUNNER_TEMP\pqsse-build"; CopyTo = "$env:GITHUB_WORKSPACE\release-out" }
+          if ("${{ steps.key.outputs.signed }}" -eq "true") { $options.SignManifest = $true }
+          ./build_release.ps1 @options
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Remove the signing key from the runner
+        if: always()
+        shell: pwsh
+        run: |
+          $file = Join-Path $env:RUNNER_TEMP "pqsse-release.key"
+          if (Test-Path $file) { Remove-Item $file -Force }
 
       - name: Upload the build log
         if: always()
@@ -60,18 +100,82 @@ jobs:
           path: ${{ runner.temp }}\pqsse-build\logs
           if-no-files-found: ignore
 
-      - name: Upload the release files as a workflow artifact
+      - name: Upload the release files
         uses: actions/upload-artifact@v4
         with:
-          name: pqsse-desktop-standard
-          path: release-out/**
+          name: release-files
+          path: release-out/${{ steps.version.outputs.version }}/*
+          if-no-files-found: error
 
-      - name: Attach the files to the GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+  publish:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: files
+
+      - name: Release notes with the checksums
+        run: |
+          {
+            echo "PQ-SSE Desktop ${{ needs.build.outputs.version }}. Not code signed: see the install guide on the website."
+            echo
+            echo "SHA-256 checksums (also in SHA256SUMS.txt and on the website):"
+            echo '```'
+            cat files/SHA256SUMS.txt
+            echo '```'
+            echo
+            echo "The GPU build is added later from a PC with an NVIDIA GPU, after its self-test."
+          } > notes.md
+
+      - name: Create the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release-out/**/*
-          body: |
-            Standard (CPU) build. Not code signed: see docs/DISTRIBUTION.md.
-            Check your download against SHA256SUMS.txt.
-            The GPU build is not produced by this workflow.
+          name: PQ-SSE Desktop ${{ needs.build.outputs.version }}
+          body_path: notes.md
+          files: files/*
+          fail_on_unmatched_files: true
+
+  site:
+    needs: [build, publish]
+    if: github.ref_type == 'tag'
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python packages for the site build (Qt converts the screenshots)
+        run: python -m pip install --disable-pip-version-check -r requirements-lock.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: files
+
+      - name: Build the website from the release's file list
+        run: python scripts/build_site.py --manifest files/latest.json
+
+      - name: Check the website (craft floor, HTML, links, contrast table)
+        run: |
+          python scripts/craft_check_site.py
+          python scripts/check_site.py --no-browser
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/public
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

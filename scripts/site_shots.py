@@ -20,9 +20,17 @@ PUBLIC = ROOT / "site" / "public"
 WIDTHS = (390, 768, 1440)
 
 
+PREFIX = "/pq-sse-desktop"  # the site's path on GitHub Pages; the 404 page links to it absolutely
+
+
 class Quiet(SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
+
+    def translate_path(self, path):
+        if path.startswith(PREFIX + "/"):
+            path = path[len(PREFIX):]
+        return super().translate_path(path)
 
 
 def serve(folder: Path):
@@ -89,14 +97,16 @@ def main() -> int:
         canvas = QImage(width, height, QImage.Format_RGB32)
         painter = QPainter(canvas)
         y = 0
+        last = -1
         while y < height:
             js(f"window.scrollTo(0, {y}); document.querySelectorAll('.sp-bar').forEach(function(b){{b.style.visibility = {y} ? 'hidden' : ''}});")
             wait(450)
             actual = int(js("Math.round(window.scrollY)") or 0)
             shot = view.grab().toImage()
             painter.drawImage(0, actual, shot)
-            if actual + step >= height:
-                break
+            if actual + step >= height or actual <= last:
+                break  # the end of the page, or the page would not scroll further
+            last = actual
             y = actual + step
         painter.end()
         js("document.querySelectorAll('.sp-bar').forEach(function(b){b.style.visibility=''}); window.scrollTo(0,0);")
@@ -110,7 +120,8 @@ def main() -> int:
                 view.resize(width, 900)
                 loaded = QEventLoop()
                 page.loadFinished.connect(loaded.quit)
-                view.load(QUrl(f"http://{origin}/{name}.html"))
+                QTimer.singleShot(20000, loaded.quit)  # never wait forever for a page
+                view.load(QUrl(f"http://{origin}{PREFIX}/{name}.html"))
                 loaded.exec()
                 page.loadFinished.disconnect(loaded.quit)
                 js(f"document.documentElement.setAttribute('data-theme','{theme}'); window.PQSSE && window.PQSSE.placeAll();"

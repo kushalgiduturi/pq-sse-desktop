@@ -371,7 +371,7 @@ SWATCH_CSS = "".join(f"html.sp-ui .sw-{t} {{ background: var(--sp-{t}); }}\n"
 
 
 # ------------------------------------------------------------------ build
-def build(manifest: dict, out: Path = OUT) -> list[Path]:
+def build(manifest: dict, out: Path = OUT, manifest_file: Path | None = None) -> list[Path]:
     with open(SITE / "content.toml", "rb") as handle:
         content = tomllib.load(handle)
     if out.exists():
@@ -390,7 +390,14 @@ def build(manifest: dict, out: Path = OUT) -> list[Path]:
     (out / "assets" / "icon.svg").write_text(
         _SVG.format(ICONS["logo"]).replace('stroke="currentColor"', 'stroke="#2563eb"').replace('aria-hidden="true" focusable="false"', 'xmlns="http://www.w3.org/2000/svg"'),
         encoding="utf-8")
-    (out / "latest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    if manifest_file is not None:
+        # the signed file list is served byte for byte, with its signature next to it
+        shutil.copy2(manifest_file, out / "latest.json")
+        signature = manifest_file.with_name(manifest_file.name + ".issig")
+        if signature.is_file():
+            shutil.copy2(signature, out / "latest.json.issig")
+    else:
+        (out / "latest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     licenses = out / "third-party-licenses.txt"
     result = subprocess.run([sys.executable, str(ROOT / "scripts" / "build_helpers.py"), "licenses", str(licenses)], capture_output=True, text=True)
     if result.returncode != 0 or not licenses.is_file():
@@ -469,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         manifest = make_manifest.build_manifest(args.release_dir.resolve(), make_manifest.read_version(),
                                                 args.date or __import__("datetime").date.today().isoformat())
-    pages = build(manifest, args.out)
+    pages = build(manifest, args.out, args.manifest.resolve() if args.manifest else None)
     total = sum(p.stat().st_size for p in args.out.rglob("*") if p.is_file())
     print(f"Site: {len(pages)} pages in {args.out} ({total / 1024:.0f} KB with screenshots and fonts)")
     return 0

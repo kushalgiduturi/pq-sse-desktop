@@ -142,3 +142,17 @@ def test_signed_manifest_verifies_and_tampering_is_refused(tmp_path, signing_key
         issig.verify(sig, manifest, [other])
     sums = (folder / "SHA256SUMS.txt").read_text()
     assert hashlib.sha256(manifest).hexdigest() + "  latest.json" in sums
+
+
+def test_add_gpu_to_a_published_manifest(tmp_path):
+    folder = fake_release(tmp_path / "rel", gpu=True)
+    manifest = make_manifest.build_manifest(fake_release(tmp_path / "published"), "9.9.9", "2026-11-20")
+    assert manifest["channels"]["gpu"]["available"] is False
+    path = tmp_path / "latest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    updated = make_manifest.add_gpu(path, folder)
+    check_entry(folder, updated["channels"]["gpu"])
+    check_entry(folder, updated["portable"]["gpu"])
+    assert updated["channels"]["gpu"]["min_driver"] == "528.33"
+    assert updated["channels"]["standard"] == manifest["channels"]["standard"]   # the released files are untouched
+    assert json.loads(path.read_text()) == updated

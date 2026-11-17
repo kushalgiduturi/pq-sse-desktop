@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: PQSSE.PQSSEDesktop
+PackageVersion: 0.1.0
+InstallerType: inno
+Scope: user
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+InstallerSwitches:
+  Silent: /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER
+  SilentWithProgress: /SILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER
+UpgradeBehavior: install
+ElevationRequirement: elevationProhibited
+MinimumOSVersion: 10.0.17763
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-Setup-0.1.0.exe
+    InstallerSha256: 99D6EF4FECD014028FCA59997A6D0E99A77898143A025A131C0EEEDC99945338
+ManifestType: installer
+ManifestVersion: 1.6.0

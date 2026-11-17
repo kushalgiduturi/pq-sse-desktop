@@ -110,14 +110,38 @@ def sign(paths: list[Path]) -> None:
         raise SystemExit("FAILED: ISSigTool could not sign: " + (result.stderr or result.stdout).strip())
 
 
+def add_gpu(manifest_path: Path, folder: Path, config: dict | None = None) -> dict:
+    """Add the GPU installer and zip from `folder` to a published latest.json (scripts/publish_gpu.ps1)."""
+    config = config or load_config()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    version = manifest["version"]
+    files = {key: value.format(version=version) for key, value in config["files"].items()}
+    base = config["project"]["download_base"].format(version=version)
+    gpu = entry(folder, files["gpu_setup"], base)
+    if not gpu["available"]:
+        raise SystemExit(f"FAILED: {files['gpu_setup']} is not in {folder}")
+    manifest["channels"]["gpu"] = {**gpu, "min_driver": config["requirements"]["min_driver"]}
+    manifest["portable"]["gpu"] = entry(folder, files["gpu_zip"], base)
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return manifest
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", type=Path)
     parser.add_argument("--version", default=None)
     parser.add_argument("--date", default=dt.date.today().isoformat())
     parser.add_argument("--sign", action="store_true")
+    parser.add_argument("--add-gpu", type=Path, default=None, help="add the GPU files in FOLDER to this published latest.json")
     args = parser.parse_args(argv)
     folder = args.folder.resolve()
+    if args.add_gpu:
+        manifest = add_gpu(args.add_gpu.resolve(), folder)
+        if args.sign:
+            gpu = [folder / e["file"] for e in (manifest["channels"]["gpu"], manifest["portable"]["gpu"]) if e.get("available")]
+            sign([args.add_gpu.resolve(), *gpu])
+        print(f"GPU build added to {args.add_gpu}" + (" (signed)" if args.sign else " (not signed)"))
+        return 0
     manifest = build_manifest(folder, args.version or read_version(), args.date)
     out = folder / "latest.json"
     out.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
