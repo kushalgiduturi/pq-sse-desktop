@@ -25,18 +25,10 @@
   },
   "portable": {
     "standard": {
-      "available": true,
-      "file": "PQ-SSE-Desktop-0.1.0-portable-standard.zip",
-      "url": "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-0.1.0-portable-standard.zip",
-      "size": 86449202,
-      "sha256": "17de4078551f73677ab19b6fbdbfa675db7d5cd176b2584cb1510625122d6d61"
+      "available": false
     },
     "gpu": {
-      "available": true,
-      "file": "PQ-SSE-Desktop-0.1.0-portable-gpu.zip",
-      "url": "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-0.1.0-portable-gpu.zip",
-      "size": 207813725,
-      "sha256": "7f244ae2cd559b634bc4e3abe9920ebd11c72bd4ea23eb7894c306ccac66ba8f"
+      "available": false
     }
   },
   "web_setup": {
