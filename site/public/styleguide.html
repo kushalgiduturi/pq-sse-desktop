@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" class="sp-ui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>Style guide - PQ-SSE Desktop</title>
+<meta name="description" content="The tokens and components of this site, in the theme you are viewing. The same Quiet glass system as the app.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/site.js" defer></script>
+
+</head>
+<body>
+<a class="sp-skip" href="#main">Skip to the content</a>
+<div class="sp-world" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" focusable="false">
+  
+  <g class="w-faint" stroke-width="1.5">
+    <path d="M250 470 C 380 330, 470 250, 560 230" />
+    <path d="M560 230 C 690 230, 790 300, 860 400" />
+    <path d="M560 230 C 700 300, 800 480, 860 610" />
+    <path d="M250 470 C 430 690, 690 720, 860 610" stroke-dasharray="4 10" />
+  </g>
+  <g stroke-width="1.5">
+    <circle cx="250" cy="470" r="96" />
+    <circle cx="250" cy="450" r="17" />
+    <path d="M216 512 c 2 -21 16 -33 34 -33 s 32 12 34 33" />
+    <circle cx="560" cy="230" r="78" />
+    <path d="M534 249 h 56 a 19 19 0 0 0 0 -38 a 27 27 0 0 0 -51 -5 a 20 20 0 0 0 -5 43 z" />
+    <circle cx="860" cy="400" r="82" />
+    <circle cx="860" cy="383" r="15" />
+    <path d="M831 436 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+    <circle cx="860" cy="610" r="82" />
+    <circle cx="860" cy="593" r="15" />
+    <path d="M831 646 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+  </g>
+</svg></div>
+
+<header class="sp-bar sp-glass sp-d3">
+  <a class="sp-bar-brand" href="index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></svg><span>PQ-SSE Desktop</span></a>
+  <nav class="sp-bar-nav" id="site-nav" aria-label="Site"><a href="index.html">Home</a><a href="download.html">Download</a><a href="install.html">Install guide</a><a href="how-it-works.html">How it works</a><a href="security.html">Security and privacy</a><a href="release-notes.html">Release notes</a></nav>
+  <div class="sp-bar-end">
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" data-theme-toggle hidden
+            data-label-light="Switch to the light theme" data-label-dark="Switch to the dark theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"/></svg></button>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon sp-menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+    <a class="sp-btn sp-btn--primary sp-btn--sm sp-noprint" href="download.html">Download</a>
+  </div>
+</header>
+
+<main id="main" class="sp-page" tabindex="-1">
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">Style guide</h1>
+    <p class="sp-lede">The tokens and components of this site, in the theme you are viewing. The same Quiet glass system as the app.</p>
+  </header>
+
+  <section class="sp-section" aria-labelledby="sg-type">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-type">Type</h2></div>
+    <div class="sp-type"><p class="sp-title">Search locked files without unlocking them</p><p class="sp-section-title">Section title</p><p>Body text is Onest at 15 px with a line height of 1.55. Sentences are short and plain.</p><p class="sp-muted">Secondary text explains a control or a number.</p><p class="sp-mono">2f6294f9aa09f59a574b5dcd33be54e16b39 54.3 MB 0.1.0</p></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-color">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-color">Colour</h2></div>
+    <ul class="sp-swatches"><li class="sp-swatch"><i class="sw-accent"></i><b>Accent</b><span>--sp-accent</span></li><li class="sp-swatch"><i class="sw-accent-text"></i><b>Accent text</b><span>--sp-accent-text</span></li><li class="sp-swatch"><i class="sw-text"></i><b>Text</b><span>--sp-text</span></li><li class="sp-swatch"><i class="sw-text-2"></i><b>Text 2</b><span>--sp-text-2</span></li><li class="sp-swatch"><i class="sw-text-3"></i><b>Text 3</b><span>--sp-text-3</span></li><li class="sp-swatch"><i class="sw-ok"></i><b>OK</b><span>--sp-ok</span></li><li class="sp-swatch"><i class="sw-warn"></i><b>Warning</b><span>--sp-warn</span></li><li class="sp-swatch"><i class="sw-bad"></i><b>Bad</b><span>--sp-bad</span></li><li class="sp-swatch"><i class="sw-info"></i><b>Info</b><span>--sp-info</span></li><li class="sp-swatch"><i class="sw-world"></i><b>World</b><span>--sp-world</span></li></ul>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-depth">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-depth">Depth</h2></div>
+    <div class="sp-depths"><div class="d0"><b>0, the world</b><br><span class="sp-muted">The ground everything floats over.</span></div><div class="d1"><b>1, inset</b><br><span class="sp-muted">Fields, code and tracks. Never blurred.</span></div><div class="d2"><b>2, the panel</b><br><span class="sp-muted">One per page. Blur 18 px on the real panel.</span></div><div class="d3"><b>3, raised</b><br><span class="sp-muted">The top bar island. Blur 16 px.</span></div><div class="d4"><b>4, floating</b><br><span class="sp-muted">Toasts and menus. A dense fill.</span></div></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-buttons">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-buttons">Buttons</h2></div>
+    <div class="sp-actions">
+      <a class="sp-btn sp-btn--primary" href="download.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 19.5h14"/></svg>Download for Windows</a>
+      <a class="sp-btn" href="install.html">Install guide</a>
+      <a class="sp-btn sp-btn--ghost" href="how-it-works.html">How it works</a>
+      <button class="sp-btn sp-btn--sm" type="button" data-copy="sample" data-copied="Copied" data-copy-failed="Select the text and copy it" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy</button>
+      <button class="sp-btn" type="button" disabled>Download</button>
+    </div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-pills">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-pills">Status</h2></div>
+    <div class="sp-actions">
+      <span class="sp-pill sp-pill--ok">Checksum matches</span>
+      <span class="sp-pill sp-pill--warn">Not code signed</span>
+      <span class="sp-pill sp-pill--bad">Checksum differs</span>
+      <span class="sp-pill sp-pill--info">Signed manifest</span>
+      <span class="sp-pill sp-pill--accent">Recommended</span>
+      <span class="sp-pill sp-pill--neutral">Not available yet</span>
+    </div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-seg">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-seg">Segmented control</h2></div>
+    <div class="sp-seg" role="group" aria-label="Segmented control"><button type="button" aria-pressed="true">Standard</button><button type="button" aria-pressed="false">GPU</button></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-metrics">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-metrics">Metrics</h2></div>
+    <div class="sp-metrics"><div class="sp-metric"><span class="sp-metric-value sp-mono">0.1.0</span><span class="sp-metric-label">Version</span></div><div class="sp-metric"><span class="sp-metric-value sp-mono">2026-11-17</span><span class="sp-metric-label">Released</span></div><div class="sp-metric"><span class="sp-metric-value sp-mono">54.3 MB</span><span class="sp-metric-label">Full installer, Standard</span></div></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-table">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-table">Table</h2></div>
+    <div class="sp-table-wrap"><table class="sp-table"><caption class="sp-sr">All files of this release</caption><thead><tr><th scope="col">What</th><th scope="col">File</th><th scope="col" class="is-hide-sm">Size</th><th scope="col" class="is-hide-sm">SHA-256</th></tr></thead><tbody><tr><td><b>Web installer</b><span class="sp-sub">Small. Downloads the right package for this PC and checks it before running it. Recommended.</span></td><td><span class="sp-pill sp-pill--neutral">Not available yet</span></td><td class="is-hide-sm"><span class="sp-muted">-</span></td><td class="is-hide-sm"><span class="sp-muted">-</span></td></tr><tr><td><b>Full installer, Standard</b><span class="sp-sub">Works offline after download. Runs on the normal processor.</span></td><td><a href="https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-Setup-0.1.0.exe">PQ-SSE-Desktop-Setup-0.1.0.exe</a></td><td class="is-hide-sm"><span class="sp-mono sp-nowrap">54.3 MB</span></td><td class="is-hide-sm"><span class="sp-hash"><code>99d6ef4fecd014028fca59997a6d0e99a77898143a025a131c0eeedc99945338</code><button class="sp-btn sp-btn--ghost sp-btn--icon sp-btn--sm sp-copy" type="button" data-copy="99d6ef4fecd014028fca59997a6d0e99a77898143a025a131c0eeedc99945338" data-copied="Copied" data-copy-failed="Select the text and copy it" aria-label="Copy the SHA-256 of PQ-SSE-Desktop-Setup-0.1.0.exe" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></span></td></tr><tr><td><b>Full installer, GPU</b><span class="sp-sub">For PCs with an NVIDIA graphics chip. Works offline after download.</span></td><td><a href="https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-Setup-0.1.0-GPU.exe">PQ-SSE-Desktop-Setup-0.1.0-GPU.exe</a></td><td class="is-hide-sm"><span class="sp-mono sp-nowrap">122.9 MB</span></td><td class="is-hide-sm"><span class="sp-hash"><code>595176239995e24b7bf9b7fbfc041d10c0774acf46cfcaa47128d3ec2965a3b5</code><button class="sp-btn sp-btn--ghost sp-btn--icon sp-btn--sm sp-copy" type="button" data-copy="595176239995e24b7bf9b7fbfc041d10c0774acf46cfcaa47128d3ec2965a3b5" data-copied="Copied" data-copy-failed="Select the text and copy it" aria-label="Copy the SHA-256 of PQ-SSE-Desktop-Setup-0.1.0-GPU.exe" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></span></td></tr><tr><td><b>Portable zip, Standard</b><span class="sp-sub">No installation: unzip and run. Your own folder, your own updates.</span></td><td><a href="https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-0.1.0-portable-standard.zip">PQ-SSE-Desktop-0.1.0-portable-standard.zip</a></td><td class="is-hide-sm"><span class="sp-mono sp-nowrap">82.4 MB</span></td><td class="is-hide-sm"><span class="sp-hash"><code>17de4078551f73677ab19b6fbdbfa675db7d5cd176b2584cb1510625122d6d61</code><button class="sp-btn sp-btn--ghost sp-btn--icon sp-btn--sm sp-copy" type="button" data-copy="17de4078551f73677ab19b6fbdbfa675db7d5cd176b2584cb1510625122d6d61" data-copied="Copied" data-copy-failed="Select the text and copy it" aria-label="Copy the SHA-256 of PQ-SSE-Desktop-0.1.0-portable-standard.zip" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></span></td></tr><tr><td><b>Portable zip, GPU</b><span class="sp-sub">The GPU build as a folder.</span></td><td><a href="https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-0.1.0-portable-gpu.zip">PQ-SSE-Desktop-0.1.0-portable-gpu.zip</a></td><td class="is-hide-sm"><span class="sp-mono sp-nowrap">198.2 MB</span></td><td class="is-hide-sm"><span class="sp-hash"><code>7f244ae2cd559b634bc4e3abe9920ebd11c72bd4ea23eb7894c306ccac66ba8f</code><button class="sp-btn sp-btn--ghost sp-btn--icon sp-btn--sm sp-copy" type="button" data-copy="7f244ae2cd559b634bc4e3abe9920ebd11c72bd4ea23eb7894c306ccac66ba8f" data-copied="Copied" data-copy-failed="Select the text and copy it" aria-label="Copy the SHA-256 of PQ-SSE-Desktop-0.1.0-portable-gpu.zip" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></button></span></td></tr></tbody></table></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-alert">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-alert">Alerts</h2></div>
+    <div class="sp-alert"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 7.6v.4"/></svg><p>The setup is not code signed. Windows may show a warning before it starts.</p></div>
+    <div class="sp-alert sp-alert--ok sp-mt-3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg><p>The checksum matches the release.</p></div>
+    <div class="sp-alert sp-alert--bad sp-mt-3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.5l9 16H3z"/><path d="M12 9.5v4"/><path d="M12 16.6v.4"/></svg><p>The checksum does not match. Delete the file.</p></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-code">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-code">Code and fields</h2></div>
+    <pre class="sp-code"><code>Get-FileHash -Algorithm SHA256 .\PQ-SSE-Desktop-Setup-0.1.0.exe</code></pre>
+    <div class="sp-field sp-mt-5 sp-narrow">
+      <label class="sp-label" for="sg-hash">SHA-256 of your file</label>
+      <input class="sp-input sp-mono" id="sg-hash" placeholder="99d6ef4fecd014028fca59997a6d0e99a77898143a025a131c0eeedc99945338" spellcheck="false">
+      <span class="sp-hint">64 characters, letters a to f and digits</span>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<footer class="sp-foot">
+  <nav aria-label="More"><a href="verify.html">Verify a download</a><a href="security.html#report">Report a problem</a><a href="third-party-licenses.txt">Third-party licenses</a><a href="https://github.com/kushalgiduturi/pq-sse-desktop">Source code</a></nav>
+  <p>PQ-SSE Desktop is research and teaching software under the MIT License. It has not been audited: do not use it to protect real records. This site sets no cookies, runs no analytics and loads nothing from other sites.</p>
+</footer>
+
+<div class="sp-toast" role="status" aria-live="polite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg><span></span></div>
+</body>
+</html>

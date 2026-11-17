@@ -1,0 +1,77 @@
+<!-- page: key=styleguide; title=styleguide.title; description=styleguide.lede -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ styleguide.title }}</h1>
+    <p class="sp-lede">{{ styleguide.lede }}</p>
+  </header>
+
+  <section class="sp-section" aria-labelledby="sg-type">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-type">{{ styleguide.type_title }}</h2></div>
+    <div class="sp-type">{{{ type_items }}}</div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-color">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-color">{{ styleguide.colors_title }}</h2></div>
+    <ul class="sp-swatches">{{{ swatch_items }}}</ul>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-depth">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-depth">{{ styleguide.depth_title }}</h2></div>
+    <div class="sp-depths">{{{ depth_items }}}</div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-buttons">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-buttons">{{ styleguide.buttons_title }}</h2></div>
+    <div class="sp-actions">
+      <a class="sp-btn sp-btn--primary" href="download.html">{{{ icon.download }}}{{ home.primary }}</a>
+      <a class="sp-btn" href="install.html">{{ nav_label.install }}</a>
+      <a class="sp-btn sp-btn--ghost" href="how-it-works.html">{{ home.secondary }}</a>
+      <button class="sp-btn sp-btn--sm" type="button" data-copy="sample" data-copied="{{ site.copied }}" data-copy-failed="{{ site.copy_failed }}" hidden>{{{ icon.copy }}}{{ site.copy }}</button>
+      <button class="sp-btn" type="button" disabled>{{ site.download_short }}</button>
+    </div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-pills">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-pills">{{ styleguide.pills_title }}</h2></div>
+    <div class="sp-actions">
+      <span class="sp-pill sp-pill--ok">{{ status.ok }}</span>
+      <span class="sp-pill sp-pill--warn">{{ status.warn }}</span>
+      <span class="sp-pill sp-pill--bad">{{ status.bad }}</span>
+      <span class="sp-pill sp-pill--info">{{ status.info }}</span>
+      <span class="sp-pill sp-pill--accent">{{ status.accent }}</span>
+      <span class="sp-pill sp-pill--neutral">{{ status.neutral }}</span>
+    </div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-seg">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-seg">{{ styleguide.seg_title }}</h2></div>
+    <div class="sp-seg" role="group" aria-label="{{ styleguide.seg_title }}">{{{ seg_items }}}</div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-metrics">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-metrics">{{ styleguide.metrics_title }}</h2></div>
+    {{{ metrics_strip }}}
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-table">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-table">{{ styleguide.table_title }}</h2></div>
+    {{{ files_table }}}
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-alert">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-alert">{{ styleguide.alert_title }}</h2></div>
+    <div class="sp-alert">{{{ icon.info }}}<p>{{ styleguide.alert_info }}</p></div>
+    <div class="sp-alert sp-alert--ok sp-mt-3">{{{ icon.check }}}<p>{{ styleguide.alert_ok }}</p></div>
+    <div class="sp-alert sp-alert--bad sp-mt-3">{{{ icon.alert }}}<p>{{ styleguide.alert_bad }}</p></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="sg-code">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="sg-code">{{ styleguide.code_title }}</h2></div>
+    <pre class="sp-code"><code>Get-FileHash -Algorithm SHA256 .\{{ manifest.standard_file }}</code></pre>
+    <div class="sp-field sp-mt-5 sp-narrow">
+      <label class="sp-label" for="sg-hash">{{ styleguide.field_label }}</label>
+      <input class="sp-input sp-mono" id="sg-hash" placeholder="{{ manifest.standard_sha256 }}" spellcheck="false">
+      <span class="sp-hint">{{ styleguide.field_hint }}</span>
+    </div>
+  </section>
+</div>

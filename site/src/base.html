@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" class="sp-ui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>{{ page.title }}</title>
+<meta name="description" content="{{ page.description }}">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/site.js" defer></script>
+{{{ page.head_extra }}}
+</head>
+<body>
+<a class="sp-skip" href="#main">{{ site.skip }}</a>
+<div class="sp-world" aria-hidden="true">{{{ stage_svg }}}</div>
+
+<header class="sp-bar sp-glass sp-d3">
+  <a class="sp-bar-brand" href="index.html">{{{ icon.logo }}}<span>{{ site.name }}</span></a>
+  <nav class="sp-bar-nav" id="site-nav" aria-label="Site">{{{ nav_links }}}</nav>
+  <div class="sp-bar-end">
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" data-theme-toggle hidden
+            data-label-light="{{ site.theme_to_light }}" data-label-dark="{{ site.theme_to_dark }}">{{{ icon.theme }}}</button>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon sp-menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="{{ site.menu }}">{{{ icon.menu }}}</button>
+    <a class="sp-btn sp-btn--primary sp-btn--sm sp-noprint" href="download.html">{{ site.download_short }}</a>
+  </div>
+</header>
+
+<main id="main" class="sp-page" tabindex="-1">
+{{{ page.body }}}
+</main>
+
+<footer class="sp-foot">
+  <nav aria-label="More">{{{ footer_links }}}</nav>
+  <p>{{ footer.line }} {{ footer.privacy }}</p>
+</footer>
+
+<div class="sp-toast" role="status" aria-live="polite">{{{ icon.check }}}<span></span></div>
+</body>
+</html>

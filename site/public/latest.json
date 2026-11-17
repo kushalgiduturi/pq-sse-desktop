@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "name": "PQ-SSE Desktop",
+  "version": "0.1.0",
+  "released": "2026-11-17",
+  "notes_url": "https://kushalgiduturi.github.io/pq-sse-desktop/release-notes.html",
+  "download_page": "https://kushalgiduturi.github.io/pq-sse-desktop/download.html",
+  "min_os": "10.0.17763",
+  "channels": {
+    "standard": {
+      "available": true,
+      "file": "PQ-SSE-Desktop-Setup-0.1.0.exe",
+      "url": "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-Setup-0.1.0.exe",
+      "size": 56955055,
+      "sha256": "99d6ef4fecd014028fca59997a6d0e99a77898143a025a131c0eeedc99945338"
+    },
+    "gpu": {
+      "available": true,
+      "file": "PQ-SSE-Desktop-Setup-0.1.0-GPU.exe",
+      "url": "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-Setup-0.1.0-GPU.exe",
+      "size": 128875644,
+      "sha256": "595176239995e24b7bf9b7fbfc041d10c0774acf46cfcaa47128d3ec2965a3b5",
+      "min_driver": "528.33"
+    }
+  },
+  "portable": {
+    "standard": {
+      "available": true,
+      "file": "PQ-SSE-Desktop-0.1.0-portable-standard.zip",
+      "url": "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-0.1.0-portable-standard.zip",
+      "size": 86449202,
+      "sha256": "17de4078551f73677ab19b6fbdbfa675db7d5cd176b2584cb1510625122d6d61"
+    },
+    "gpu": {
+      "available": true,
+      "file": "PQ-SSE-Desktop-0.1.0-portable-gpu.zip",
+      "url": "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v0.1.0/PQ-SSE-Desktop-0.1.0-portable-gpu.zip",
+      "size": 207813725,
+      "sha256": "7f244ae2cd559b634bc4e3abe9920ebd11c72bd4ea23eb7894c306ccac66ba8f"
+    }
+  },
+  "web_setup": {
+    "available": false
+  }
+}

@@ -1,0 +1,146 @@
+# All text of the PQ-SSE Desktop website, in one place. scripts/build_site.py reads this file,
+# the page templates in site/src/pages/ and latest.json, and writes site/public/.
+# Versions, sizes, dates and hashes are never typed here: they come from latest.json.
+# House rules: sentence case, no exclamation marks, no emoji, no long dashes.
+
+[site]
+name = "PQ-SSE Desktop"
+tagline = "Search locked files without unlocking them"
+description = "PQ-SSE Desktop shows how documents can stay encrypted in an untrusted cloud and still be searched, with post-quantum keys. Free, open source, for Windows."
+skip = "Skip to the content"
+menu = "Menu"
+theme_to_light = "Switch to the light theme"
+theme_to_dark = "Switch to the dark theme"
+copy = "Copy"
+copied = "Copied"
+copy_failed = "Select the text and copy it"
+download_short = "Download"
+
+[[nav]]
+key = "home"
+href = "index.html"
+label = "Home"
+[[nav]]
+key = "download"
+href = "download.html"
+label = "Download"
+[[nav]]
+key = "install"
+href = "install.html"
+label = "Install guide"
+[[nav]]
+key = "how"
+href = "how-it-works.html"
+label = "How it works"
+[[nav]]
+key = "security"
+href = "security.html"
+label = "Security and privacy"
+[[nav]]
+key = "notes"
+href = "release-notes.html"
+label = "Release notes"
+
+[footer]
+line = "PQ-SSE Desktop is research and teaching software under the MIT License. It has not been audited: do not use it to protect real records."
+privacy = "This site sets no cookies, runs no analytics and loads nothing from other sites."
+links = [
+  ["verify.html", "Verify a download"],
+  ["security.html#report", "Report a problem"],
+  ["third-party-licenses.txt", "Third-party licenses"],
+  ["https://github.com/kushalgiduturi/pq-sse-desktop", "Source code"],
+]
+
+[home]
+title = "PQ-SSE Desktop: search locked files without unlocking them"
+hero = "Search locked files without unlocking them"
+hero_text = "Alice keeps her documents in a cloud she does not trust. Bob and Carol may search some of them. The cloud stores everything, answers every search, and never sees a word. PQ-SSE Desktop lets you watch that happen on your own PC, step by step."
+primary = "Download for Windows"
+secondary = "How it works"
+meta = "Free and open source. Windows 10 or 11, 64-bit. Version {version}, released {released}."
+
+cast_title = "Who is in the story"
+cast = [
+  ["person", "Alice", "Owns the documents and holds the keys. She decides who may search what."],
+  ["cloud", "The Cloud", "Rented storage. It keeps the locked documents and answers searches, but cannot read either."],
+  ["person", "Bob and Carol", "Doctors. Each may search only the groups Alice approved, and can prove the answer is complete."],
+]
+
+shots_title = "What it looks like"
+shots = [
+  ["dark-stage", "The Stage in the dark theme: Alice, the Cloud and Bob, with the real stored bytes in the middle."],
+  ["light-workspace-alice", "Alice's workspace in the light theme: her keys, her documents and who may search them."],
+  ["dark-lab", "The Security Lab: each attack runs on a throwaway copy and shows the check that stops it."],
+  ["light-inspector-search", "The step inspector: one real search, replayed at four levels of detail."],
+]
+
+facts_title = "What it is, plainly"
+facts = [
+  "Every step is the real protocol, not an animation of one: ten algorithms, from key setup to revoking a doctor.",
+  "Keys are made with ML-KEM and documents are signed with ML-DSA, the post-quantum standards NIST published in 2024.",
+  "Everything runs on your PC. The cloud part is a second program on the same machine; nothing is sent to the internet.",
+  "It is research and teaching software. It has not been audited, and the post-quantum code is slow and not constant time.",
+]
+next_title = "Where to go next"
+next = [
+  ["download.html", "Download", "Pick the right file for your PC and check it."],
+  ["install.html", "Install guide", "What Windows will ask, and why it warns about new software."],
+  ["how-it-works.html", "How it works", "The ten algorithms in plain language."],
+]
+
+[styleguide]
+title = "Style guide"
+lede = "The tokens and components of this site, in the theme you are viewing. The same Quiet glass system as the app."
+type_title = "Type"
+type_samples = [
+  ["display", "Search locked files without unlocking them"],
+  ["lg", "Section title"],
+  ["md", "Body text is Onest at 15 px with a line height of 1.55. Sentences are short and plain."],
+  ["sm", "Secondary text explains a control or a number."],
+  ["mono", "2f6294f9aa09f59a574b5dcd33be54e16b39 54.3 MB 0.1.0"],
+]
+colors_title = "Colour"
+depth_title = "Depth"
+depths = [
+  ["d0", "0, the world", "The ground everything floats over."],
+  ["d1", "1, inset", "Fields, code and tracks. Never blurred."],
+  ["d2", "2, the panel", "One per page. Blur 18 px on the real panel."],
+  ["d3", "3, raised", "The top bar island. Blur 16 px."],
+  ["d4", "4, floating", "Toasts and menus. A dense fill."],
+]
+buttons_title = "Buttons"
+pills_title = "Status"
+seg_title = "Segmented control"
+seg = ["Standard", "GPU"]
+table_title = "Table"
+alert_title = "Alerts"
+alert_info = "The setup is not code signed. Windows may show a warning before it starts."
+alert_ok = "The checksum matches the release."
+alert_bad = "The checksum does not match. Delete the file."
+code_title = "Code and fields"
+field_label = "SHA-256 of your file"
+field_hint = "64 characters, letters a to f and digits"
+metrics_title = "Metrics"
+
+[status]
+ok = "Checksum matches"
+warn = "Not code signed"
+bad = "Checksum differs"
+info = "Signed manifest"
+accent = "Recommended"
+neutral = "Not available yet"
+
+[files]
+caption = "All files of this release"
+head = ["What", "File", "Size", "SHA-256"]
+copy_hash = "Copy the SHA-256 of"
+web = ["Web installer", "Small. Downloads the right package for this PC and checks it before running it. Recommended."]
+standard = ["Full installer, Standard", "Works offline after download. Runs on the normal processor."]
+gpu = ["Full installer, GPU", "For PCs with an NVIDIA graphics chip. Works offline after download."]
+zip_standard = ["Portable zip, Standard", "No installation: unzip and run. Your own folder, your own updates."]
+zip_gpu = ["Portable zip, GPU", "The GPU build as a folder."]
+
+[download]
+version_label = "Version"
+released_label = "Released"
+size_label = "Full installer, Standard"

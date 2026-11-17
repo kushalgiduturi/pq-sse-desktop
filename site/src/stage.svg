@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" focusable="false">
+  <!-- The Stage, as the world behind the glass, drawn in the right part of the screen so text
+       never sits on it: Alice on the left, the Cloud higher up and further away, Bob and
+       Carol on the right. Faint, still, no colour of its own. -->
+  <g class="w-faint" stroke-width="1.5">
+    <path d="M250 470 C 380 330, 470 250, 560 230" />
+    <path d="M560 230 C 690 230, 790 300, 860 400" />
+    <path d="M560 230 C 700 300, 800 480, 860 610" />
+    <path d="M250 470 C 430 690, 690 720, 860 610" stroke-dasharray="4 10" />
+  </g>
+  <g stroke-width="1.5">
+    <circle cx="250" cy="470" r="96" />
+    <circle cx="250" cy="450" r="17" />
+    <path d="M216 512 c 2 -21 16 -33 34 -33 s 32 12 34 33" />
+    <circle cx="560" cy="230" r="78" />
+    <path d="M534 249 h 56 a 19 19 0 0 0 0 -38 a 27 27 0 0 0 -51 -5 a 20 20 0 0 0 -5 43 z" />
+    <circle cx="860" cy="400" r="82" />
+    <circle cx="860" cy="383" r="15" />
+    <path d="M831 436 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+    <circle cx="860" cy="610" r="82" />
+    <circle cx="860" cy="593" r="15" />
+    <path d="M831 646 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+  </g>
+</svg>

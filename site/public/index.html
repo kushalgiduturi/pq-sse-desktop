@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" class="sp-ui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<title>PQ-SSE Desktop: search locked files without unlocking them</title>
+<meta name="description" content="PQ-SSE Desktop shows how documents can stay encrypted in an untrusted cloud and still be searched, with post-quantum keys. Free, open source, for Windows.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/site.js" defer></script>
+
+</head>
+<body>
+<a class="sp-skip" href="#main">Skip to the content</a>
+<div class="sp-world" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 900" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" preserveAspectRatio="xMaxYMin meet" aria-hidden="true" focusable="false">
+  
+  <g class="w-faint" stroke-width="1.5">
+    <path d="M250 470 C 380 330, 470 250, 560 230" />
+    <path d="M560 230 C 690 230, 790 300, 860 400" />
+    <path d="M560 230 C 700 300, 800 480, 860 610" />
+    <path d="M250 470 C 430 690, 690 720, 860 610" stroke-dasharray="4 10" />
+  </g>
+  <g stroke-width="1.5">
+    <circle cx="250" cy="470" r="96" />
+    <circle cx="250" cy="450" r="17" />
+    <path d="M216 512 c 2 -21 16 -33 34 -33 s 32 12 34 33" />
+    <circle cx="560" cy="230" r="78" />
+    <path d="M534 249 h 56 a 19 19 0 0 0 0 -38 a 27 27 0 0 0 -51 -5 a 20 20 0 0 0 -5 43 z" />
+    <circle cx="860" cy="400" r="82" />
+    <circle cx="860" cy="383" r="15" />
+    <path d="M831 436 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+    <circle cx="860" cy="610" r="82" />
+    <circle cx="860" cy="593" r="15" />
+    <path d="M831 646 c 2 -18 14 -28 29 -28 s 27 10 29 28" />
+  </g>
+</svg></div>
+
+<header class="sp-bar sp-glass sp-d3">
+  <a class="sp-bar-brand" href="index.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></svg><span>PQ-SSE Desktop</span></a>
+  <nav class="sp-bar-nav" id="site-nav" aria-label="Site"><a href="index.html" aria-current="page">Home</a><a href="download.html">Download</a><a href="install.html">Install guide</a><a href="how-it-works.html">How it works</a><a href="security.html">Security and privacy</a><a href="release-notes.html">Release notes</a></nav>
+  <div class="sp-bar-end">
+    <button class="sp-btn sp-btn--ghost sp-btn--icon" type="button" data-theme-toggle hidden
+            data-label-light="Switch to the light theme" data-label-dark="Switch to the dark theme"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.6 6.6 0 0 0 9.7 9.7z"/></svg></button>
+    <button class="sp-btn sp-btn--ghost sp-btn--icon sp-menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button>
+    <a class="sp-btn sp-btn--primary sp-btn--sm sp-noprint" href="download.html">Download</a>
+  </div>
+</header>
+
+<main id="main" class="sp-page" tabindex="-1">
+<section class="sp-hero" aria-labelledby="hero-title">
+  <h1 id="hero-title">Search locked files without unlocking them</h1>
+  <p>Alice keeps her documents in a cloud she does not trust. Bob and Carol may search some of them. The cloud stores everything, answers every search, and never sees a word. PQ-SSE Desktop lets you watch that happen on your own PC, step by step.</p>
+  <div class="sp-actions">
+    <a class="sp-btn sp-btn--primary sp-btn--lg" href="download.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 19.5h14"/></svg>Download for Windows</a>
+    <a class="sp-btn sp-btn--ghost sp-btn--lg" href="how-it-works.html">How it works</a>
+  </div>
+  <p class="sp-hero-meta">Free and open source. Windows 10 or 11, 64-bit. Version <span class="sp-mono sp-nowrap">0.1.0</span>, released <span class="sp-mono sp-nowrap">2026-11-17</span>.</p>
+</section>
+
+<div class="sp-panel sp-glass">
+  <section class="sp-section" aria-labelledby="cast-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="cast-title">Who is in the story</h2></div>
+    <ul class="sp-cast"><li><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5"/><path d="M5 20.5c.6-4 3.4-6.5 7-6.5s6.4 2.5 7 6.5"/></svg></span><div><b>Alice</b><span>Owns the documents and holds the keys. She decides who may search what.</span></div></li><li><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 18h10.5a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.3 1.6A3.8 3.8 0 0 0 7 18z"/></svg></span><div><b>The Cloud</b><span>Rented storage. It keeps the locked documents and answers searches, but cannot read either.</span></div></li><li><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5"/><path d="M5 20.5c.6-4 3.4-6.5 7-6.5s6.4 2.5 7 6.5"/></svg></span><div><b>Bob and Carol</b><span>Doctors. Each may search only the groups Alice approved, and can prove the answer is complete.</span></div></li></ul>
+  </section>
+
+  <section class="sp-section" aria-labelledby="shots-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="shots-title">What it looks like</h2></div>
+    <div class="sp-shots"><figure class="sp-shot"><img src="img/dark-stage.webp" width="1280" height="800" alt="The Stage in the dark theme: Alice, the Cloud and Bob, with the real stored bytes in the middle." loading="lazy" decoding="async"><figcaption>The Stage in the dark theme: Alice, the Cloud and Bob, with the real stored bytes in the middle.</figcaption></figure><figure class="sp-shot"><img src="img/light-workspace-alice.webp" width="1280" height="800" alt="Alice&#x27;s workspace in the light theme: her keys, her documents and who may search them." loading="lazy" decoding="async"><figcaption>Alice&#x27;s workspace in the light theme: her keys, her documents and who may search them.</figcaption></figure><figure class="sp-shot"><img src="img/dark-lab.webp" width="1280" height="800" alt="The Security Lab: each attack runs on a throwaway copy and shows the check that stops it." loading="lazy" decoding="async"><figcaption>The Security Lab: each attack runs on a throwaway copy and shows the check that stops it.</figcaption></figure><figure class="sp-shot"><img src="img/light-inspector-search.webp" width="1280" height="800" alt="The step inspector: one real search, replayed at four levels of detail." loading="lazy" decoding="async"><figcaption>The step inspector: one real search, replayed at four levels of detail.</figcaption></figure></div>
+  </section>
+
+  <section class="sp-section" aria-labelledby="facts-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="facts-title">What it is, plainly</h2></div>
+    <ul class="sp-list"><li class="sp-list-row"><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg></span><span class="sp-grow">Every step is the real protocol, not an animation of one: ten algorithms, from key setup to revoking a doctor.</span></li><li class="sp-list-row"><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg></span><span class="sp-grow">Keys are made with ML-KEM and documents are signed with ML-DSA, the post-quantum standards NIST published in 2024.</span></li><li class="sp-list-row"><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg></span><span class="sp-grow">Everything runs on your PC. The cloud part is a second program on the same machine; nothing is sent to the internet.</span></li><li class="sp-list-row"><span class="sp-glyph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg></span><span class="sp-grow">It is research and teaching software. It has not been audited, and the post-quantum code is slow and not constant time.</span></li></ul>
+  </section>
+
+  <section class="sp-section" aria-labelledby="next-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="next-title">Where to go next</h2></div>
+    <ul class="sp-list"><li class="sp-list-row"><span class="sp-grow"><a href="download.html"><b>Download</b></a><span class="sp-sub">Pick the right file for your PC and check it.</span></span><span class="sp-muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span></li><li class="sp-list-row"><span class="sp-grow"><a href="install.html"><b>Install guide</b></a><span class="sp-sub">What Windows will ask, and why it warns about new software.</span></span><span class="sp-muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span></li><li class="sp-list-row"><span class="sp-grow"><a href="how-it-works.html"><b>How it works</b></a><span class="sp-sub">The ten algorithms in plain language.</span></span><span class="sp-muted"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span></li></ul>
+  </section>
+</div>
+
+</main>
+
+<footer class="sp-foot">
+  <nav aria-label="More"><a href="verify.html">Verify a download</a><a href="security.html#report">Report a problem</a><a href="third-party-licenses.txt">Third-party licenses</a><a href="https://github.com/kushalgiduturi/pq-sse-desktop">Source code</a></nav>
+  <p>PQ-SSE Desktop is research and teaching software under the MIT License. It has not been audited: do not use it to protect real records. This site sets no cookies, runs no analytics and loads nothing from other sites.</p>
+</footer>
+
+<div class="sp-toast" role="status" aria-live="polite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12.5l5 5 9-10"/></svg><span></span></div>
+</body>
+</html>

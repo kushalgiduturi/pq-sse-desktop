@@ -1,0 +1,62 @@
+  /* Light theme: white glass, black text, cobalt. Values from Hastra theme-spatial.css part 1,
+     section 2. scripts/build_site.py places this block twice: for the theme toggle and for the
+     system setting when the visitor has not chosen a theme. */
+  --sp-accent: #2563eb;
+  --sp-accent-text: #1e40af;
+  --sp-accent-rgb: 37, 99, 235;
+  --sp-on-accent: #ffffff;
+  --sp-ring: #2563eb;
+
+  --sp-text: #000000;
+  --sp-text-2: #2b3442;
+  --sp-text-3: #3d4756;
+  --sp-text-disabled: #6b7484;
+
+  --sp-ok: #166534;     --sp-ok-rgb: 22, 101, 52;
+  --sp-warn: #92400e;   --sp-warn-rgb: 146, 64, 14;
+  --sp-bad: #a51d2d;    --sp-bad-rgb: 165, 29, 45;
+  --sp-bad-solid: #c62031;
+  --sp-info: #155e75;   --sp-info-rgb: 21, 94, 117;
+
+  --sp-hair: rgba(15, 23, 42, .1);
+  --sp-hair-strong: rgba(15, 23, 42, .18);
+  --sp-hover: rgba(15, 23, 42, .05);
+  --sp-press: rgba(15, 23, 42, .09);
+  --sp-row-hover: rgba(15, 23, 42, .035);
+
+  --sp-fill-1: rgba(15, 23, 42, .05);
+  --sp-fill-2: rgba(255, 255, 255, .74);
+  --sp-fill-3: rgba(255, 255, 255, .8);
+  --sp-fill-4: rgba(255, 255, 255, .92);
+  --sp-solid-1: rgba(241, 244, 248, .96);
+  --sp-solid-2: rgba(250, 251, 253, .97);
+  --sp-solid-3: rgba(255, 255, 255, .98);
+  --sp-solid-4: #ffffff;
+
+  --sp-sat-2: 1.6;  --sp-sat-3: 1.5;  --sp-sat-4: 1.4;
+
+  --sp-edge-hi: rgba(255, 255, 255, .95);
+  --sp-edge-side: rgba(255, 255, 255, .5);
+  --sp-edge-lo: rgba(15, 23, 42, .06);
+  --sp-inset: inset 0 1px 2px rgba(15, 23, 42, .1), inset 0 -1px 0 rgba(255, 255, 255, .7);
+
+  --sp-shadow-2: 0 24px 60px -20px rgba(15, 23, 42, .28), 0 2px 6px rgba(15, 23, 42, .08);
+  --sp-shadow-3: 0 12px 30px -10px rgba(15, 23, 42, .25), 0 1px 3px rgba(15, 23, 42, .08);
+  --sp-shadow-4: 0 28px 70px -18px rgba(15, 23, 42, .32), 0 4px 12px rgba(15, 23, 42, .1);
+  --sp-shadow-accent: 0 6px 16px -6px rgba(15, 23, 42, .3), 0 1px 2px rgba(15, 23, 42, .12);
+  --sp-shadow-accent-lift: 0 12px 24px -8px rgba(15, 23, 42, .32), 0 2px 4px rgba(15, 23, 42, .12);
+  --sp-seg-pill: #ffffff;
+  --sp-seg-shadow: 0 2px 8px -2px rgba(15, 23, 42, .18);
+
+  /* the world: a pale blue-white ground, the Stage drawn in faint slate */
+  --sp-world: #eef2f7;
+  --sp-world-edge: #dde4ee;
+  --sp-world-wash: radial-gradient(70% 60% at 30% 0%, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 70%);
+  --sp-world-ink: rgba(15, 23, 42, .16);
+  --sp-world-ink-2: rgba(15, 23, 42, .07);
+  --sp-dim: rgba(15, 23, 42, .28);
+
+  /* pointer light: neutral, never tinted */
+  --sp-glow: rgba(255, 255, 255, .55);
+
+  color-scheme: light;

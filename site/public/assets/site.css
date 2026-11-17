@@ -1,0 +1,627 @@
+/* PQ-SSE Desktop website: Hastra "Quiet glass", ported from Hastra's
+   assets/css/theme-spatial.css (tokens part 1, components part 2) and
+   landing-spatial.css (the floating bar recipe). Trimmed to what this site uses.
+
+   Depth stack:
+     0  the world: a still ground and the Stage drawing (Alice, the Cloud, Bob, Carol)
+     1  insets: fields, code, tracks (never blurred)
+     2  the page panel: one per page, flat content inside
+     3  the top bar island
+     4  toasts and the tooltip of the copy buttons (dense fill, no blur)
+   Budget: blur at most 24px, at most three blurred layers (here: bar and panel), never nested.
+   Every colour, size, radius, shadow and duration is a token below. */
+
+/* ── fonts (self-hosted, SIL Open Font License 1.1, see fonts/OFL-*.txt) ── */
+@font-face {
+  font-family: 'Share Tech Mono'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('../fonts/share-tech-mono-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Onest'; font-style: normal; font-weight: 300 700; font-display: swap;
+  src: url('../fonts/onest-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Onest'; font-style: normal; font-weight: 300 700; font-display: swap;
+  src: url('../fonts/onest-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ── 1. tokens: dark (the default without a system preference) ─────────── */
+html.sp-ui {
+  --sp-font-ui: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sp-font-mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --sp-fs-xs: .75rem;  --sp-fs-sm: .8125rem;  --sp-fs-md: .9375rem;  --sp-fs-lg: 1.125rem;
+  --sp-fs-xl: 1.5rem;  --sp-fs-2xl: 2rem;  --sp-fs-display: clamp(1.875rem, 3.4vw, 2.625rem);
+  --sp-fs-hero: clamp(2rem, 4.6vw, 3.25rem);
+  --sp-lh-tight: 1.1;  --sp-lh-body: 1.55;  --sp-track-display: -.025em;
+
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
+  --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px; --sp-16: 64px;
+  --sp-gutter: clamp(12px, 3vw, 24px);
+  --sp-panel-pad: clamp(20px, 3.2vw, 40px);
+  --sp-bar-inset: 12px;
+  --sp-bar-h: 56px;
+  --sp-page-max: 1180px;
+  --sp-prose-max: 68ch;
+
+  --sp-r-panel: 28px;  --sp-r-float: 24px;  --sp-r-card: 16px;  --sp-r-ctl: 14px;  --sp-r-sm: 10px;  --sp-r-pill: 999px;
+
+  --sp-accent: #e50914;  --sp-accent-text: #ff4655;  --sp-accent-rgb: 229, 9, 20;
+  --sp-on-accent: #ffffff;  --sp-ring: #ff4655;
+
+  --sp-text: #ffffff;
+  --sp-text-2: rgba(255, 255, 255, .76);
+  --sp-text-3: rgba(255, 255, 255, .62);
+  --sp-text-disabled: rgba(255, 255, 255, .5);
+
+  --sp-ok: #4ade80;     --sp-ok-rgb: 74, 222, 128;
+  --sp-warn: #fbbf24;   --sp-warn-rgb: 251, 191, 36;
+  --sp-bad: #ff6b76;    --sp-bad-rgb: 255, 107, 118;
+  --sp-bad-solid: #d42033;
+  --sp-info: #67e8f9;   --sp-info-rgb: 103, 232, 249;
+
+  --sp-hair: rgba(255, 255, 255, .09);
+  --sp-hair-strong: rgba(255, 255, 255, .16);
+  --sp-hover: rgba(255, 255, 255, .06);
+  --sp-press: rgba(255, 255, 255, .1);
+  --sp-row-hover: rgba(255, 255, 255, .04);
+
+  --sp-fill-1: rgba(9, 10, 14, .46);
+  --sp-fill-2: rgba(10, 11, 16, .64);
+  --sp-fill-3: rgba(18, 20, 27, .72);
+  --sp-fill-4: rgba(14, 15, 20, .86);
+  --sp-solid-1: rgba(12, 13, 18, .9);
+  --sp-solid-2: rgba(12, 13, 18, .94);
+  --sp-solid-3: rgba(20, 22, 29, .96);
+  --sp-solid-4: rgba(16, 17, 23, .98);
+
+  --sp-blur-2: 18px;  --sp-sat-2: 1.35;
+  --sp-blur-3: 16px;  --sp-sat-3: 1.3;
+  --sp-blur-4: 20px;  --sp-sat-4: 1.3;
+
+  --sp-edge-hi: rgba(255, 255, 255, .14);
+  --sp-edge-side: rgba(255, 255, 255, .06);
+  --sp-edge-lo: rgba(255, 255, 255, .03);
+  --sp-edge: inset 0 1px 0 var(--sp-edge-hi), inset 1px 0 0 var(--sp-edge-side), inset 0 -1px 0 var(--sp-edge-lo);
+  --sp-inset: inset 0 1px 2px rgba(0, 0, 0, .28), inset 0 -1px 0 var(--sp-edge-lo);
+
+  --sp-shadow-2: 0 24px 60px -18px rgba(0, 0, 0, .65), 0 2px 6px rgba(0, 0, 0, .35);
+  --sp-shadow-3: 0 14px 34px -10px rgba(0, 0, 0, .6), 0 1px 3px rgba(0, 0, 0, .4);
+  --sp-shadow-4: 0 28px 70px -16px rgba(0, 0, 0, .72), 0 4px 12px rgba(0, 0, 0, .4);
+  --sp-shadow-accent: 0 6px 16px -6px rgba(0, 0, 0, .6), 0 1px 2px rgba(0, 0, 0, .35);
+  --sp-shadow-accent-lift: 0 12px 24px -8px rgba(0, 0, 0, .65), 0 2px 4px rgba(0, 0, 0, .35);
+  --sp-highlight: rgba(255, 255, 255, .28);
+  --sp-seg-pill: rgba(255, 255, 255, .12);
+  --sp-seg-shadow: 0 4px 12px -4px rgba(0, 0, 0, .4);
+
+  --sp-world: #07080b;
+  --sp-world-edge: #020203;
+  --sp-world-wash: radial-gradient(70% 60% at 30% 0%, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 70%);
+  --sp-world-ink: rgba(255, 255, 255, .13);
+  --sp-world-ink-2: rgba(255, 255, 255, .05);
+  --sp-dim: rgba(3, 4, 7, .4);
+
+  --sp-ease-out: cubic-bezier(.16, 1, .3, 1);
+  --sp-ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --sp-ease-spring: linear(0, .32 8%, .72 18%, .96 28%, 1.04 38%, 1.03 48%, 1 62%, 1);
+  --sp-ease-press: linear(0, .5 10%, 1.08 26%, 1.02 40%, .99 55%, 1);
+  --sp-dur-1: 150ms;  --sp-dur-2: 220ms;  --sp-dur-3: 280ms;  --sp-dur-4: 350ms;
+
+  --sp-mx: 50%;  --sp-my: -40%;
+  --sp-glow: rgba(255, 255, 255, .07);
+  --sp-glow-size: 420px;
+  --sp-glow-opacity: 1;
+  --sp-lift: -1px;
+
+  --sp-z-world: 0;  --sp-z-page: 1;  --sp-z-bar: 50;  --sp-z-toast: 95;
+
+  color-scheme: dark;
+}
+/* ── 2. tokens: light, chosen with the toggle ──────────────────────────── */
+html.sp-ui[data-theme="light"] {
+  /* Light theme: white glass, black text, cobalt. Values from Hastra theme-spatial.css part 1,
+     section 2. scripts/build_site.py places this block twice: for the theme toggle and for the
+     system setting when the visitor has not chosen a theme. */
+  --sp-accent: #2563eb;
+  --sp-accent-text: #1e40af;
+  --sp-accent-rgb: 37, 99, 235;
+  --sp-on-accent: #ffffff;
+  --sp-ring: #2563eb;
+
+  --sp-text: #000000;
+  --sp-text-2: #2b3442;
+  --sp-text-3: #3d4756;
+  --sp-text-disabled: #6b7484;
+
+  --sp-ok: #166534;     --sp-ok-rgb: 22, 101, 52;
+  --sp-warn: #92400e;   --sp-warn-rgb: 146, 64, 14;
+  --sp-bad: #a51d2d;    --sp-bad-rgb: 165, 29, 45;
+  --sp-bad-solid: #c62031;
+  --sp-info: #155e75;   --sp-info-rgb: 21, 94, 117;
+
+  --sp-hair: rgba(15, 23, 42, .1);
+  --sp-hair-strong: rgba(15, 23, 42, .18);
+  --sp-hover: rgba(15, 23, 42, .05);
+  --sp-press: rgba(15, 23, 42, .09);
+  --sp-row-hover: rgba(15, 23, 42, .035);
+
+  --sp-fill-1: rgba(15, 23, 42, .05);
+  --sp-fill-2: rgba(255, 255, 255, .74);
+  --sp-fill-3: rgba(255, 255, 255, .8);
+  --sp-fill-4: rgba(255, 255, 255, .92);
+  --sp-solid-1: rgba(241, 244, 248, .96);
+  --sp-solid-2: rgba(250, 251, 253, .97);
+  --sp-solid-3: rgba(255, 255, 255, .98);
+  --sp-solid-4: #ffffff;
+
+  --sp-sat-2: 1.6;  --sp-sat-3: 1.5;  --sp-sat-4: 1.4;
+
+  --sp-edge-hi: rgba(255, 255, 255, .95);
+  --sp-edge-side: rgba(255, 255, 255, .5);
+  --sp-edge-lo: rgba(15, 23, 42, .06);
+  --sp-inset: inset 0 1px 2px rgba(15, 23, 42, .1), inset 0 -1px 0 rgba(255, 255, 255, .7);
+
+  --sp-shadow-2: 0 24px 60px -20px rgba(15, 23, 42, .28), 0 2px 6px rgba(15, 23, 42, .08);
+  --sp-shadow-3: 0 12px 30px -10px rgba(15, 23, 42, .25), 0 1px 3px rgba(15, 23, 42, .08);
+  --sp-shadow-4: 0 28px 70px -18px rgba(15, 23, 42, .32), 0 4px 12px rgba(15, 23, 42, .1);
+  --sp-shadow-accent: 0 6px 16px -6px rgba(15, 23, 42, .3), 0 1px 2px rgba(15, 23, 42, .12);
+  --sp-shadow-accent-lift: 0 12px 24px -8px rgba(15, 23, 42, .32), 0 2px 4px rgba(15, 23, 42, .12);
+  --sp-seg-pill: #ffffff;
+  --sp-seg-shadow: 0 2px 8px -2px rgba(15, 23, 42, .18);
+
+  /* the world: a pale blue-white ground, the Stage drawn in faint slate */
+  --sp-world: #eef2f7;
+  --sp-world-edge: #dde4ee;
+  --sp-world-wash: radial-gradient(70% 60% at 30% 0%, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 70%);
+  --sp-world-ink: rgba(15, 23, 42, .16);
+  --sp-world-ink-2: rgba(15, 23, 42, .07);
+  --sp-dim: rgba(15, 23, 42, .28);
+
+  /* pointer light: neutral, never tinted */
+  --sp-glow: rgba(255, 255, 255, .55);
+
+  color-scheme: light;
+}
+/* ── 2b. tokens: light, from the system setting when nothing was chosen ── */
+@media (prefers-color-scheme: light) {
+  html.sp-ui:not([data-theme="dark"]) {
+  /* Light theme: white glass, black text, cobalt. Values from Hastra theme-spatial.css part 1,
+     section 2. scripts/build_site.py places this block twice: for the theme toggle and for the
+     system setting when the visitor has not chosen a theme. */
+  --sp-accent: #2563eb;
+  --sp-accent-text: #1e40af;
+  --sp-accent-rgb: 37, 99, 235;
+  --sp-on-accent: #ffffff;
+  --sp-ring: #2563eb;
+
+  --sp-text: #000000;
+  --sp-text-2: #2b3442;
+  --sp-text-3: #3d4756;
+  --sp-text-disabled: #6b7484;
+
+  --sp-ok: #166534;     --sp-ok-rgb: 22, 101, 52;
+  --sp-warn: #92400e;   --sp-warn-rgb: 146, 64, 14;
+  --sp-bad: #a51d2d;    --sp-bad-rgb: 165, 29, 45;
+  --sp-bad-solid: #c62031;
+  --sp-info: #155e75;   --sp-info-rgb: 21, 94, 117;
+
+  --sp-hair: rgba(15, 23, 42, .1);
+  --sp-hair-strong: rgba(15, 23, 42, .18);
+  --sp-hover: rgba(15, 23, 42, .05);
+  --sp-press: rgba(15, 23, 42, .09);
+  --sp-row-hover: rgba(15, 23, 42, .035);
+
+  --sp-fill-1: rgba(15, 23, 42, .05);
+  --sp-fill-2: rgba(255, 255, 255, .74);
+  --sp-fill-3: rgba(255, 255, 255, .8);
+  --sp-fill-4: rgba(255, 255, 255, .92);
+  --sp-solid-1: rgba(241, 244, 248, .96);
+  --sp-solid-2: rgba(250, 251, 253, .97);
+  --sp-solid-3: rgba(255, 255, 255, .98);
+  --sp-solid-4: #ffffff;
+
+  --sp-sat-2: 1.6;  --sp-sat-3: 1.5;  --sp-sat-4: 1.4;
+
+  --sp-edge-hi: rgba(255, 255, 255, .95);
+  --sp-edge-side: rgba(255, 255, 255, .5);
+  --sp-edge-lo: rgba(15, 23, 42, .06);
+  --sp-inset: inset 0 1px 2px rgba(15, 23, 42, .1), inset 0 -1px 0 rgba(255, 255, 255, .7);
+
+  --sp-shadow-2: 0 24px 60px -20px rgba(15, 23, 42, .28), 0 2px 6px rgba(15, 23, 42, .08);
+  --sp-shadow-3: 0 12px 30px -10px rgba(15, 23, 42, .25), 0 1px 3px rgba(15, 23, 42, .08);
+  --sp-shadow-4: 0 28px 70px -18px rgba(15, 23, 42, .32), 0 4px 12px rgba(15, 23, 42, .1);
+  --sp-shadow-accent: 0 6px 16px -6px rgba(15, 23, 42, .3), 0 1px 2px rgba(15, 23, 42, .12);
+  --sp-shadow-accent-lift: 0 12px 24px -8px rgba(15, 23, 42, .32), 0 2px 4px rgba(15, 23, 42, .12);
+  --sp-seg-pill: #ffffff;
+  --sp-seg-shadow: 0 2px 8px -2px rgba(15, 23, 42, .18);
+
+  /* the world: a pale blue-white ground, the Stage drawn in faint slate */
+  --sp-world: #eef2f7;
+  --sp-world-edge: #dde4ee;
+  --sp-world-wash: radial-gradient(70% 60% at 30% 0%, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 70%);
+  --sp-world-ink: rgba(15, 23, 42, .16);
+  --sp-world-ink-2: rgba(15, 23, 42, .07);
+  --sp-dim: rgba(15, 23, 42, .28);
+
+  /* pointer light: neutral, never tinted */
+  --sp-glow: rgba(255, 255, 255, .55);
+
+  color-scheme: light;
+  }
+}
+
+/* ── 3. fallbacks ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-transparency: reduce) {
+  html.sp-ui, html.sp-ui[data-theme="light"], html.sp-ui:not([data-theme="dark"]) {
+    --sp-blur-2: 0px; --sp-blur-3: 0px; --sp-blur-4: 0px;
+    --sp-fill-1: var(--sp-solid-1); --sp-fill-2: var(--sp-solid-2); --sp-fill-3: var(--sp-solid-3); --sp-fill-4: var(--sp-solid-4);
+    --sp-glow-opacity: 0;
+  }
+}
+/* the same, chosen by the visitor or by a weak device (site.js sets the class) */
+html.sp-ui.is-dense {
+  --sp-blur-2: 0px; --sp-blur-3: 0px; --sp-blur-4: 0px;
+  --sp-fill-1: var(--sp-solid-1); --sp-fill-2: var(--sp-solid-2); --sp-fill-3: var(--sp-solid-3); --sp-fill-4: var(--sp-solid-4);
+  --sp-glow-opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.sp-ui {
+    --sp-ease-spring: linear; --sp-ease-press: linear;
+    --sp-dur-1: 1ms; --sp-dur-2: 1ms; --sp-dur-3: 1ms; --sp-dur-4: 1ms;
+    --sp-lift: 0px;
+  }
+  html.sp-ui { scroll-behavior: auto; }
+}
+@media (pointer: coarse) { html.sp-ui { --sp-glow-opacity: 0; } }
+@media (forced-colors: active) {
+  html.sp-ui { --sp-blur-2: 0px; --sp-blur-3: 0px; --sp-blur-4: 0px; --sp-glow-opacity: 0; }
+  html.sp-ui :is(.sp-glass, .sp-panel, .sp-bar, .sp-toast) {
+    background: Canvas !important; color: CanvasText; border: 1px solid CanvasText;
+    box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+  html.sp-ui :focus-visible { outline-color: Highlight; }
+}
+
+/* ── 4. page base and the world (depth 0) ──────────────────────────────── */
+html.sp-ui { background: var(--sp-world); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html.sp-ui *, html.sp-ui *::before, html.sp-ui *::after { box-sizing: border-box; }
+html.sp-ui body {
+  margin: 0; min-height: 100vh; color: var(--sp-text); background: transparent;
+  font: 400 var(--sp-fs-md)/var(--sp-lh-body) var(--sp-font-ui); -webkit-font-smoothing: antialiased;
+}
+html.sp-ui ::selection { background: rgba(var(--sp-accent-rgb), .32); color: var(--sp-text); }
+html.sp-ui :focus-visible { outline: 2px solid var(--sp-ring); outline-offset: 3px; border-radius: 4px; }
+html.sp-ui a { color: var(--sp-accent-text); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+html.sp-ui a:hover { text-decoration-thickness: 2px; }
+html.sp-ui img { max-width: 100%; height: auto; }
+html.sp-ui .sp-mono { font-family: var(--sp-font-mono); font-variant-numeric: tabular-nums; }
+html.sp-ui .sp-muted { color: var(--sp-text-2); }
+html.sp-ui .sp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html.sp-ui .sp-skip {
+  position: fixed; z-index: 200; top: 8px; left: 8px; padding: 10px 16px; border-radius: var(--sp-r-pill);
+  background: var(--sp-solid-4); color: var(--sp-text); box-shadow: var(--sp-edge), var(--sp-shadow-3);
+  transform: translateY(-160%); transition: transform var(--sp-dur-2) var(--sp-ease-out);
+}
+html.sp-ui .sp-skip:focus { transform: none; }
+
+/* the world: a fixed ground with one soft wash and the Stage drawing */
+html.sp-ui .sp-world {
+  position: fixed; inset: 0; z-index: var(--sp-z-world); pointer-events: none; overflow: hidden;
+  background: var(--sp-world-wash), linear-gradient(180deg, var(--sp-world), var(--sp-world-edge));
+}
+html.sp-ui .sp-world svg { position: absolute; right: max(0px, calc((100vw - var(--sp-page-max)) / 2 - 80px)); top: calc(var(--sp-bar-h) + 24px); width: min(54vw, 860px); height: auto; color: var(--sp-world-ink); }
+@media (max-width: 860px) { html.sp-ui .sp-world svg { right: -12vw; width: 110vw; opacity: .6; } }
+html.sp-ui .sp-world .w-faint { color: var(--sp-world-ink-2); }
+
+/* ── 5. glass recipe and depth ─────────────────────────────────────────── */
+html.sp-ui .sp-glass {
+  --_fill: var(--sp-fill-2); --_blur: var(--sp-blur-2); --_sat: var(--sp-sat-2);
+  --_shadow: var(--sp-shadow-2); --_radius: var(--sp-r-panel);
+  isolation: isolate; position: relative;
+  background: var(--_fill); border-radius: var(--_radius);
+  -webkit-backdrop-filter: blur(var(--_blur)) saturate(var(--_sat));
+  backdrop-filter: blur(var(--_blur)) saturate(var(--_sat));
+  box-shadow: var(--sp-edge), var(--_shadow);
+}
+html.sp-ui .sp-d3 { --_fill: var(--sp-fill-3); --_blur: var(--sp-blur-3); --_sat: var(--sp-sat-3); --_shadow: var(--sp-shadow-3); --_radius: var(--sp-r-pill); }
+html.sp-ui .sp-d4 { --_fill: var(--sp-solid-4); --_blur: 0px; --_shadow: var(--sp-shadow-4); --_radius: var(--sp-r-float); }
+html.sp-ui .sp-glass .sp-glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html.sp-ui .sp-glass::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(var(--sp-glow-size) circle at var(--sp-mx) var(--sp-my), var(--sp-glow), transparent 60%);
+  opacity: 0; transition: opacity var(--sp-dur-4) var(--sp-ease-out);
+}
+html.sp-ui .sp-panel.sp-glass:hover::after { opacity: var(--sp-glow-opacity); }
+html.sp-ui .sp-inset { background: var(--sp-fill-1); box-shadow: var(--sp-inset); border-radius: var(--sp-r-ctl); }
+
+/* ── 6. the top bar island (depth 3) ───────────────────────────────────── */
+html.sp-ui .sp-bar {
+  position: fixed; z-index: var(--sp-z-bar); top: var(--sp-bar-inset); left: var(--sp-bar-inset); right: var(--sp-bar-inset);
+  max-width: calc(var(--sp-page-max) + 2 * var(--sp-gutter)); margin: 0 auto;
+  height: var(--sp-bar-h); display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-2) 0 var(--sp-3);
+}
+html.sp-ui .sp-bar-brand {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 var(--sp-2); border-radius: var(--sp-r-pill);
+  color: var(--sp-text); text-decoration: none; font: 650 var(--sp-fs-md) var(--sp-font-ui); white-space: nowrap;
+}
+html.sp-ui .sp-bar-brand svg { width: 22px; height: 22px; flex: none; }
+html.sp-ui .sp-bar-nav { display: flex; gap: 2px; margin: 0 auto; }
+html.sp-ui .sp-bar-nav a {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--sp-3); border-radius: var(--sp-r-pill);
+  color: var(--sp-text-2); text-decoration: none; font: 550 var(--sp-fs-sm) var(--sp-font-ui); white-space: nowrap;
+  transition: background var(--sp-dur-2), color var(--sp-dur-2);
+}
+html.sp-ui .sp-bar-nav a:hover { background: var(--sp-hover); color: var(--sp-text); }
+html.sp-ui .sp-bar-nav a[aria-current="page"] { color: var(--sp-text); background: var(--sp-press); font-weight: 650; }
+html.sp-ui .sp-bar-end { display: flex; align-items: center; gap: var(--sp-1); margin-left: auto; }
+html.sp-ui .sp-bar .sp-menu-toggle { display: none; }
+
+/* ── 7. page, panel, header, sections ──────────────────────────────────── */
+html.sp-ui .sp-page {
+  position: relative; z-index: var(--sp-z-page); max-width: var(--sp-page-max); margin: 0 auto;
+  padding: calc(var(--sp-bar-h) + var(--sp-bar-inset) * 2 + var(--sp-6)) var(--sp-gutter) var(--sp-12);
+}
+html.sp-ui .sp-panel { padding: var(--sp-panel-pad); }
+html.sp-ui .sp-title { margin: 0; font-size: var(--sp-fs-display); line-height: var(--sp-lh-tight); font-weight: 650; letter-spacing: var(--sp-track-display); text-wrap: balance; }
+html.sp-ui .sp-lede { margin: var(--sp-3) 0 0; color: var(--sp-text-2); max-width: 62ch; font-size: var(--sp-fs-lg); line-height: 1.5; }
+html.sp-ui .sp-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+html.sp-ui .sp-section { margin-top: var(--sp-12); }
+html.sp-ui .sp-section:first-child { margin-top: 0; }
+html.sp-ui .sp-section-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3) var(--sp-4); flex-wrap: wrap;
+  padding-bottom: var(--sp-3); margin-bottom: var(--sp-5); border-bottom: 1px solid var(--sp-hair);
+}
+html.sp-ui .sp-section-title { margin: 0; font-size: var(--sp-fs-lg); font-weight: 600; letter-spacing: -.01em; line-height: 1.3; }
+html.sp-ui .sp-h3 { margin: var(--sp-6) 0 var(--sp-2); font-size: var(--sp-fs-md); font-weight: 650; }
+html.sp-ui .sp-prose { max-width: var(--sp-prose-max); }
+html.sp-ui .sp-prose p { margin: 0 0 var(--sp-3); }
+html.sp-ui .sp-prose p:last-child { margin-bottom: 0; }
+html.sp-ui .sp-prose ul, html.sp-ui .sp-prose ol { margin: 0 0 var(--sp-3); padding-left: 1.25em; }
+html.sp-ui .sp-prose li + li { margin-top: var(--sp-1); }
+html.sp-ui .sp-divider { height: 1px; border: 0; background: var(--sp-hair); margin: var(--sp-8) 0; }
+html.sp-ui .sp-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-6) var(--sp-10); }
+
+/* ── 8. hero (on the world, outside the panel) ─────────────────────────── */
+html.sp-ui .sp-hero { padding: clamp(24px, 9vh, 96px) 0 clamp(32px, 12vh, 140px); max-width: 720px; }
+html.sp-ui .sp-hero h1 { margin: 0; font-size: var(--sp-fs-hero); line-height: 1.06; font-weight: 650; letter-spacing: var(--sp-track-display); text-wrap: balance; }
+html.sp-ui .sp-hero p { margin: var(--sp-5) 0 var(--sp-8); color: var(--sp-text-2); font-size: var(--sp-fs-lg); max-width: 56ch; }
+html.sp-ui .sp-hero .sp-hero-meta { margin: var(--sp-5) 0 0; color: var(--sp-text-2); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-nowrap { white-space: nowrap; }
+
+/* ── 9. the characters: flat rows with a neutral glyph ─────────────────── */
+html.sp-ui .sp-cast { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-6) var(--sp-8); margin: 0; padding: 0; list-style: none; }
+html.sp-ui .sp-cast li { display: flex; gap: var(--sp-4); align-items: flex-start; }
+html.sp-ui .sp-glyph {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  background: var(--sp-fill-1); box-shadow: var(--sp-inset); color: var(--sp-text);
+}
+html.sp-ui .sp-glyph svg { width: 22px; height: 22px; }
+html.sp-ui .sp-cast b { display: block; font-weight: 650; }
+html.sp-ui .sp-cast span { color: var(--sp-text-2); font-size: var(--sp-fs-sm); }
+
+/* ── 10. screenshots: flat in the panel, a hairline and a radius ───────── */
+html.sp-ui .sp-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-6); margin: 0; }
+html.sp-ui .sp-shot { margin: 0; }
+html.sp-ui .sp-shot img { display: block; width: 100%; border-radius: var(--sp-r-card); box-shadow: 0 0 0 1px var(--sp-hair); background: var(--sp-fill-1); }
+html.sp-ui .sp-shot figcaption { margin-top: var(--sp-2); color: var(--sp-text-2); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-shot--wide { grid-column: 1 / -1; }
+
+/* ── 11. metrics: a strip of numbers with thin dividers ────────────────── */
+html.sp-ui .sp-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: var(--sp-6) 0 var(--sp-2); }
+html.sp-ui .sp-metric { padding: var(--sp-1) var(--sp-6); border-left: 1px solid var(--sp-hair); min-width: 0; }
+html.sp-ui .sp-metric:first-child { padding-left: 0; border-left: 0; }
+html.sp-ui .sp-metric-value { display: block; font-size: var(--sp-fs-xl); font-weight: 600; letter-spacing: -.02em; line-height: var(--sp-lh-tight); font-variant-numeric: tabular-nums; }
+html.sp-ui .sp-metric-value.sp-mono { font-weight: 400; letter-spacing: 0; }
+html.sp-ui .sp-metric-label { display: block; margin-top: 4px; font-size: var(--sp-fs-sm); color: var(--sp-text-2); }
+
+/* ── 12. buttons ───────────────────────────────────────────────────────── */
+html.sp-ui .sp-btn {
+  --_bg: var(--sp-hover); --_fg: var(--sp-text); --_sh: var(--sp-edge);
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  min-height: 44px; padding: 0 var(--sp-5); border: 0; border-radius: var(--sp-r-pill);
+  background: var(--_bg); color: var(--_fg); box-shadow: var(--_sh);
+  font: 600 var(--sp-fs-sm)/1 var(--sp-font-ui); letter-spacing: .005em; text-decoration: none; white-space: nowrap;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform var(--sp-dur-3) var(--sp-ease-spring), box-shadow var(--sp-dur-3) var(--sp-ease-out), background var(--sp-dur-2), color var(--sp-dur-2);
+}
+html.sp-ui .sp-btn svg { width: 16px; height: 16px; flex: none; }
+html.sp-ui .sp-btn:hover { --_bg: var(--sp-press); text-decoration: none; }
+html.sp-ui .sp-btn:active { transform: scale(.98); transition-timing-function: var(--sp-ease-press); }
+html.sp-ui .sp-btn--primary { --_bg: var(--sp-accent); --_fg: var(--sp-on-accent); --_sh: inset 0 1px 0 var(--sp-highlight), var(--sp-shadow-accent); }
+html.sp-ui .sp-btn--primary:hover { --_bg: color-mix(in srgb, var(--sp-accent) 88%, var(--sp-on-accent)); --_sh: inset 0 1px 0 var(--sp-highlight), var(--sp-shadow-accent-lift); transform: translateY(var(--sp-lift)); }
+html.sp-ui .sp-btn--ghost { --_bg: transparent; --_sh: none; }
+html.sp-ui .sp-btn--ghost:hover { --_bg: var(--sp-hover); }
+html.sp-ui .sp-btn--lg { min-height: 52px; padding: 0 var(--sp-6); font-size: var(--sp-fs-md); }
+html.sp-ui .sp-btn--sm { min-height: 32px; padding: 0 var(--sp-3); font-size: var(--sp-fs-xs); }
+html.sp-ui .sp-btn--icon { width: 44px; padding: 0; }
+html.sp-ui .sp-btn--icon svg { width: 20px; height: 20px; }
+html.sp-ui .sp-btn[aria-disabled="true"], html.sp-ui .sp-btn:disabled { --_bg: var(--sp-hover); --_fg: var(--sp-text-disabled); --_sh: none; cursor: not-allowed; transform: none; }
+
+/* ── 13. pills (status only) and kbd ───────────────────────────────────── */
+html.sp-ui .sp-pill {
+  --_c: var(--sp-text-2); --_rgb: 127, 127, 127;
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: var(--sp-r-pill);
+  font: 550 var(--sp-fs-xs)/1 var(--sp-font-ui); white-space: nowrap; color: var(--_c); background: rgba(var(--_rgb), .14);
+  vertical-align: middle;
+}
+html.sp-ui .sp-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+html.sp-ui .sp-pill--accent { --_c: var(--sp-accent-text); --_rgb: var(--sp-accent-rgb); }
+html.sp-ui .sp-pill--ok { --_c: var(--sp-ok); --_rgb: var(--sp-ok-rgb); }
+html.sp-ui .sp-pill--warn { --_c: var(--sp-warn); --_rgb: var(--sp-warn-rgb); }
+html.sp-ui .sp-pill--bad { --_c: var(--sp-bad); --_rgb: var(--sp-bad-rgb); }
+html.sp-ui .sp-pill--info { --_c: var(--sp-info); --_rgb: var(--sp-info-rgb); }
+html.sp-ui .sp-pill--neutral { --_c: var(--sp-text-2); background: var(--sp-hover); }
+html.sp-ui .sp-kbd { display: inline-flex; align-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; font: 400 12px var(--sp-font-mono); color: var(--sp-text-2); background: var(--sp-hover); box-shadow: inset 0 -1px 0 var(--sp-hair-strong); }
+
+/* ── 14. segmented control (an inset track, a raised pill that slides) ─── */
+html.sp-ui .sp-seg { position: relative; display: inline-flex; padding: 4px; border-radius: var(--sp-r-pill); background: var(--sp-fill-1); box-shadow: var(--sp-inset); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+html.sp-ui .sp-seg > button, html.sp-ui .sp-seg > a {
+  position: relative; z-index: 1; flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 36px; padding: 0 var(--sp-4); border: 0; background: none; cursor: pointer; text-decoration: none;
+  border-radius: var(--sp-r-pill); color: var(--sp-text-2); font: 500 var(--sp-fs-sm) var(--sp-font-ui); white-space: nowrap;
+  transition: color var(--sp-dur-2);
+}
+html.sp-ui .sp-seg > :is(button, a):hover { color: var(--sp-text); }
+html.sp-ui .sp-seg > [aria-pressed="true"], html.sp-ui .sp-seg > [aria-current="true"] { color: var(--sp-text); font-weight: 600; }
+html.sp-ui .sp-seg::before {
+  content: ""; position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 0; border-radius: var(--sp-r-pill);
+  width: var(--sp-ind-w, 0); transform: translateX(var(--sp-ind-x, 4px));
+  background: var(--sp-seg-pill); box-shadow: inset 0 1px 0 var(--sp-edge-hi), var(--sp-seg-shadow);
+  transition: transform var(--sp-dur-3) var(--sp-ease-spring), width var(--sp-dur-3) var(--sp-ease-spring);
+}
+/* without JavaScript the selected item carries the pill itself */
+html.sp-ui:not(.js) .sp-seg > [aria-pressed="true"], html.sp-ui:not(.js) .sp-seg > [aria-current="true"] { background: var(--sp-press); }
+
+/* ── 15. tables and list rows: the panel is the surface ────────────────── */
+html.sp-ui .sp-table-wrap { overflow-x: auto; margin: 0 calc(var(--sp-2) * -1); padding: 0 var(--sp-2); }
+html.sp-ui .sp-table { width: 100%; border-collapse: collapse; font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-table th { text-align: left; padding: 0 var(--sp-3) var(--sp-3); white-space: nowrap; font-size: var(--sp-fs-xs); font-weight: 550; color: var(--sp-text-3); }
+html.sp-ui .sp-table td { padding: var(--sp-4) var(--sp-3); border-top: 1px solid var(--sp-hair); vertical-align: top; }
+html.sp-ui .sp-table :is(th, td):first-child { padding-left: 0; }
+html.sp-ui .sp-table :is(th, td):last-child { padding-right: 0; }
+html.sp-ui .sp-table tbody tr { transition: background var(--sp-dur-1); }
+html.sp-ui .sp-table tbody tr:hover { background: var(--sp-row-hover); }
+html.sp-ui .sp-table .sp-sub { display: block; margin-top: 2px; color: var(--sp-text-2); font-size: var(--sp-fs-xs); }
+html.sp-ui .sp-list { list-style: none; margin: 0; padding: 0; }
+html.sp-ui .sp-list-row { display: flex; align-items: center; gap: var(--sp-4); min-height: 56px; padding: var(--sp-3) 0; border-top: 1px solid var(--sp-hair); }
+html.sp-ui .sp-list-row:first-child { border-top: 0; }
+html.sp-ui .sp-list-row .sp-grow { flex: 1; min-width: 0; }
+html.sp-ui .sp-list-row .sp-sub { display: block; color: var(--sp-text-2); font-size: var(--sp-fs-sm); }
+
+/* ── 16. accordion (troubleshooting, questions) ────────────────────────── */
+html.sp-ui .sp-accordion { border-top: 1px solid var(--sp-hair); }
+html.sp-ui .sp-accordion > details { border-bottom: 1px solid var(--sp-hair); }
+html.sp-ui .sp-accordion summary { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); min-height: 52px; padding: var(--sp-3) 0; list-style: none; cursor: pointer; font-weight: 550; }
+html.sp-ui .sp-accordion summary::-webkit-details-marker { display: none; }
+html.sp-ui .sp-accordion summary::after { content: ""; flex: none; width: 8px; height: 8px; border: 2px solid var(--sp-text-2); border-top: 0; border-left: 0; transform: rotate(45deg) translateY(-2px); transition: transform var(--sp-dur-3) var(--sp-ease-spring); }
+html.sp-ui .sp-accordion details[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+html.sp-ui .sp-accordion .sp-accordion-body { padding: 0 0 var(--sp-5); color: var(--sp-text-2); max-width: var(--sp-prose-max); }
+
+/* ── 17. alerts (a tinted block, never a coloured side rule) ───────────── */
+html.sp-ui .sp-alert {
+  --_c: var(--sp-info); --_rgb: var(--sp-info-rgb);
+  display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-4) var(--sp-5); border-radius: var(--sp-r-card);
+  background: rgba(var(--_rgb), .1); color: var(--sp-text); font-size: var(--sp-fs-sm); max-width: var(--sp-prose-max);
+}
+html.sp-ui .sp-alert > svg { flex: none; width: 20px; height: 20px; color: var(--_c); margin-top: 1px; }
+html.sp-ui .sp-alert strong { display: block; font-weight: 600; margin-bottom: 2px; }
+html.sp-ui .sp-alert p { margin: 0; color: var(--sp-text-2); }
+html.sp-ui .sp-alert--ok { --_c: var(--sp-ok); --_rgb: var(--sp-ok-rgb); }
+html.sp-ui .sp-alert--warn { --_c: var(--sp-warn); --_rgb: var(--sp-warn-rgb); }
+html.sp-ui .sp-alert--bad { --_c: var(--sp-bad); --_rgb: var(--sp-bad-rgb); }
+
+/* ── 18. code, hashes and fields (depth 1 insets) ──────────────────────── */
+html.sp-ui :not(pre) > code { padding: 2px 6px; border-radius: 6px; background: var(--sp-hover); font: 400 .92em var(--sp-font-mono); }
+html.sp-ui .sp-code {
+  margin: 0; padding: var(--sp-4) var(--sp-5); border-radius: var(--sp-r-card); background: var(--sp-fill-1); box-shadow: var(--sp-inset);
+  overflow-x: auto; font: 400 var(--sp-fs-sm)/1.6 var(--sp-font-mono); color: var(--sp-text); tab-size: 2;
+}
+html.sp-ui .sp-hash { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+html.sp-ui .sp-hash code { overflow-wrap: anywhere; word-break: break-all; padding: 0; background: none; font-size: var(--sp-fs-xs); color: var(--sp-text-2); }
+html.sp-ui .sp-field { display: grid; gap: 6px; min-width: 0; }
+html.sp-ui .sp-label { font-size: var(--sp-fs-sm); font-weight: 550; }
+html.sp-ui .sp-hint { font-size: var(--sp-fs-xs); color: var(--sp-text-2); }
+html.sp-ui .sp-input {
+  width: 100%; min-height: 44px; padding: 10px var(--sp-4); border: 0; border-radius: var(--sp-r-ctl);
+  background: var(--sp-fill-1); color: var(--sp-text); box-shadow: var(--sp-inset), inset 0 0 0 1px var(--sp-hair);
+  font: 400 var(--sp-fs-md)/1.4 var(--sp-font-ui);
+}
+html.sp-ui .sp-input.sp-mono { font: 400 var(--sp-fs-sm)/1.4 var(--sp-font-mono); }
+html.sp-ui .sp-input::placeholder { color: var(--sp-text-3); opacity: 1; }
+html.sp-ui .sp-input:focus { outline: 2px solid var(--sp-ring); outline-offset: 2px; }
+html.sp-ui .sp-input[aria-invalid="true"] { box-shadow: var(--sp-inset), inset 0 0 0 1.5px var(--sp-bad); }
+html.sp-ui .sp-file { display: inline-flex; align-items: center; gap: var(--sp-3); }
+html.sp-ui .sp-file input[type="file"] { font: 400 var(--sp-fs-sm) var(--sp-font-ui); color: var(--sp-text-2); max-width: 100%; }
+html.sp-ui .sp-file input[type="file"]::file-selector-button {
+  min-height: 40px; margin-right: var(--sp-3); padding: 0 var(--sp-4); border: 0; border-radius: var(--sp-r-pill);
+  background: var(--sp-hover); color: var(--sp-text); box-shadow: var(--sp-edge); font: 600 var(--sp-fs-sm) var(--sp-font-ui); cursor: pointer;
+}
+
+/* ── 19. toast (depth 4, dense, no blur) ───────────────────────────────── */
+html.sp-ui .sp-toast {
+  position: fixed; z-index: var(--sp-z-toast); left: 50%; bottom: var(--sp-6); transform: translate(-50%, 12px);
+  display: inline-flex; align-items: center; gap: var(--sp-3); min-height: 48px; padding: 0 var(--sp-5);
+  border-radius: var(--sp-r-pill); background: var(--sp-solid-4); color: var(--sp-text); box-shadow: var(--sp-edge), var(--sp-shadow-4);
+  font-size: var(--sp-fs-sm); font-weight: 550; opacity: 0; pointer-events: none;
+  transition: opacity var(--sp-dur-2) var(--sp-ease-out), transform var(--sp-dur-3) var(--sp-ease-out);
+}
+html.sp-ui .sp-toast.is-shown { opacity: 1; transform: translate(-50%, 0); }
+html.sp-ui .sp-toast svg { width: 18px; height: 18px; color: var(--sp-ok); }
+
+/* ── 20. footer (flat, on the world under the panel) ───────────────────── */
+html.sp-ui .sp-foot { position: relative; z-index: var(--sp-z-page); max-width: var(--sp-page-max); margin: 0 auto; padding: 0 var(--sp-gutter) var(--sp-10); color: var(--sp-text-2); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-foot nav { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin-bottom: var(--sp-2); }
+html.sp-ui .sp-foot a { color: var(--sp-text-2); }
+html.sp-ui .sp-foot a:hover { color: var(--sp-text); }
+
+/* ── 21. the style guide page ──────────────────────────────────────────── */
+html.sp-ui .sp-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-5); margin: 0; padding: 0; list-style: none; }
+html.sp-ui .sp-swatch i { display: block; height: 52px; border-radius: var(--sp-r-sm); box-shadow: 0 0 0 1px var(--sp-hair); margin-bottom: var(--sp-2); }
+html.sp-ui .sp-swatch b { display: block; font-size: var(--sp-fs-sm); font-weight: 600; }
+html.sp-ui .sp-swatch span { font: 400 var(--sp-fs-xs) var(--sp-font-mono); color: var(--sp-text-2); }
+html.sp-ui .sp-depths { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-4); }
+html.sp-ui .sp-depths > div { min-height: 96px; padding: var(--sp-4); border-radius: var(--sp-r-card); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-depths .d0 { box-shadow: inset 0 0 0 1px var(--sp-hair); }
+html.sp-ui .sp-depths .d1 { background: var(--sp-fill-1); box-shadow: var(--sp-inset); }
+html.sp-ui .sp-depths .d2 { background: var(--sp-solid-2); box-shadow: var(--sp-edge), var(--sp-shadow-2); }
+html.sp-ui .sp-depths .d3 { background: var(--sp-solid-3); box-shadow: var(--sp-edge), var(--sp-shadow-3); }
+html.sp-ui .sp-depths .d4 { background: var(--sp-solid-4); box-shadow: var(--sp-edge), var(--sp-shadow-4); }
+html.sp-ui .sp-type > * { margin: 0 0 var(--sp-3); }
+
+/* ── 22. small screens ─────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  html.sp-ui .sp-bar-nav {
+    display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; flex-direction: column; gap: 2px; padding: var(--sp-2);
+    border-radius: var(--sp-r-float); background: var(--sp-solid-4); box-shadow: var(--sp-edge), var(--sp-shadow-4);
+  }
+  html.sp-ui .sp-bar-nav a { min-height: 44px; }
+  html.sp-ui .sp-bar.is-open .sp-bar-nav { display: flex; }
+  html.sp-ui .sp-bar .sp-menu-toggle { display: inline-flex; }
+  /* without JavaScript the menu is a plain row of links that can scroll */
+  html.sp-ui:not(.js) .sp-bar-nav { display: flex; position: static; flex-direction: row; overflow-x: auto; padding: 0; background: none; box-shadow: none; margin: 0; }
+  html.sp-ui:not(.js) .sp-bar .sp-menu-toggle { display: none; }
+}
+@media (max-width: 760px) {
+  html.sp-ui { --sp-bar-inset: 8px; }
+  html.sp-ui .sp-bar.sp-glass { --_radius: 20px; }
+  html.sp-ui .sp-bar-brand span { display: none; }
+  html.sp-ui .sp-shots { grid-template-columns: 1fr; }
+  html.sp-ui .sp-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--sp-5); }
+  html.sp-ui .sp-metric:nth-child(odd) { padding-left: 0; border-left: 0; }
+  html.sp-ui .sp-panel.sp-glass { --_radius: 24px; }
+  html.sp-ui .sp-table .is-hide-sm { display: none; }
+  html.sp-ui .sp-seg { display: flex; width: 100%; }
+}
+
+/* ── 23. print: the install guide on paper ─────────────────────────────── */
+@media print {
+  html.sp-ui, html.sp-ui[data-theme] {
+    --sp-text: #000; --sp-text-2: #222; --sp-text-3: #333; --sp-accent-text: #000; --sp-hair: #ccc;
+    --sp-fill-1: #f4f4f4; background: #fff;
+  }
+  html.sp-ui .sp-world, html.sp-ui .sp-bar, html.sp-ui .sp-toast, html.sp-ui .sp-skip, html.sp-ui .sp-noprint, html.sp-ui .sp-copy { display: none !important; }
+  html.sp-ui .sp-page { padding: 0; max-width: none; }
+  html.sp-ui .sp-glass { background: none !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; padding: 0; }
+  html.sp-ui a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .85em; }
+  html.sp-ui .sp-section, html.sp-ui .sp-shot { break-inside: avoid; }
+}
+
+/* ── 24. spacing helpers (inline styles are blocked by the page's CSP) ─── */
+html.sp-ui .sp-mt-3 { margin-top: var(--sp-3); }
+html.sp-ui .sp-mt-5 { margin-top: var(--sp-5); }
+html.sp-ui .sp-mt-8 { margin-top: var(--sp-8); }
+html.sp-ui .sp-narrow { max-width: 560px; }
+
+/* swatches of the style guide */
+html.sp-ui .sw-accent { background: var(--sp-accent); }
+html.sp-ui .sw-accent-text { background: var(--sp-accent-text); }
+html.sp-ui .sw-text { background: var(--sp-text); }
+html.sp-ui .sw-text-2 { background: var(--sp-text-2); }
+html.sp-ui .sw-text-3 { background: var(--sp-text-3); }
+html.sp-ui .sw-ok { background: var(--sp-ok); }
+html.sp-ui .sw-warn { background: var(--sp-warn); }
+html.sp-ui .sw-bad { background: var(--sp-bad); }
+html.sp-ui .sw-info { background: var(--sp-info); }
+html.sp-ui .sw-world { background: var(--sp-world); }
