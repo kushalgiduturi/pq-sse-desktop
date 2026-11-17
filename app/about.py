@@ -101,7 +101,24 @@ class AboutDialog(QDialog):
         row.addWidget(self.data_button)
         row.addWidget(self.log_button)
         row.addStretch(1)
+        # Check for updates: only when clicked; the setting hides it (Insights in the spatial window)
+        from .spatial.copy import T
+
+        self.update_text = T
+        self.update_result: dict = {}
+        self.update_button = QPushButton(T["updateCheck"])
+        self.update_button.setToolTip(T["updateNote"])
+        self.update_button.clicked.connect(self.check_for_updates)
+        self.update_button.setVisible(bool(session.settings.get("update_menu", True)))
+        self.page_button = QPushButton(T["updateOpenPage"])
+        self.page_button.clicked.connect(self.open_download_page)
+        self.page_button.setVisible(False)
+        row.addWidget(self.update_button)
+        row.addWidget(self.page_button)
         layout.addLayout(row)
+        self.update_label = QLabel("")
+        self.update_label.setWordWrap(True)
+        layout.addWidget(self.update_label)
         layout.addWidget(QLabel("Licenses of this program and of the libraries shipped with it:"))
         self.licenses = QPlainTextEdit(license_text())
         self.licenses.setReadOnly(True)
@@ -110,3 +127,34 @@ class AboutDialog(QDialog):
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
+
+    def check_for_updates(self) -> None:
+        """Started by the user. Reads the signed file list from the site once; nothing else is sent."""
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
+
+        from . import update_check
+
+        T = self.update_text
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            result = update_check.check(get_version())
+        finally:
+            QApplication.restoreOverrideCursor()
+        self.update_result = result
+        if result["status"] == "newer":
+            text = T["updateNewer"].format(version=result["version"], current=result["current"])
+        elif result["status"] == "current":
+            text = T["updateCurrent"].format(current=result["current"])
+        else:
+            text = T["updateError"].format(message=result["message"])
+        self.update_label.setText(text)
+        self.page_button.setVisible(result["status"] in ("newer", "error"))
+
+    def open_download_page(self) -> None:
+        page = self.update_result.get("download_page") or ""
+        if not page.startswith("https://"):
+            from .update_check import load_config
+
+            page = load_config().manifest_url.rsplit("/", 1)[0] + "/download.html"
+        QDesktopServices.openUrl(QUrl(page))

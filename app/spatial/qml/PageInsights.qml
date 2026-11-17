@@ -113,6 +113,8 @@ Item {
                                       Pick { required property var modelData; text: modelData[1]; selected: app.textSize === modelData[0]; onClicked: app.setTextSize(modelData[0]) } } }
                     Switch { width: parent.width; text: T.settingsMotion; help: T.settingsMotionNote + (app.motionReason.length > 0 ? " " + app.motionReason : "")
                              checked: app.reduceMotionSetting; onToggled: (on) => app.setReduceMotion(on) }
+                    Switch { width: parent.width; text: T.updateMenuSetting; help: T.updateMenuHelp
+                             checked: app.updateMenu; onToggled: (on) => app.setUpdateMenu(on) }
                     Txt { text: T.settingsMode; kind: "sm"; strong: true; topPadding: Theme.sp2 }
                     Segmented { width: parent.width; name: T.settingsMode; labels: [T.chipBeginner, T.chipExpert]
                                 current: page.expert ? 1 : 0; onChosen: (i) => app.setMode(i === 1 ? "expert" : "beginner") }
@@ -174,6 +176,32 @@ Item {
                             spacing: Theme.sp4
                             Txt { width: 200; text: modelData.label; tone: "secondary"; kind: "sm" }
                             Txt { width: column.width - 260; text: modelData.value; kind: "sm"; wrapMode: Text.WrapAnywhere }
+                        }
+                    }
+                    // Check for updates: only when the user clicks (setting below hides it)
+                    Column {
+                        visible: app.updateMenu
+                        width: parent.width
+                        spacing: Theme.sp2
+                        topPadding: Theme.sp2
+                        readonly property var u: app.updateState
+                        Flow {
+                            width: parent.width; spacing: Theme.sp2
+                            PButton { text: T.updateCheck; busy: parent.parent.u.status === "checking" || parent.parent.u.status === "downloading"
+                                      enabled: !app.busy; onClicked: app.checkForUpdates() }
+                            PButton { visible: parent.parent.u.status === "newer" && parent.parent.u.web_available === true; primary: true
+                                      text: T.updateRunWeb; enabled: !app.busy; onClicked: app.runWebInstaller() }
+                            PButton { visible: parent.parent.u.status === "newer" || parent.parent.u.status === "error"; quiet: true
+                                      text: T.updateOpenPage; onClicked: app.openDownloadPage() }
+                        }
+                        Txt {
+                            width: parent.width; kind: "sm"
+                            readonly property var u: parent.u
+                            tone: u.status === "error" ? "bad" : u.status === "newer" ? "primary" : "secondary"
+                            text: u.status === "newer" ? Theme.fmt(T.updateNewer, { version: u.version, current: u.current })
+                                : u.status === "current" ? Theme.fmt(T.updateCurrent, { current: u.current })
+                                : u.status === "error" ? Theme.fmt(T.updateError, { message: u.message })
+                                : u.status === "web_ready" ? T.updateWebReady : T.updateNote
                         }
                     }
                     extra: [ Lbl { text: T.aboutLicenses; strong: true },

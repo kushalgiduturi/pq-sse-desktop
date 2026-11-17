@@ -55,11 +55,13 @@ class AppBridge(QObject):
     attackFinished = Signal(str)
     insightsChanged = Signal()
     welcomeRequested = Signal()
+    updateChanged = Signal()
 
     def __init__(self, session: Session | None = None, sync: bool = False, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.session = session or Session()
         self.runner = TaskRunner(self.session.lock, sync=sync, parent=self)
+        self._sync = sync                        # tests: run in line, never start programs
         self.events = EventLog(self)
         self._state: dict = {}
         self._results: dict[str, dict] = {}
@@ -77,6 +79,8 @@ class AppBridge(QObject):
         self._attacks_running: set[str] = set()
         self._gpu_report = ""
         self._log_tail = ""
+        self._update: dict = {"status": "idle"}
+        self.update_config = None                # tests set an update_check.Config here
         self._bench_build: list[dict] = []
         self._bench_ops: list[dict] = []
         self._bench_raw_build: list[dict] = []
@@ -964,6 +968,67 @@ class AppBridge(QObject):
         from ..about import license_text
 
         return license_text()
+
+    # ------------------------------------------------------------------ update check (only when asked)
+    @Property("QVariantMap", notify=updateChanged)
+    def updateState(self) -> dict:
+        return {key: value for key, value in self._update.items() if key != "manifest"}
+
+    @Property(bool, notify=settingsChanged)
+    def updateMenu(self) -> bool:
+        return bool(self.session.settings.get("update_menu", True))
+
+    @Slot(bool)
+    def setUpdateMenu(self, on: bool) -> None:
+        self._set("update_menu", bool(on))
+
+    def _set_update(self, state: dict) -> None:
+        self._update = state
+        self.updateChanged.emit()
+
+    @Slot()
+    def checkForUpdates(self) -> None:
+        """Started by the user only. Reads the signed file list from the site once."""
+        from .. import update_check
+
+        if self._update.get("status") == "checking":
+            return
+        self._set_update({"status": "checking"})
+        config = self.update_config
+        self._run("update-check", T["updateChecking"], lambda: update_check.check(get_version(), config), self._set_update)
+
+    @Slot()
+    def openDownloadPage(self) -> None:
+        page = self._update.get("download_page") or ""
+        if page.startswith("https://"):
+            QDesktopServices.openUrl(QUrl(page))
+
+    @Slot()
+    def runWebInstaller(self) -> None:
+        """Downloads the web installer named in the signed file list, checks it, and starts it."""
+        from .. import update_check
+
+        manifest = self._update.get("manifest")
+        if not manifest:
+            return
+        config = self.update_config
+        state = dict(self._update)
+
+        def fetch() -> dict:
+            try:
+                path = update_check.download_web_setup(manifest, paths.base_dir() / "downloads", config)
+            except update_check.UpdateError as exc:
+                return {**state, "status": "error", "message": str(exc)}
+            return {**state, "status": "web_ready", "path": str(path)}
+
+        def done(result: dict) -> None:
+            self._set_update(result)
+            if result.get("status") == "web_ready" and not self._sync:
+                import os
+                os.startfile(result["path"])  # noqa: S606  (the user asked for it; size, hash and signature were checked)
+
+        self._set_update({**state, "status": "downloading"})
+        self._run("update-web-setup", T["updateDownloading"], fetch, done)
 
     # ------------------------------------------------------------------ end
     def shutdown(self) -> None:

@@ -113,8 +113,14 @@ $PyiArgs = @(
     "--add-data", ((Join-Path $Root "app\spatial\fonts") + ";app/spatial/fonts"),
     "--hidden-import", "PySide6.QtQuick",
     "--hidden-import", "PySide6.QtQml",
-    "--hidden-import", "PySide6.QtQuickControls2"
+    "--hidden-import", "PySide6.QtQuickControls2",
+    # the update check: where the signed file list is, and which hosts may serve it
+    "--add-data", ((Join-Path $Root "packaging\release.toml") + ";packaging")
 )
+# the public half of the release signing key (scripts\new_signing_key.ps1); without it the
+# update check says it cannot verify the file list and points to the download page
+$PublicKey = Join-Path $Root "installer\issig-public-key.txt"
+if (Test-Path $PublicKey) { $PyiArgs += @("--add-data", ($PublicKey + ";installer")) }
 
 if ($WithGpu) {
     Write-Host "Bundling CuPy and the NVIDIA runtime compiler (GPU build). This is large and takes several minutes."
