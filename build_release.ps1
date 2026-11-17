@@ -13,7 +13,10 @@
 #    4. installer(s) with Inno Setup, portable zip(s)
 #    5. tests of the release files: portable zip from a folder with spaces, silent install,
 #       upgrade over an older version, smoke test from the installed location, silent uninstall
-#    6. SHA256SUMS.txt and a table of the files
+#    6. latest.json (the manifest the site, the web installer and the update check read),
+#       SHA256SUMS.txt and a table of the files. With -SignManifest, latest.json and every
+#       package also get an Inno Setup signature (.issig); the private key file is named by the
+#       environment variable ISSIGTOOL_KEY_FILE and never written anywhere by this script.
 #
 # Output: %LOCALAPPDATA%\PQ-SSE-Desktop-build\release\<version>\   (change with -BuildRoot)
 # No admin rights needed. Nothing is written into the project folder.
@@ -25,6 +28,7 @@ param(
     [switch]$WithGpu,
     [switch]$SkipTests,
     [switch]$SkipInstallerTest,
+    [switch]$SignManifest,
     [string]$CopyTo = "",
     [string]$BuildRoot = "$env:LOCALAPPDATA\PQ-SSE-Desktop-build",
     [string]$Python = "",
@@ -269,8 +273,15 @@ if ($SkipInstallerTest) {
 }
 
 # ---------------------------------------------------------------------------------------
-Step "6. Checksums and result"
-Run-Helper checksums $ReleaseDir
+Step "6. Manifest, checksums and result"
+$ManifestArgs = @((Join-Path $Root "scripts\make_manifest.py"), $ReleaseDir, "--version", $Version)
+if ($SignManifest) {
+    if (-not $env:ISSIGTOOL_KEY_FILE) { Fail "-SignManifest was given but the environment variable ISSIGTOOL_KEY_FILE is empty." }
+    $ManifestArgs += "--sign"
+}
+& $VenvPython @ManifestArgs | Out-Host
+if ($LASTEXITCODE -ne 0) { Fail "the manifest could not be written." }
+if (-not $SignManifest) { Write-Host "latest.json is NOT signed (no -SignManifest). The web installer refuses an unsigned manifest." }
 Run-Helper emdash $ReleaseDir (Join-Path $Root "installer")
 if ($CopyTo) {
     $Target = Join-Path $CopyTo $Version

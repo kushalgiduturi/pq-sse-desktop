@@ -193,6 +193,8 @@ if ($WithGpu) {
     if ($Stray.Count -gt 0) {
         Fail ("CUDA Toolkit libraries from this PC were pulled into the build: " + (($Stray | ForEach-Object Name) -join ", "))
     }
+    # Every NVIDIA file in the build must be on NVIDIA's redistributable list (CUDA EULA, Attachment A).
+    Invoke-Helper cuda-check $Dist
     Write-Host "CUDA check OK: only the bundled NVRTC compiler and CUDA runtime are in the build."
 }
 Invoke-Helper scan $Dist

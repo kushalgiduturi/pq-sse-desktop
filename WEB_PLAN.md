@@ -34,6 +34,14 @@ Proposal (decision W1):
 3. `scripts/build_helpers.py cuda-runtime` copies only an allowlist of files and fails on
    anything else; a test checks the list against Attachment A.
 
+**Outcome of step 2 (M1, 2026-11-17).** The app's kernel includes no CUDA header. CuPy only
+needs `include\cuda_runtime.h` to exist, to locate the include folder; without it, cuda-pathfinder
+starts a probe child process that a packaged program cannot run (10 s timeout, GPU off). The GPU
+package now ships the three Attachment A DLLs, the four Attachment A headers and an **empty
+`cuda_runtime.h` written by us** (no NVIDIA content). Measured on this PC: GPU self-test of the
+packaged build with the CUDA Toolkit hidden, 8611 digests, 0 mismatches, PASS. `build_helpers.py
+cuda-check` fails any build that holds another NVIDIA file. Installed GPU size 413 MB (was 416).
+
 ## 2. Decisions
 
 | Id | Decision | Why |
@@ -49,6 +57,8 @@ Proposal (decision W1):
 | W9 | Site checks use the PySide6 QtWebEngine already in the dev environment as the headless browser (network log, no-JS run, screenshots) and a vendored copy of axe-core in `tests/vendor/` (MPL 2.0, never shipped) for the accessibility check. HTML is checked by a strict parser script; `impeccable detect` runs on the site files (it reads HTML and CSS) and every finding is fixed | No new runtime downloads; impeccable works on HTML |
 | W10 | In-app update check: user-started only, from About in the classic window and Insights in the spatial window; fetches `latest.json` over HTTPS from the site origin, verifies the signature in Python (P-256, `cryptography` package already a dependency, to be confirmed), compares versions, shows notes, offers the Download page or the web installer. A setting hides it. Tests use a local fake server | Brief; no phoning home |
 | W11 | winget: manifests under `packaging/winget/` for the Standard installer (Inno, per user, `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER`), checked with `winget validate` (winget 1.29 is on this PC). No pull request to winget-pkgs without your yes | Brief |
+| W13 | All release URLs, hosts and minimums live in `packaging/release.toml`; the manifest, the stub, the update check and the site read them from there | One place to change |
+| W14 | `.issig` files are checked in Python by `app/issig.py`, which follows Inno Setup's `ISSigFunc.pas` exactly: ECDSA P-256 (by the `cryptography` package) over SHA-256 of `u32 len(name), name, u32 len(tag), tag, i64 size, file hash`. Tested against signatures made by `ISSigTool` | The update check verifies the same signature as the web installer |
 | W12 | `actionlint` is not on this PC. The workflow is checked with `actionlint` downloaded once into a scratch folder only if you agree, otherwise with a YAML schema check and stated as not linted | No unasked downloads |
 
 ## 3. File layout

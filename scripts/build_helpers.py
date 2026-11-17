@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import shutil
 import sys
 import tomllib
@@ -39,6 +40,18 @@ BASE_PACKAGES = ("PySide6_Essentials", "PySide6_Addons", "shiboken6", "cryptogra
 GPU_PACKAGES = ("cupy-cuda12x", "cuda-pathfinder", "nvidia-cuda-nvrtc-cu12", "nvidia-cuda-runtime-cu12")
 LICENSE_WORDS = ("license", "licence", "copying", "notice", "eula")
 CUDA_DLL_PREFIXES = ("nvrtc", "cudart")
+# Only files that the CUDA 12.0 EULA lists as redistributable (Attachment A, read at
+# https://docs.nvidia.com/cuda/archive/12.0.1/eula/index.html): the CUDA runtime DLL, the NVRTC
+# DLLs (versioned names such as nvrtc64_120_0.dll are covered by the "variants" clause), and
+# four headers. Every other NVIDIA file is left out, and the build fails if one slips in.
+CUDA_REDISTRIBUTABLE_DLLS = re.compile(r"^(cudart64_\d+|nvrtc64_\d+_\d+|nvrtc-builtins64_\d+)\.dll$", re.I)
+CUDA_REDISTRIBUTABLE_HEADERS = ("nvrtc.h", "cuda_fp16.h", "cuda_fp16.hpp", "cuda_occupancy.h")
+# CuPy only compiles when it finds include\cuda_runtime.h, which it uses to locate the include
+# folder. The PQ-SSE kernel includes no CUDA header, so the app ships an empty file of its own
+# under that name instead of NVIDIA's header (which is not redistributable).
+CUDA_MARKER_HEADER = "cuda_runtime.h"
+CUDA_MARKER_TEXT = ("/* Empty marker written by PQ-SSE Desktop. CuPy checks that a file with this name exists\n"
+                    "   to find the CUDA include folder. This is not NVIDIA's header and contains no NVIDIA code. */\n")
 
 
 def read_version() -> str:
@@ -121,6 +134,13 @@ def cmd_licenses(args) -> int:
     if python_license.is_file():
         bodies.append("=" * 78 + f"\nPython {sys.version.split()[0]}\n" + "=" * 78 + "\n"
                       + _clean(python_license.read_text(encoding="utf-8", errors="replace")))
+    for font, licence in (("Onest (variable font)", "OFL-Onest.txt"), ("Share Tech Mono", "OFL-ShareTechMono.txt")):
+        text = ROOT / "app" / "spatial" / "fonts" / licence
+        summary.append(f"  Font {font}: SIL Open Font License 1.1")
+        if text.is_file():
+            bodies.append("=" * 78 + f"\nFont: {font}\n" + "=" * 78 + "\n" + _clean(text.read_text(encoding="utf-8", errors="replace")))
+        else:
+            missing.append(font)
     header = [
         "Third-party software shipped with PQ-SSE Desktop",
         "",
@@ -131,7 +151,10 @@ def cmd_licenses(args) -> int:
     ]
     if args.gpu:
         header += ["The NVIDIA CUDA runtime files (NVRTC and the CUDA runtime) are redistributed under the",
-                   "NVIDIA CUDA Toolkit end user license agreement, whose text is included below."]
+                   "NVIDIA CUDA Toolkit end user license agreement, whose text is included below. Only files that",
+                   "its Attachment A lists as redistributable are shipped: " + ", ".join(
+                       ["cudart64_12.dll", "nvrtc64_120_0.dll", "nvrtc-builtins64_120.dll"] + list(CUDA_REDISTRIBUTABLE_HEADERS)) + ".",
+                   f"The file cuda_runtime\\include\\{CUDA_MARKER_HEADER} is an empty file written by PQ-SSE Desktop, not NVIDIA's header."]
     header += ["Note: long dashes in the original license texts were replaced by hyphens. Nothing else was changed.",
                "", "Summary", "-------"] + summary + [""]
     out = Path(args.out)
@@ -143,9 +166,46 @@ def cmd_licenses(args) -> int:
     return 0
 
 
+def check_cuda_folder(folder: Path) -> list[str]:
+    """Files in a bundled CUDA folder that are not on the redistributable list (empty = fine)."""
+    bad = []
+    for path in sorted(Path(folder).rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(folder).as_posix()
+        if rel.startswith("bin/") and CUDA_REDISTRIBUTABLE_DLLS.match(path.name) and path.parent.name == "bin":
+            continue
+        if rel.startswith("include/") and path.parent.name == "include":
+            if path.name in CUDA_REDISTRIBUTABLE_HEADERS:
+                continue
+            if path.name == CUDA_MARKER_HEADER and path.read_text(encoding="ascii", errors="replace") == CUDA_MARKER_TEXT:
+                continue
+        bad.append(rel)
+    return bad
+
+
+def cmd_cuda_check(args) -> int:
+    """Fail when a build holds an NVIDIA file outside the redistributable list."""
+    dist = Path(args.dist)
+    folder = dist / "_internal" / "cuda_runtime"
+    if not folder.is_dir():
+        print(f"FAILED: {folder} does not exist.")
+        return 1
+    bad = check_cuda_folder(folder)
+    stray = [p.relative_to(dist).as_posix() for p in dist.rglob("*")
+             if p.is_file() and p.suffix.lower() in (".dll", ".h", ".hpp", ".cuh") and folder not in p.parents
+             and re.match(r"^(nv|cu)", p.name, re.I) and not p.as_posix().lower().count("/cupy/")]
+    if bad or stray:
+        print("FAILED: NVIDIA files that are not on the redistributable list: " + ", ".join(bad + stray))
+        return 1
+    print(f"NVIDIA files: only the redistributable ones ({len(list(folder.rglob('*.*')))} files in cuda_runtime).")
+    return 0
+
+
 def cmd_cuda_runtime(args) -> int:
-    """Build a minimal CUDA folder (bin with the NVRTC and runtime DLLs, include with the
-    headers) from NVIDIA's pip wheels. The packaged app points CUDA_PATH at it."""
+    """Build a minimal CUDA folder from NVIDIA's pip wheels: bin with the NVRTC and runtime
+    DLLs, include with only the redistributable headers and an empty marker of our own.
+    The packaged app points CUDA_PATH at it."""
     out = Path(args.out)
     if out.exists():
         shutil.rmtree(out)
@@ -163,19 +223,22 @@ def cmd_cuda_runtime(args) -> int:
             parts = [part.lower() for part in Path(str(item)).parts]
             if not path.is_file() or "__pycache__" in parts:
                 continue
-            if path.suffix.lower() == ".dll" and path.name.lower().startswith(CUDA_DLL_PREFIXES):
+            if path.suffix.lower() == ".dll" and CUDA_REDISTRIBUTABLE_DLLS.match(path.name):
                 shutil.copy2(path, out / "bin" / path.name)
                 dlls.append((path.name, path.stat().st_size))
-            elif "include" in parts and path.suffix.lower() in (".h", ".hpp"):
-                relative = Path(*Path(str(item)).parts[parts.index("include") + 1:])
-                (out / "include" / relative).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(path, out / "include" / relative)
+            elif "include" in parts and path.name in CUDA_REDISTRIBUTABLE_HEADERS and parts[-2] == "include":
+                shutil.copy2(path, out / "include" / path.name)
                 headers += 1
+    (out / "include" / CUDA_MARKER_HEADER).write_text(CUDA_MARKER_TEXT, encoding="ascii")
+    unexpected = check_cuda_folder(out)
+    if unexpected:
+        print("FAILED: files that NVIDIA does not list as redistributable: " + ", ".join(unexpected))
+        return 1
     if not any(name.lower().startswith("nvrtc64") for name, _ in dlls):
         print("FAILED: no NVRTC DLL was found in the installed NVIDIA packages.")
         return 1
-    if headers == 0:
-        print("FAILED: no CUDA header files were found in the installed NVIDIA packages.")
+    if headers < len(CUDA_REDISTRIBUTABLE_HEADERS):
+        print("FAILED: not every redistributable CUDA header was found in the installed NVIDIA packages.")
         return 1
     for name, size in dlls:
         print(f"  bin/{name}  {size / 2**20:.1f} MB")
@@ -283,6 +346,9 @@ def main(argv: list[str]) -> int:
     p.add_argument("out")
     p.add_argument("--gpu", action="store_true")
     p.set_defaults(fn=cmd_licenses)
+    p = sub.add_parser("cuda-check")
+    p.add_argument("dist")
+    p.set_defaults(fn=cmd_cuda_check)
     p = sub.add_parser("cuda-runtime")
     p.add_argument("out")
     p.set_defaults(fn=cmd_cuda_runtime)

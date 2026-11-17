@@ -9,3 +9,9 @@ dist/
 *.sqlite-wal
 *.sqlite-shm
 bench_results/
+# never commit signing keys or certificates (the public key in installer/ is a .txt file)
+*.key
+*.pfx
+*.p12
+*.pem
+.pqsse-signing/

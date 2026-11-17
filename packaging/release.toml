@@ -1,0 +1,30 @@
+# Release settings: the one place for the URLs, hosts and minimums that the manifest, the web
+# installer, the in-app update check and the site all read. See WEB_PLAN.md.
+
+[project]
+name = "PQ-SSE Desktop"
+repo = "kushalgiduturi/pq-sse-desktop"
+site_url = "https://kushalgiduturi.github.io/pq-sse-desktop/"
+# where the release files are downloaded from ({version} is filled in)
+download_base = "https://github.com/kushalgiduturi/pq-sse-desktop/releases/download/v{version}/"
+manifest_url = "https://kushalgiduturi.github.io/pq-sse-desktop/latest.json"
+
+[requirements]
+# Windows 10 version 1809 (build 17763) or newer, 64-bit
+min_os = "10.0.17763"
+# NVIDIA's Windows driver minimum for the bundled CUDA 12.0 Update 1 runtime (525.60 is the Linux figure)
+min_driver = "528.33"
+
+[web_setup]
+# The web installer accepts these hosts only. GitHub release downloads redirect from github.com
+# to its file host, so both are listed.
+allowed_hosts = ["kushalgiduturi.github.io", "github.com", "release-assets.githubusercontent.com",
+                 "objects.githubusercontent.com"]
+file_name = "PQ-SSE-Web-Setup.exe"
+
+[files]
+# {version} is filled in; these names are already used by the published v0.1.0 release
+standard_setup = "PQ-SSE-Desktop-Setup-{version}.exe"
+gpu_setup = "PQ-SSE-Desktop-Setup-{version}-GPU.exe"
+standard_zip = "PQ-SSE-Desktop-{version}-portable-standard.zip"
+gpu_zip = "PQ-SSE-Desktop-{version}-portable-gpu.zip"
