@@ -68,8 +68,26 @@ def test_site_craft_floor():
     assert craft_check_site.check() == []
 
 
-@pytest.mark.skipif(sys.platform != "win32", reason="Qt WebEngine check runs on the Windows dev machine")
-def test_site_static_and_browser_checks():
-    result = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_site.py")], capture_output=True, text=True, timeout=900)
+def _has_webengine() -> bool:
+    import importlib.util
+    try:
+        return importlib.util.find_spec("PySide6.QtWebEngineCore") is not None
+    except ImportError:
+        return False
+
+
+def _check_site(*options: str) -> None:
+    result = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_site.py"), *options],
+                            capture_output=True, text=True, timeout=900)
     assert result.returncode == 0, result.stdout[-3000:] + result.stderr[-2000:]
     assert "site check: 0 problem(s)" in result.stdout
+
+
+def test_site_static_checks():
+    _check_site("--no-browser")
+
+
+@pytest.mark.skipif(sys.platform != "win32" or not _has_webengine(),
+                    reason="needs Qt WebEngine (the dev environment has it; the release build environment does not)")
+def test_site_browser_checks():
+    _check_site()

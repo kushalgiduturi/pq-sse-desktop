@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
+import tempfile
 import sys
 import tomllib
 from pathlib import Path
@@ -52,7 +54,9 @@ def build(out_dir: Path, public_key: Path = DEFAULT_KEY, version: str | None = N
     with open(ROOT / "pyproject.toml", "rb") as handle:
         version = version or tomllib.load(handle)["project"]["version"]
     out_dir.mkdir(parents=True, exist_ok=True)
-    include = key_include(public_key, out_dir)
+    # the key include is a build input, not a release file: keep it out of out_dir
+    work = Path(tempfile.mkdtemp(prefix="pqsse-web-setup-"))
+    include = key_include(public_key, work)
     hosts = list(config["web_setup"]["allowed_hosts"]) + list(test_hosts or [])
     defines = {
         "AppVersion": version,
@@ -68,7 +72,10 @@ def build(out_dir: Path, public_key: Path = DEFAULT_KEY, version: str | None = N
     if test_manifest:
         args.append("/DTestBuild=1")
     args.append(str(ROOT / "installer" / "web-setup.iss"))
-    result = subprocess.run(args, capture_output=True, text=True)
+    try:
+        result = subprocess.run(args, capture_output=True, text=True)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
     if result.returncode != 0:
         raise SystemExit("FAILED: the web installer did not compile:\n" + (result.stdout + result.stderr).strip())
     exe = out_dir / (base_name + ".exe")
