@@ -111,7 +111,7 @@ def test_honest_limits_are_in_the_inspector_text():
 
 def test_no_long_dash_in_any_new_user_visible_text():
     assert LONG_DASH not in json.dumps(ui_copy.T) + json.dumps(ui_copy.INSPECT) + json.dumps(ui_copy.DESTINATIONS)
-    for path in qml_path().parent.iterdir():
+    for path in (p for p in qml_path().parent.rglob("*") if p.is_file() and p.suffix in (".qml", "")):
         assert LONG_DASH not in path.read_text(encoding="utf-8"), path.name
 
 

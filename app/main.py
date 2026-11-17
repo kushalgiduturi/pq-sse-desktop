@@ -363,6 +363,10 @@ def main(argv: list[str] | None = None) -> int:
     icon = paths.resource(ICON)
     if icon.exists():
         app.setWindowIcon(QIcon(str(icon)))
+    if "--styleguide" in args:
+        from .spatial.styleguide import run as run_styleguide
+
+        return run_styleguide(app, args)
     session = Session()
     if session.first_run:
         session.settings["mode"] = "beginner"      # a new user starts in Beginner Mode
