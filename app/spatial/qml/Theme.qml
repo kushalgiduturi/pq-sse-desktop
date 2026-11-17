@@ -90,6 +90,7 @@ QtObject {
     readonly property color secondaryFill: dark ? rgba(255, 255, 255, .07) : rgba(255, 255, 255, .9)   // glass pill button
     readonly property color solidHighlight: rgba(255, 255, 255, .28)   // top line on solid buttons
     readonly property color transparent: rgba(0, 0, 0, 0)
+    readonly property color maskInk: "#000000"          // the opaque shape a mask is cut from (never shown)
 
     // ------------------------------------------------------------------ fills by depth (glass, then dense)
     readonly property var glassFills: dark

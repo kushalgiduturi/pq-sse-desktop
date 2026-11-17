@@ -1,7 +1,7 @@
 // Grouped bars: CPU and GPU, one group per index size, one measure per chart (never two
 // axes). Thin bars with rounded tops and a 2 px gap, a legend with marks, a direct value
 // label on every bar (there are few), a hover tooltip, and a quiet baseline. Text uses
-// text colors; only the bars carry the series color.
+// text colors; only the bars carry the series color: CPU in accent, GPU in text-2.
 import QtQuick
 
 Item {
@@ -30,7 +30,7 @@ Item {
     Accessible.role: Accessible.Chart
     Accessible.name: title
 
-    Lbl { id: heading; text: chart.title; strong: true; size: Theme.caption; width: parent.width }
+    Txt { id: heading; text: chart.title; strong: true; width: parent.width; lineHeight: 1.3 }
     Row {
         id: legend
         anchors.top: heading.bottom; anchors.topMargin: 6
@@ -41,8 +41,8 @@ Item {
             Row {
                 required property var modelData
                 spacing: 6
-                Rectangle { width: 12; height: 12; radius: 3; color: modelData.color; anchors.verticalCenter: parent.verticalCenter }
-                Lbl { text: modelData.name; size: Theme.caption; tone: "secondary" }
+                Rectangle { width: 10; height: 10; radius: 3; color: modelData.color; anchors.verticalCenter: parent.verticalCenter }
+                Txt { text: modelData.name; kind: "sm"; tone: "secondary"; lineHeight: 1.2 }
             }
         }
     }
@@ -51,7 +51,7 @@ Item {
         anchors.top: legend.bottom; anchors.topMargin: 22
         anchors.bottom: parent.bottom; anchors.bottomMargin: 22
         width: parent.width
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.hairStrong }
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.hair }
         Repeater {
             model: chart.sizes
             Item {
@@ -82,25 +82,25 @@ Item {
                             color: bar.modelData ? Theme.series2 : Theme.series1
                             opacity: hover.hovered ? 1 : 0.92
                             Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Math.min(4, parent.height); color: parent.color }
-                            Behavior on height { NumberAnimation { duration: Theme.moveSlow; easing.type: Easing.OutCubic } }
+                            Behavior on height { NumberAnimation { duration: Theme.dur4; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
                         }
-                        Lbl { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: fill.top; anchors.bottomMargin: 3
-                              text: chart.show(bar.v); size: Theme.caption * 0.92; tone: "secondary"; wrapMode: Text.NoWrap }
+                        Txt { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: fill.top; anchors.bottomMargin: 3
+                              text: chart.show(bar.v); kind: "mono"; font.pixelSize: Theme.fsXs; tone: "secondary"; wrapMode: Text.NoWrap; lineHeight: 1.0 }
                         HoverHandler { id: hover }
-                        Rectangle {          // tooltip
+                        Surface {            // tooltip: depth 4, dense
                             visible: hover.hovered
                             z: 5
+                            depth: 4; blur: false; radius: Theme.rSm; padding: 0
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: fill.top; anchors.bottomMargin: 22
-                            width: tip.implicitWidth + 16; height: tip.implicitHeight + 10; radius: 8
-                            color: Theme.glassRaised; border.width: 1; border.color: Theme.glassStroke
-                            Lbl { id: tip; anchors.centerIn: parent; size: Theme.caption; wrapMode: Text.NoWrap
+                            width: tip.implicitWidth + 20; height: tip.implicitHeight + 12
+                            Txt { id: tip; anchors.centerIn: parent; kind: "sm"; wrapMode: Text.NoWrap; lineHeight: 1.2
                                   text: Theme.fmt(T.chartTooltip, { engine: bar.modelData ? T.benchLegendGpu : T.benchLegendCpu, n: group.modelData.toLocaleString(Qt.locale("en_US"), "f", 0), s: bar.v.toFixed(4) }) }
                         }
                     }
                 }
-                Lbl { anchors.horizontalCenter: parent.horizontalCenter; y: plot.height + 4
-                      text: T.benchEntries.replace("{n}", group.modelData.toLocaleString(Qt.locale("en_US"), "f", 0)); size: Theme.caption; tone: "muted"; wrapMode: Text.NoWrap }
+                Txt { anchors.horizontalCenter: parent.horizontalCenter; y: plot.height + 4
+                      text: T.benchEntries.replace("{n}", group.modelData.toLocaleString(Qt.locale("en_US"), "f", 0)); kind: "sm"; tone: "tertiary"; wrapMode: Text.NoWrap; lineHeight: 1.2 }
             }
         }
     }

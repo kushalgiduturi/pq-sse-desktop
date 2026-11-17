@@ -24,7 +24,7 @@ Item {
                 Rectangle {
                     required property int index
                     width: [110, 90, 120, 70][index]; height: 5; radius: 2
-                    color: parent.parent.tampered && index === 1 ? Theme.fail : Theme.textMuted
+                    color: parent.parent.tampered && index === 1 ? Theme.bad : Theme.textMuted
                 }
             }
         }

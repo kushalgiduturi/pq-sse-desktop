@@ -76,9 +76,9 @@ Item {
         width: 30; height: 38
         x: Math.min(letters.width + 4, anim.p1 * (anim.shownLetters + 3) * anim.cell - 6)
         y: 2
-        Rectangle { x: 7; y: anim.p1 >= 1 && !anim.reverse ? 5 : 0; width: 16; height: 18; radius: 8; color: "transparent"; border.width: 3; border.color: Theme.warn
+        Rectangle { x: 7; y: anim.p1 >= 1 && !anim.reverse ? 5 : 0; width: 16; height: 18; radius: 8; color: "transparent"; border.width: 3; border.color: Theme.text
                     Behavior on y { NumberAnimation { duration: Theme.moveBase; easing.type: Easing.OutBack } } }
-        Rectangle { x: 2; y: 15; width: 26; height: 21; radius: 5; color: Theme.warn }
+        Rectangle { x: 2; y: 15; width: 26; height: 21; radius: 5; color: Theme.text }
     }
     Row {
         y: 46; spacing: 6

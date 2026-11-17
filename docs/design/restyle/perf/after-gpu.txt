@@ -1,0 +1,7 @@
+Spatial UI performance, Stage with the Step Inspector replaying BuildIndex
+renderer: GPU scene graph, window 1440 x 900, screen 60 Hz, QML warnings: 0
+window created in 2031 ms
+frames: 959 in 16.0 s = 60.0 fps (limit: at least 50)
+frame time ms: mean 16.67, median 16.67, p95 16.86 (limit: at most 25), max 19.35
+longest frame ended 10.60 s into the measurement; frames over 50 ms: 0
+RESULT: PASS

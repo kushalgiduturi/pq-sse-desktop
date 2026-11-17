@@ -1,6 +1,8 @@
 // Journey: the guided lesson as a path of steps. Each step can be run for you on the real
 // system ("Run this step for me") or done by hand ("Let me try", then "Check my work").
 // Challenges sit beside it. Everything happens in the practice area.
+// Quiet glass: the path is a segmented track (no numbered chips), the step and the side
+// column are flat areas of the page panel divided by a hairline.
 import QtQuick
 
 Item {
@@ -30,20 +32,28 @@ Item {
     Column {
         id: header
         width: parent.width
-        spacing: 4
-        Lbl { text: T.journeyTitle; size: Theme.display; strong: true }
-        Lbl { text: T.journeySub; tone: "secondary"; size: Theme.bodyLarge; width: parent.width }
+        spacing: Theme.sp1
+        Txt { text: T.journeyTitle; kind: "xl"; width: parent.width }
+        Txt { text: T.journeySub; tone: "secondary"; width: Math.min(parent.width, 760) }
     }
 
     // ---------------------------------------------------------------- the path
-    Glass {
+    Item {
         id: path
-        anchors.top: header.bottom; anchors.topMargin: Theme.s16
+        anchors.top: header.bottom; anchors.topMargin: Theme.sp6
         width: parent.width
-        height: 96 * Math.max(1, Theme.scale)
-        padding: Theme.s16
+        height: 40
+        Txt {
+            id: count
+            anchors.right: parent.right
+            y: 6
+            text: (page.current + 1) + " / " + page.steps.length
+            kind: "mono"; tone: "secondary"; lineHeight: 1.0
+        }
         Row {
-            anchors.fill: parent
+            id: track
+            width: parent.width - count.width - Theme.sp4
+            spacing: 4
             Repeater {
                 model: page.steps
                 Item {
@@ -52,53 +62,41 @@ Item {
                     required property int index
                     readonly property bool done: page.isDone(modelData.key)
                     readonly property bool on: index === page.current
-                    width: parent.width / page.steps.length
-                    height: parent.height
+                    width: (track.width - (page.steps.length - 1) * track.spacing) / page.steps.length
+                    height: Theme.touch ? 44 : 28
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
                     Accessible.name: page.fill(T.journeyStepOf, { n: index + 1, all: page.steps.length }) + ": " + modelData.title
                                      + (on ? ". " + T.journeyCurrent : "") + (done ? ". " + T.journeyDone : "")
                     Keys.onReturnPressed: app.setLessonStep(index)
                     Keys.onSpacePressed: app.setLessonStep(index)
+                    // one segment: done = text color, current = accent and taller, later = hairline
                     Rectangle {
-                        visible: node.index < page.steps.length - 1
-                        x: parent.width / 2 + 18; y: 16
-                        width: parent.width - 36; height: 3; radius: 2
-                        color: node.done ? Theme.ok : Theme.hairStrong
-                        Behavior on color { ColorAnimation { duration: Theme.slow } }
-                    }
-                    Rectangle {          // the current step has a soft ring around it
-                        visible: node.on
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: -5; width: 44; height: 44; radius: 22
-                        color: Theme.tint(Theme.accent, 0.25)
+                        y: 10 - (node.on ? 2 : 0)
+                        width: parent.width
+                        height: node.on ? 8 : 4
+                        radius: height / 2
+                        color: node.on ? Theme.accent : node.done ? Theme.text2 : Theme.hairStrong
+                        Behavior on color { ColorAnimation { duration: Theme.dur3 } }
+                        Behavior on height { NumberAnimation { duration: Theme.dur2; easing.type: Easing.OutBack; easing.overshoot: Theme.springOvershoot } }
                     }
                     Rectangle {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: node.on ? 0 : 4
-                        width: node.on ? 34 : 26; height: width; radius: width / 2
-                        color: node.done ? Theme.ok : node.on ? Theme.accent : Theme.hover
-                        border.width: node.on || node.activeFocus ? 3 : 1
-                        border.color: node.on || node.activeFocus ? Theme.textPrimary : Theme.hairStrong
-                        Behavior on width { NumberAnimation { duration: Theme.moveBase; easing.type: Easing.OutBack } }
-                        Text {
-                            anchors.centerIn: parent
-                            text: node.done ? "✓" : node.index + 1
-                            color: node.done || node.on ? Theme.accentOn : Theme.textSecondary
-                            font.family: Theme.fontFamily; font.pixelSize: Theme.caption; font.weight: Font.DemiBold
-                        }
-                    }
-                    Lbl {
-                        visible: node.on || hov.hovered || node.activeFocus
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: 42
-                        width: Math.max(parent.width, 190); horizontalAlignment: Text.AlignHCenter
-                        text: node.modelData.title
-                        size: Theme.caption; strong: node.on
-                        maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap
+                        visible: node.activeFocus
+                        anchors.fill: parent; anchors.margins: -2
+                        radius: Theme.rSm; color: "transparent"; border.width: 2; border.color: Theme.ring
                     }
                     HoverHandler { id: hov; cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: app.setLessonStep(node.index) }
+                    // the title of a hovered or focused step, as a small tooltip above the track
+                    Surface {
+                        visible: (hov.hovered || node.activeFocus) && !node.on
+                        depth: 4; blur: false; radius: Theme.rSm; padding: 0
+                        z: 20
+                        width: tip.implicitWidth + 20; height: tip.implicitHeight + 10
+                        x: Math.max(-node.x, Math.min(node.width / 2 - width / 2, track.width - node.x - width))
+                        y: 30
+                        Txt { id: tip; anchors.centerIn: parent; text: node.modelData.title; kind: "sm"; wrapMode: Text.NoWrap; lineHeight: 1.2 }
+                    }
                 }
             }
         }
@@ -107,36 +105,39 @@ Item {
     // ---------------------------------------------------------------- the focused step
     Glass {
         id: focus
-        anchors.top: path.bottom; anchors.topMargin: Theme.s16
-        height: Theme.large ? text.implicitHeight + actions.height + 2 * padding + 16 : board.height - y
-        width: Theme.large ? parent.width : parent.width * 0.60
-        rim: Theme.accent; rimWidth: 2
+        anchors.top: path.bottom; anchors.topMargin: Theme.sp4
+        height: Theme.large ? text.implicitHeight + actions.height + 16 : board.height - y
+        width: Theme.large ? parent.width : parent.width * 0.60 - Theme.sp8
         Flickable {
             anchors.fill: parent
-            anchors.bottomMargin: actions.height + 12
+            anchors.bottomMargin: actions.height + Theme.sp4
             contentHeight: text.implicitHeight
             interactive: !Theme.large
             clip: true
             Column {
                 id: text
                 width: parent.width
-                spacing: 10
-                Chip { text: page.fill(T.journeyStepOf, { n: page.current + 1, all: page.steps.length }); mark: page.isDone(page.step.key) ? "ok" : "" }
-                Lbl { width: parent.width; text: page.step.title; size: Theme.headline; strong: true }
-                Lbl {
+                spacing: Theme.sp3
+                Row {
+                    width: parent.width
+                    spacing: Theme.sp3
+                    Txt { id: stepTitle; text: page.step.title; kind: "xl"; width: Math.min(implicitWidth, parent.width - (donePill.visible ? donePill.width + 12 : 0)) }
+                    Pill { id: donePill; visible: page.isDone(page.step.key); text: T.journeyDone; status: "ok"; anchors.verticalCenter: stepTitle.verticalCenter }
+                }
+                Txt {
                     width: parent.width
                     text: page.step.explain
                     textFormat: Text.RichText
-                    tone: "secondary"; size: Theme.bodyLarge * 0.95
+                    tone: "secondary"
                     onLinkActivated: (link) => app.runPalette(link)
                 }
-                Rectangle {          // the result of "Check my work"
+                Item {               // the result of "Check my work": an inset with a status icon
                     visible: app.lessonCheck.step === page.current
-                    width: parent.width; height: checkText.implicitHeight + 20; radius: 12
-                    color: Theme.tint(app.lessonCheck.ok ? Theme.ok : Theme.warn, 0.16)
-                    border.width: 1; border.color: app.lessonCheck.ok ? Theme.ok : Theme.warn
-                    Lbl { id: checkText; x: 12; width: parent.width - 24; anchors.verticalCenter: parent.verticalCenter
-                          text: (app.lessonCheck.ok ? "✓ " : "⚠ ") + (app.lessonCheck.text || "") }
+                    width: parent.width; height: checkText.implicitHeight + 24
+                    Surface { anchors.fill: parent; depth: 1; radius: Theme.rCard; padding: 0 }
+                    Icon { x: 16; y: 14; name: app.lessonCheck.ok ? "check" : "alert"; size: 18; color: app.lessonCheck.ok ? Theme.ok : Theme.warn }
+                    Txt { id: checkText; x: 44; width: parent.width - 60; anchors.verticalCenter: parent.verticalCenter
+                          text: app.lessonCheck.text || "" }
                 }
             }
         }
@@ -144,21 +145,27 @@ Item {
             id: actions
             anchors.bottom: parent.bottom
             width: parent.width
-            spacing: 10
+            spacing: Theme.sp2
             PButton { visible: page.step.runnable; primary: true; enabled: !app.busy; text: T.journeyRun; onClicked: app.runLessonStep(page.current) }
             PButton { visible: page.step.runnable; enabled: !app.busy; text: T.journeyTry; onClicked: app.tryLessonStep(page.current) }
             PButton { visible: page.step.runnable; enabled: !app.busy; text: T.journeyCheck; onClicked: app.checkLessonStep(page.current) }
-            PButton { enabled: page.current > 0; text: T.journeyBack; onClicked: app.setLessonStep(page.current - 1) }
+            PButton { enabled: page.current > 0; quiet: true; text: T.journeyBack; onClicked: app.setLessonStep(page.current - 1) }
             PButton { enabled: page.current < page.steps.length - 1; primary: !page.step.runnable; text: T.journeyNext; onClicked: app.setLessonStep(page.current + 1) }
         }
     }
 
+    Rectangle {
+        visible: !Theme.large
+        x: focus.width + Theme.sp8; y: focus.y
+        width: 1; height: focus.height
+        color: Theme.hair
+    }
     // ---------------------------------------------------------------- what happened, challenges, reset
     Flickable {
         id: side
-        x: Theme.large ? 0 : focus.width + Theme.s16
-        y: Theme.large ? focus.y + focus.height + Theme.s16 : focus.y
-        width: Theme.large ? parent.width : parent.width - focus.width - Theme.s16
+        x: Theme.large ? 0 : focus.width + 2 * Theme.sp8
+        y: Theme.large ? focus.y + focus.height + Theme.sp8 : focus.y
+        width: Theme.large ? parent.width : parent.width - focus.width - 2 * Theme.sp8
         height: Theme.large ? sideColumn.implicitHeight + 12 : board.height - y
         contentHeight: sideColumn.implicitHeight + 12
         interactive: !Theme.large
@@ -166,12 +173,12 @@ Item {
         Column {
             id: sideColumn
             width: parent.width
-            spacing: Theme.s16
+            spacing: Theme.sp8
 
             TaskCard {
                 width: parent.width
                 title: T.journeyHappened
-                Lbl {
+                Txt {
                     width: parent.width
                     textFormat: Text.RichText
                     tone: "secondary"
@@ -185,10 +192,11 @@ Item {
                 width: parent.width
                 title: T.journeyChallenges
                 summary: page.fill(T.journeyChallengesSub, { done: page.challengesDone, all: page.challenges.length })
-                Rectangle {
-                    width: parent.width; height: 8; radius: 4; color: Theme.hover
-                    Rectangle { width: parent.width * page.challengesDone / Math.max(1, page.challenges.length); height: 8; radius: 4; color: Theme.ok
-                                Behavior on width { NumberAnimation { duration: Theme.moveSlow; easing.type: Easing.OutCubic } } }
+                Item {
+                    width: parent.width; height: 6
+                    Surface { anchors.fill: parent; depth: 1; radius: 3; padding: 0 }
+                    Rectangle { width: parent.width * page.challengesDone / Math.max(1, page.challenges.length); height: 6; radius: 3; color: Theme.ok
+                                Behavior on width { NumberAnimation { duration: Theme.dur4; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } } }
                 }
                 Repeater {
                     model: page.challenges
@@ -196,16 +204,23 @@ Item {
                         id: item
                         required property var modelData
                         width: parent.width
-                        spacing: 4
+                        spacing: 2
+                        topPadding: Theme.sp2
                         Row {
-                            spacing: 8
-                            Text { width: 16; text: item.modelData.done ? "✓" : "○"; color: item.modelData.done ? Theme.ok : Theme.textMuted
-                                   font.pixelSize: Theme.bodyLarge; font.weight: Font.Bold
-                                   Accessible.name: item.modelData.done ? T.journeyDone : T.notChecked }
-                            Lbl { width: item.width - 28; text: item.modelData.title; strong: true }
+                            spacing: Theme.sp2
+                            Item {
+                                width: 18; height: 18
+                                anchors.verticalCenter: parent.verticalCenter
+                                Accessible.role: Accessible.StaticText
+                                Accessible.name: item.modelData.done ? T.journeyDone : T.notChecked
+                                Icon { visible: item.modelData.done; anchors.centerIn: parent; name: "check"; size: 18; color: Theme.ok }
+                                Rectangle { visible: !item.modelData.done; anchors.centerIn: parent; width: 14; height: 14; radius: 7
+                                            color: "transparent"; border.width: 1.5; border.color: Theme.hairStrong }
+                            }
+                            Txt { width: item.width - 28; text: item.modelData.title; strong: true; lineHeight: 1.3 }
                         }
-                        Lbl { x: 24; width: parent.width - 24; text: item.modelData.task; tone: "secondary"; size: Theme.caption }
-                        Lbl { x: 24; width: parent.width - 24; visible: page.hintFor === item.modelData.key; text: item.modelData.hint; size: Theme.caption }
+                        Txt { x: 26; width: parent.width - 26; text: item.modelData.task; tone: "secondary"; kind: "sm" }
+                        Txt { x: 26; width: parent.width - 26; visible: page.hintFor === item.modelData.key; text: item.modelData.hint; kind: "sm" }
                         Row {
                             x: 16; spacing: 4
                             visible: !item.modelData.done
@@ -220,8 +235,9 @@ Item {
                 width: parent.width
                 title: T.journeyLesson
                 summary: T.journeyResetNote
-                Row {
-                    spacing: 10
+                Flow {
+                    width: parent.width
+                    spacing: Theme.sp2
                     PButton { text: T.journeyReset; enabled: !app.busy; onClicked: { app.resetLesson(); app.resetChallenges() } }
                     PButton { visible: app.practice; text: T.journeyLeave; enabled: !app.busy; onClicked: app.leavePractice() }
                 }

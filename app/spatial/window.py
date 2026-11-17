@@ -1,6 +1,7 @@
 """Create and run the spatial (Qt Quick) window."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -35,6 +36,9 @@ def platform_info() -> dict:
         except OSError:
             pass
     touch = any(d.type() == QInputDevice.DeviceType.TouchScreen for d in QInputDevice.devices())
+    # for screenshots and tests of the fallbacks on a machine that has neither
+    reduce_transparency = reduce_transparency or os.environ.get("PQSSE_REDUCE_TRANSPARENCY") == "1"
+    touch = touch or os.environ.get("PQSSE_TOUCH") == "1"
     return {"reduceTransparency": reduce_transparency, "touch": touch}
 
 

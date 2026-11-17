@@ -28,7 +28,16 @@ def main() -> int:
     parser.add_argument("--reduce-motion", action="store_true")
     parser.add_argument("--text", default="normal")
     parser.add_argument("--size", default="1440x900")
+    parser.add_argument("--software", action="store_true", help="draw with the software renderer")
+    parser.add_argument("--reduce-transparency", action="store_true")
+    parser.add_argument("--touch", action="store_true")
     args = parser.parse_args()
+    if args.software:
+        os.environ["QT_QUICK_BACKEND"] = "software"
+    if args.reduce_transparency:
+        os.environ["PQSSE_REDUCE_TRANSPARENCY"] = "1"
+    if args.touch:
+        os.environ["PQSSE_TOUCH"] = "1"
     data = tempfile.mkdtemp(prefix="pqsse-shots-")
     os.environ["PQSSE_DATA_DIR"] = data
 

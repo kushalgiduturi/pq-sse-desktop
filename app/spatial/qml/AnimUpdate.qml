@@ -73,7 +73,7 @@ Item {
             color: Theme.press; border.width: 1; border.color: Theme.textSecondary
             opacity: anim.deleteShown ? 0.15 : 1
             Behavior on opacity { NumberAnimation { duration: Theme.slow } }
-            Lbl { anchors.centerIn: parent; text: anim.deleteShown ? "✕" : ""; color: Theme.fail; strong: true }
+            Icon { visible: anim.deleteShown; anchors.centerIn: parent; name: "cross"; size: 16; color: Theme.bad }
         }
     }
     Lbl {

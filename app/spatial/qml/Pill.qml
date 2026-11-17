@@ -29,6 +29,8 @@ Rectangle {
         x: 20
         anchors.verticalCenter: parent.verticalCenter
         text: p.text
+        width: Math.min(implicitWidth, p.width - 28)
+        elide: Text.ElideRight
         kind: "xs"
         strong: true
         color: p.ink

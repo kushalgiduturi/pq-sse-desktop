@@ -43,9 +43,11 @@ Item {
             Row {
                 required property string modelData
                 spacing: 8
-                Avatar { visible: modelData !== T.revNobodyElse; who: modelData; size: 28; color: Theme.roleColor(modelData) }
+                Avatar { visible: modelData !== T.revNobodyElse; who: modelData; size: 28 }
                 Lbl { text: modelData; size: Theme.caption; anchors.verticalCenter: parent.verticalCenter }
-                Lbl { visible: anim.send >= 1 && anim.remaining.length > 0; text: "✓ " + T.revGotKey; color: Theme.ok; size: Theme.caption; anchors.verticalCenter: parent.verticalCenter }
+                Row { visible: anim.send >= 1 && anim.remaining.length > 0; spacing: 4; anchors.verticalCenter: parent.verticalCenter
+                      StatusMark { state: "ok"; size: 14; anchors.verticalCenter: parent.verticalCenter }
+                      Lbl { text: T.revGotKey; color: Theme.ok; size: Theme.caption } }
             }
         }
         Row {
@@ -54,7 +56,9 @@ Item {
             Behavior on opacity { NumberAnimation { duration: Theme.base } }
             Avatar { who: anim.revoked; size: 28 }
             Lbl { text: anim.revoked; size: Theme.caption; anchors.verticalCenter: parent.verticalCenter }
-            Lbl { visible: anim.bounced; text: "✕ " + T.revRefused; color: Theme.fail; size: Theme.caption; strong: true; anchors.verticalCenter: parent.verticalCenter }
+            Row { visible: anim.bounced; spacing: 4; anchors.verticalCenter: parent.verticalCenter
+                  StatusMark { state: "bad"; size: 14; anchors.verticalCenter: parent.verticalCenter }
+                  Lbl { text: T.revRefused; color: Theme.bad; size: Theme.caption; strong: true } }
         }
     }
     // the new key travelling (only to those who stay)

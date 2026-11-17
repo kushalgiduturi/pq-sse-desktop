@@ -1,5 +1,6 @@
 // Insights: measurements, engine, appearance, advanced settings, data and logs, About.
 // In Beginner mode a plain summary comes first and the raw numbers sit behind "More options".
+// Quiet glass: flat sections, a metrics strip, charts in accent (CPU) versus text-2 (GPU).
 import QtQuick
 
 Item {
@@ -15,8 +16,8 @@ Item {
         Column {
             id: column
             width: parent.width
-            spacing: Theme.s16
-            Lbl { text: T.insightsTitle; size: Theme.display; strong: true }
+            spacing: Theme.sp10
+            Txt { text: T.insightsTitle; kind: "xl" }
 
             // ---------------------------------------------------------- measurements
             TaskCard {
@@ -25,12 +26,28 @@ Item {
                 summary: app.benchBuild.length === 0 ? T.benchIntro : app.benchSummary
                 hasMore: app.benchBuild.length > 0 || app.benchOps.length > 0
                 more: page.expert
+                id: benchCard
+                // the strip: display only, from the measured rows Python returned
+                readonly property var largest: app.benchBuild.length === 0 ? null : app.benchBuild.reduce(function (a, b) { return b.occurrences > a.occurrences ? b : a })
+                readonly property var fastest: app.benchBuild.length === 0 ? null : app.benchBuild.reduce(function (a, b) { return b.total_s < a.total_s ? b : a })
+                readonly property var gpuRow: { for (var i = app.benchBuild.length - 1; i >= 0; i--) if (app.benchBuild[i].gpu) return app.benchBuild[i]; return null }
+                Metrics {
+                    visible: app.benchBuild.length > 0
+                    width: parent.width
+                    items: !benchCard.largest || !benchCard.fastest ? [] : [
+                        { value: app.engine === "" ? "-" : app.engine, label: T.metricEngine },
+                        { value: benchCard.largest.occurrences.toLocaleString(Qt.locale("en_US"), "f", 0), label: T.metricEntries },
+                        { value: Theme.fmt(T.metricSeconds, { s: benchCard.fastest.total_s.toFixed(3) }), label: T.metricFastest },
+                        { value: benchCard.gpuRow ? Theme.fmt(T.metricTimes, { x: benchCard.gpuRow.total_speedup.toFixed(2) }) : "-", label: T.metricSpeedup }
+                    ]
+                }
+                Item { visible: app.benchBuild.length > 0; width: 1; height: Theme.sp2 }
                 Row {
                     visible: app.benchBuild.length > 0
                     width: parent.width
-                    spacing: Theme.s24
-                    BarChart { width: (parent.width - Theme.s24) / 2; rows: app.benchBuild; field: "prf_s"; title: T.benchChartPrf }
-                    BarChart { width: (parent.width - Theme.s24) / 2; rows: app.benchBuild; field: "total_s"; title: T.benchChartTotal }
+                    spacing: Theme.sp10
+                    BarChart { width: (parent.width - Theme.sp10) / 2; rows: app.benchBuild; field: "prf_s"; title: T.benchChartPrf }
+                    BarChart { width: (parent.width - Theme.sp10) / 2; rows: app.benchBuild; field: "total_s"; title: T.benchChartTotal }
                 }
                 Lbl { visible: app.benchBuild.length > 0; width: parent.width; text: T.insightsEngineNote; tone: "secondary"; size: Theme.caption }
                 Flow {
@@ -61,8 +78,8 @@ Item {
             Flow {
                 id: cards
                 width: parent.width
-                spacing: Theme.s16
-                readonly property real cardWidth: width > 880 ? (width - Theme.s16) / 2 : width
+                spacing: Theme.sp10
+                readonly property real cardWidth: width > 760 ? (width - Theme.sp10) / 2 : width
 
                 // ------------------------------------------------------ engine
                 TaskCard {
@@ -71,11 +88,11 @@ Item {
                     summary: T.insightsEngineNote
                     hasMore: app.gpuReport.length > 0
                     more: app.gpuReport.length > 0
-                    Chip { maxWidth: parent.width; text: app.engine === "GPU" ? T.chipGpu : app.engine === "CPU" ? T.chipCpu : T.chipDetecting; mark: "dot"; dot: app.engine === "GPU" ? Theme.accent : Theme.textMuted }
+                    Pill { text: app.engine === "GPU" ? T.chipGpu : app.engine === "CPU" ? T.chipCpu : T.chipDetecting; status: app.engine === "GPU" ? "accent" : "neutral" }
                     Lbl { width: parent.width; text: app.engineDetail; tone: "secondary"; size: Theme.caption }
                     Lbl { width: parent.width; text: app.backend; tone: "secondary"; size: Theme.caption }
                     Lbl { width: parent.width; text: app.software ? T.engineDrawSoftware : T.engineDrawGpu; tone: "secondary"; size: Theme.caption }
-                    Lbl { text: T.engineMode; tone: "muted"; size: Theme.caption }
+                    Txt { text: T.engineMode; kind: "sm"; strong: true; topPadding: Theme.sp2 }
                     Segmented { width: parent.width; name: T.engineMode; labels: [T.engineAuto, T.engineCpu, T.engineGpu]
                                 current: ["auto", "cpu", "gpu"].indexOf(app.engineMode); onChosen: (i) => app.setEngineMode(["auto", "cpu", "gpu"][i]) }
                     Lbl { width: parent.width; text: T.engineAutoNote; tone: "secondary"; size: Theme.caption }
@@ -87,16 +104,16 @@ Item {
                 TaskCard {
                     width: cards.cardWidth
                     title: T.settingsAppearance
-                    Lbl { text: T.settingsTheme; tone: "muted"; size: Theme.caption }
+                    Txt { text: T.settingsTheme; kind: "sm"; strong: true; topPadding: Theme.sp2 }
                     Segmented { width: parent.width; name: T.settingsTheme; labels: [T.themeSystem, T.themeDark, T.themeLight]
                                 current: ["system", "dark", "light"].indexOf(app.theme); onChosen: (i) => app.setTheme(["system", "dark", "light"][i]) }
-                    Lbl { text: T.settingsText; tone: "muted"; size: Theme.caption }
+                    Txt { text: T.settingsText; kind: "sm"; strong: true; topPadding: Theme.sp2 }
                     Flow { width: parent.width; spacing: 8
                            Repeater { model: [["small", T.textSmall], ["normal", T.textNormal], ["large", T.textLarge], ["larger", T.textLarger], ["largest", T.textLargest]]
                                       Pick { required property var modelData; text: modelData[1]; selected: app.textSize === modelData[0]; onClicked: app.setTextSize(modelData[0]) } } }
-                    Pick { text: T.settingsMotion; selected: app.reduceMotionSetting; onClicked: app.setReduceMotion(!app.reduceMotionSetting) }
-                    Lbl { width: parent.width; text: T.settingsMotionNote + (app.motionReason.length > 0 ? " " + app.motionReason : ""); tone: "secondary"; size: Theme.caption }
-                    Lbl { text: T.settingsMode; tone: "muted"; size: Theme.caption }
+                    Switch { width: parent.width; text: T.settingsMotion; help: T.settingsMotionNote + (app.motionReason.length > 0 ? " " + app.motionReason : "")
+                             checked: app.reduceMotionSetting; onToggled: (on) => app.setReduceMotion(on) }
+                    Txt { text: T.settingsMode; kind: "sm"; strong: true; topPadding: Theme.sp2 }
                     Segmented { width: parent.width; name: T.settingsMode; labels: [T.chipBeginner, T.chipExpert]
                                 current: page.expert ? 1 : 0; onChosen: (i) => app.setMode(i === 1 ? "expert" : "beginner") }
                     Lbl { width: parent.width; text: page.expert ? T.modeExpert : T.modeBeginner; tone: "secondary"; size: Theme.caption }
@@ -113,17 +130,17 @@ Item {
                     property string kem: app.advanced.kem
                     property string sig: app.advanced.sig
                     extra: [
-                        Lbl { text: T.advancedKem; tone: "muted"; size: Theme.caption },
+                        Txt { text: T.advancedKem; kind: "sm"; strong: true; topPadding: Theme.sp2 },
                         Flow { width: parent.width; spacing: 8
                                Repeater { model: app.advanced.kems
                                           Pick { required property string modelData; text: modelData; selected: advanced.kem === modelData; onClicked: advanced.kem = modelData } } },
-                        Lbl { text: T.advancedSig; tone: "muted"; size: Theme.caption },
+                        Txt { text: T.advancedSig; kind: "sm"; strong: true; topPadding: Theme.sp2 },
                         Flow { width: parent.width; spacing: 8
                                Repeater { model: app.advanced.sigs
                                           Pick { required property string modelData; text: modelData; selected: advanced.sig === modelData; onClicked: advanced.sig = modelData } } },
-                        Lbl { text: T.advancedPort; tone: "muted"; size: Theme.caption },
+                        Txt { text: T.advancedPort; kind: "sm"; strong: true; topPadding: Theme.sp2 },
                         Field { id: portField; width: 160; text: String(app.advanced.port); hint: T.advancedPort },
-                        Lbl { text: T.advancedTtl; tone: "muted"; size: Theme.caption },
+                        Txt { text: T.advancedTtl; kind: "sm"; strong: true; topPadding: Theme.sp2 },
                         Field { id: ttlField; width: 160; text: String(app.advanced.ttl); hint: T.advancedTtl },
                         PButton { text: page.savedAdvanced ? T.advancedSaved : T.advancedSave
                                   onClicked: { app.setAdvanced(advanced.kem, advanced.sig, parseInt(portField.text) || 0, parseFloat(ttlField.text) || 0); page.savedAdvanced = true } }
@@ -154,9 +171,9 @@ Item {
                         model: app.aboutRows
                         Row {
                             required property var modelData
-                            spacing: 12
-                            Lbl { width: 190; text: modelData.label; tone: "muted"; size: Theme.caption }
-                            Lbl { width: column.width - 270; text: modelData.value; size: Theme.caption; wrapMode: Text.WrapAnywhere }
+                            spacing: Theme.sp4
+                            Txt { width: 200; text: modelData.label; tone: "secondary"; kind: "sm" }
+                            Txt { width: column.width - 260; text: modelData.value; kind: "sm"; wrapMode: Text.WrapAnywhere }
                         }
                     }
                     extra: [ Lbl { text: T.aboutLicenses; strong: true },

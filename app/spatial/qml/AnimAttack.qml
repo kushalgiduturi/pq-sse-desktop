@@ -14,12 +14,11 @@ Item {
     readonly property bool named: progress > 0.7
 
     // the attacker (a picture, labeled as such under the panel)
-    Rectangle {
+    Avatar {
         id: attacker
+        who: "attacker"
         x: 4 + anim.reach * (Theme.reduceMotion ? 0 : 46); y: 30
-        width: 44; height: 44; radius: 22
-        color: Theme.attacker
-        Lbl { anchors.centerIn: parent; text: "!"; color: Theme.onRole; size: Theme.title; strong: true }
+        size: 44
     }
     Lbl { x: 0; y: 80; text: T.attackFigure; size: Theme.caption; tone: "secondary" }
 
@@ -30,7 +29,7 @@ Item {
             x: anim.cracked && !Theme.reduceMotion ? -3 : 0
             width: 38; height: 60; radius: 8
             color: Theme.hover; border.width: 2
-            border.color: anim.cracked ? Theme.fail : Theme.hairStrong
+            border.color: anim.cracked ? Theme.bad : Theme.hairStrong
             rotation: anim.cracked && !Theme.reduceMotion ? -5 : 0
             Behavior on rotation { NumberAnimation { duration: Theme.base; easing.type: Easing.OutBack } }
         }
@@ -38,11 +37,11 @@ Item {
             x: anim.cracked && !Theme.reduceMotion ? 43 : 38
             width: 38; height: 60; radius: 8
             color: Theme.hover; border.width: 2
-            border.color: anim.cracked ? Theme.fail : Theme.hairStrong
+            border.color: anim.cracked ? Theme.bad : Theme.hairStrong
             rotation: anim.cracked && !Theme.reduceMotion ? 5 : 0
             Behavior on rotation { NumberAnimation { duration: Theme.base; easing.type: Easing.OutBack } }
         }
-        Lbl { anchors.centerIn: parent; text: anim.cracked ? "✕" : ""; color: Theme.fail; size: Theme.headline; strong: true }
+        Icon { visible: anim.cracked; anchors.centerIn: parent; name: "cross"; size: 26; color: Theme.bad }
     }
     Lbl { x: 120; y: 86; width: 100; horizontalAlignment: Text.AlignHCenter; size: Theme.caption; tone: "secondary"
           text: anim.cracked ? T.attackCracked : T.attackItem }
@@ -63,20 +62,10 @@ Item {
                 readonly property bool shown: anim.progress * (anim.checks.length + 1) > index + 0.5
                 spacing: 6
                 opacity: shown ? 1 : 0.3
-                Text { width: 14; text: !line.shown ? "○" : line.modelData[1] ? "✓" : "✕"
-                       color: !line.shown ? Theme.textMuted : line.modelData[1] ? Theme.ok : Theme.fail; font.pixelSize: Theme.body; font.weight: Font.Bold }
+                StatusMark { size: 14; state: !line.shown ? "pending" : line.modelData[1] ? "ok" : "bad"; anchors.verticalCenter: parent.verticalCenter }
                 Lbl { text: line.shown && !line.modelData[1] ? Theme.fmt(T.attackCaughtHere, { name: line.modelData[0] }) : line.modelData[0]; size: Theme.caption
                       strong: line.shown && !line.modelData[1]; tone: line.shown ? "primary" : "muted" }
             }
         }
-    }
-    Chip {
-        anchors.bottom: parent.bottom
-        maxWidth: parent.width
-        visible: anim.ran
-        opacity: anim.named ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.base } }
-        mark: anim.record && anim.record.passed ? "ok" : "fail"
-        text: anim.record ? (anim.record.passed ? Theme.fmt(T.labCaught, { by: anim.record.caughtBy }) : T.labNotCaught) : ""
     }
 }

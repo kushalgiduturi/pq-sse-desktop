@@ -25,6 +25,8 @@ Item {
     readonly property color fillColor: depth === 1 ? Theme.insetFill() : (blurred ? Theme.glassFills[depth] : Theme.solidFills[depth])
 
     // ---------------------------------------------------------------- shadow, outside only
+    // One layer: both shadow shapes are blurred together and the surface's own shape is cut
+    // out in the same effect pass (a box-shadow is never seen through translucent glass).
     Item {
         id: shadowBox
         visible: s.sh !== null
@@ -33,6 +35,9 @@ Item {
         z: -1
         layer.enabled: visible
         layer.effect: MultiEffect {
+            blurEnabled: true
+            blur: 1.0
+            blurMax: s.sh ? Math.round(s.sh[1] / 2) : 0
             maskEnabled: true
             maskInverted: true
             maskSource: hole
@@ -45,8 +50,6 @@ Item {
             width: s.width + 2 * (s.sh ? s.sh[2] : 0); height: s.height + 2 * (s.sh ? s.sh[2] : 0)
             radius: s.radius
             color: Theme.tint(Theme.shadowColor, s.sh ? s.sh[3] : 0)
-            layer.enabled: true
-            layer.effect: MultiEffect { blurEnabled: true; blur: 1.0; blurMax: s.sh ? Math.round(s.sh[1] / 2) : 0 }
         }
         Rectangle {        // short contact shadow
             x: shadowBox.m
@@ -54,16 +57,14 @@ Item {
             width: s.width; height: s.height
             radius: s.radius
             color: Theme.tint(Theme.shadowColor, s.sh ? s.sh[6] : 0)
-            layer.enabled: true
-            layer.effect: MultiEffect { blurEnabled: true; blur: 1.0; blurMax: s.sh ? Math.max(2, s.sh[5]) : 0 }
         }
     }
     Item {
         id: hole
         visible: false
-        layer.enabled: true
+        layer.enabled: shadowBox.visible
         width: shadowBox.width; height: shadowBox.height
-        Rectangle { x: shadowBox.m; y: shadowBox.m; width: s.width; height: s.height; radius: s.radius; color: "black" }
+        Rectangle { x: shadowBox.m; y: shadowBox.m; width: s.width; height: s.height; radius: s.radius; color: Theme.maskInk }
     }
 
     // ---------------------------------------------------------------- blurred world under the glass
@@ -128,27 +129,21 @@ Item {
     HoverHandler { id: hover; enabled: s.pointerLight }
 
     // ---------------------------------------------------------------- specular edge
-    Item {
-        id: edge
-        anchors.fill: parent
+    // A 1 px edge in the dim side tone, and a brighter line along the flat part of the top.
+    // Plain rectangles: no offscreen layer per surface.
+    Rectangle {
         visible: s.depth >= 2 || Theme.dark
-        layer.enabled: true
-        layer.effect: MultiEffect { maskEnabled: true; maskSource: ring; maskThresholdMin: 0.5 }
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.edgeHi }
-                GradientStop { position: Math.min(0.5, s.radius * 1.2 / Math.max(1, s.height)); color: Theme.edgeSide }
-                GradientStop { position: 1.0; color: Theme.edgeLo }
-            }
-        }
+        anchors.fill: parent
+        radius: s.radius
+        color: "transparent"
+        border.width: 1
+        border.color: Theme.edgeSide
     }
-    Item {
-        id: ring
-        visible: false
-        layer.enabled: true
-        width: s.width; height: s.height
-        Rectangle { anchors.fill: parent; radius: s.radius; color: "transparent"; border.width: 1; border.color: "black" }
+    Rectangle {
+        visible: s.depth >= 2 && s.width > 2 * s.radius
+        x: s.radius; y: 0
+        width: s.width - 2 * s.radius; height: 1
+        color: Theme.edgeHi
     }
 
     Item { id: inner; anchors.fill: parent; anchors.margins: s.padding }

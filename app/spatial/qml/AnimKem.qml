@@ -32,11 +32,11 @@ Item {
         width: 54; height: 26; radius: 13
         x: 58 + (parent.width - 220) * (Theme.reduceMotion ? (anim.fly > 0.5 ? 1 : 0) : anim.fly)
         y: 38 - Math.sin(anim.fly * Math.PI) * (Theme.reduceMotion ? 0 : 16)
-        color: Theme.tint(Theme.warn, anim.opened ? 0.25 : 0.95)
-        border.width: 2; border.color: Theme.warn
+        color: anim.opened ? Theme.hover : Theme.text
+        border.width: 1.5; border.color: Theme.text
         opacity: anim.sealed ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.base } }
-        Lbl { anchors.centerIn: parent; text: anim.opened ? T.kemOpen : T.kemSealed; size: Theme.caption; strong: true; color: anim.opened ? Theme.textPrimary : Theme.accentOn }
+        Lbl { anchors.centerIn: parent; text: anim.opened ? T.kemOpen : T.kemSealed; size: Theme.caption; strong: true; color: anim.opened ? Theme.text : Theme.onRole }
     }
     // the same secret on both sides: matching glow
     Repeater {

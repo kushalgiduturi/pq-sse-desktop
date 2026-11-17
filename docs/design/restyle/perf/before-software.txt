@@ -1,0 +1,6 @@
+Spatial UI performance, Stage with the Step Inspector replaying BuildIndex
+renderer: software (motion reduced automatically, frames drawn on demand), window 1440 x 900, QML warnings: 0
+window created in 2090 ms
+frames drawn: 1003 in 16 s
+drawing time per frame ms: mean 0.42, median 0.24, p95 1.16 (limit: at most 50), max 4.38
+RESULT: PASS

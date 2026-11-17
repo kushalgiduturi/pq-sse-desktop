@@ -110,6 +110,7 @@ $PyiArgs = @(
     "--exclude-module", "PySide6.QtWebEngineWidgets",
     "--exclude-module", "PySide6.QtQuick3D",
     "--add-data", ((Join-Path $Root "app\spatial\qml") + ";app/spatial/qml"),
+    "--add-data", ((Join-Path $Root "app\spatial\fonts") + ";app/spatial/fonts"),
     "--hidden-import", "PySide6.QtQuick",
     "--hidden-import", "PySide6.QtQml",
     "--hidden-import", "PySide6.QtQuickControls2"

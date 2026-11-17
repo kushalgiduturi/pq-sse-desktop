@@ -24,14 +24,7 @@ Item {
                 spacing: 8
                 opacity: done ? 1 : 0.35
                 Behavior on opacity { NumberAnimation { duration: Theme.base } }
-                Text {
-                    width: 16
-                    text: !line.done ? "○" : line.bad ? "✕" : "✓"
-                    color: !line.done ? Theme.textMuted : line.bad ? Theme.fail : Theme.ok
-                    font.pixelSize: Theme.body; font.weight: Font.Bold
-                    scale: line.done && !Theme.reduceMotion ? 1.0 : 0.8
-                    Behavior on scale { NumberAnimation { duration: Theme.base; easing.type: Easing.OutBack } }
-                }
+                StatusMark { size: 16; state: !line.done ? "pending" : line.bad ? "bad" : "ok"; anchors.verticalCenter: parent.verticalCenter }
                 Lbl {
                     width: anim.width - 28
                     text: line.modelData

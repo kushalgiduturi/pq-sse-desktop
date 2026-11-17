@@ -27,6 +27,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 LIMITS = {"gpu": (50.0, 25.0), "software": (30.0, 50.0)}
+KEEP_ALIVE = (b"import QtQuick\nRectangle { width: 1; height: 1; color: \"transparent\"\n"
+              b"    NumberAnimation on rotation { from: 0; to: 360; duration: 1000; loops: Animation.Infinite } }\n")
 
 
 def main() -> int:
@@ -38,7 +40,7 @@ def main() -> int:
     data = tempfile.mkdtemp(prefix="pqsse-perf-")
     os.environ["PQSSE_DATA_DIR"] = data
 
-    from PySide6.QtCore import QObject, QTimer
+    from PySide6.QtCore import QObject, QTimer, QUrl
     from PySide6.QtWidgets import QApplication
 
     from app.session import Session
@@ -74,6 +76,16 @@ def main() -> int:
         return next(o for o in window.findChildren(QObject) if o.metaObject().className().startswith("Inspector"))
 
     def measure() -> None:
+        # The Quiet glass world is still, so Qt draws nothing while nothing moves: a gap between
+        # two frames is then idle time, not a slow frame. A 1 px item that turns all the time
+        # keeps the window drawing every frame, so the numbers show frame pacing under load
+        # (as the old UI's drifting lights did by themselves).
+        from PySide6.QtQml import QQmlComponent
+
+        keep = QQmlComponent(view.engine)
+        keep.setData(KEEP_ALIVE, QUrl())
+        result["keep"] = keep.create()
+        result["keep"].setParentItem(window.contentItem())
         panel = inspector()
         replay = QTimer(window)
         replay.timeout.connect(lambda: panel.metaObject().invokeMethod(panel, "replay"))
@@ -87,7 +99,10 @@ def main() -> int:
 
     def finish() -> None:
         software = bool(window.property("software"))
-        gaps = sorted((b - a) * 1000 for a, b in zip(stamps, stamps[1:]))
+        raw = [((b - a) * 1000, b - stamps[0]) for a, b in zip(stamps, stamps[1:])]
+        longest_at = max(raw)[1] if raw else 0.0
+        slow = sum(1 for gap, _ in raw if gap > 50)
+        gaps = sorted(gap for gap, _ in raw)
         fps_limit, p95_limit = LIMITS["software" if software else "gpu"]
         if software and len(draws) >= 10:
             draws.sort()
@@ -117,6 +132,7 @@ def main() -> int:
                     f"frames: {len(gaps)} in {total:.1f} s = {fps:.1f} fps (limit: at least {fps_limit:.0f})\n"
                     f"frame time ms: mean {statistics.mean(gaps):.2f}, median {statistics.median(gaps):.2f}, "
                     f"p95 {p95:.2f} (limit: at most {p95_limit:.0f}), max {gaps[-1]:.2f}\n"
+                    f"longest frame ended {longest_at:.2f} s into the measurement; frames over 50 ms: {slow}\n"
                     f"RESULT: {'PASS' if ok else 'FAIL'}\n")
         print(text)
         if args.report:
