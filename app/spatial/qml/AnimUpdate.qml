@@ -38,7 +38,7 @@ Item {
                 readonly property bool isOld: index < 20 && !isNew
                 readonly property bool landed: isNew && anim.arrive * anim.fresh > newRank
                 width: anim.cell; height: 14; radius: 3
-                color: landed ? Theme.tint(Theme.alice, 0.85) : isOld ? Theme.tint(Theme.cloud, 0.55) : Theme.tint(Theme.glassRaised, 0.6)
+                color: landed ? Theme.tint(Theme.alice, 0.85) : isOld ? Theme.press : Theme.hover
                 border.width: landed ? 1 : 0; border.color: Theme.textPrimary
                 scale: landed && !Theme.reduceMotion ? 1 : (isNew ? 0.6 : 1)
                 Behavior on scale { NumberAnimation { duration: Theme.base; easing.type: Easing.OutBack } }
@@ -70,7 +70,7 @@ Item {
         Lbl { text: T.updDeleted; size: Theme.caption; tone: "muted" }
         Rectangle {
             width: 40; height: 30; radius: 6
-            color: Theme.tint(Theme.cloud, 0.7); border.width: 1; border.color: Theme.textSecondary
+            color: Theme.press; border.width: 1; border.color: Theme.textSecondary
             opacity: anim.deleteShown ? 0.15 : 1
             Behavior on opacity { NumberAnimation { duration: Theme.slow } }
             Lbl { anchors.centerIn: parent; text: anim.deleteShown ? "✕" : ""; color: Theme.fail; strong: true }

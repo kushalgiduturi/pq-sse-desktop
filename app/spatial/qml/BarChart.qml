@@ -51,7 +51,7 @@ Item {
         anchors.top: legend.bottom; anchors.topMargin: 22
         anchors.bottom: parent.bottom; anchors.bottomMargin: 22
         width: parent.width
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.tint(Theme.glassStroke, 0.7) }
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.hairStrong }
         Repeater {
             model: chart.sizes
             Item {

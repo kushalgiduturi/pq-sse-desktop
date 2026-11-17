@@ -1,22 +1,21 @@
-// A character's mark: a colored disc with the first letter of the name. The cloud is a
-// rounded square, so it differs from the people by shape as well as by color.
+// A character's mark: neutral. A monochrome glyph in an inset disc: a person, the cloud, or
+// for the attacker an alert sign. Names are always shown next to it; no character has a color.
 import QtQuick
 
-Rectangle {
+Item {
     id: avatar
     property string who: ""
     property real size: 44
+    property color color: Theme.text        // kept for older call sites: characters are neutral
+    readonly property string key: who.toLowerCase()
     width: size; height: size
-    radius: who.toLowerCase() === "cloud" ? size * 0.28 : size / 2
-    color: Theme.roleColor(who)
     Accessible.role: Accessible.Graphic
     Accessible.name: who
-    Text {
+    Surface { anchors.fill: parent; depth: 1; radius: width / 2; padding: 0 }
+    Icon {
         anchors.centerIn: parent
-        text: avatar.who.length ? avatar.who.charAt(0).toUpperCase() : "?"
-        color: Theme.onRole
-        font.family: Theme.fontFamily
-        font.pixelSize: avatar.size * 0.42
-        font.weight: Font.DemiBold
+        size: avatar.size * 0.5
+        name: avatar.key === "cloud" ? "cloud" : avatar.key === "attacker" || avatar.key === "security" ? "alert" : "person"
+        color: avatar.key === "attacker" || avatar.key === "security" ? Theme.bad : Theme.text
     }
 }

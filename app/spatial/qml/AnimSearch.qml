@@ -24,7 +24,7 @@ Item {
     // the word stays on the doctor's side
     Rectangle {
         x: 0; y: 78; width: wordText.implicitWidth + 16; height: 24; radius: 6
-        color: Theme.tint(Theme.glassRaised, 0.95); border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.7)
+        color: Theme.hover; border.width: 1; border.color: Theme.hairStrong
         visible: anim.keyword.length > 0
         Lbl { id: wordText; anchors.centerIn: parent; text: "'" + anim.keyword + "'"; size: Theme.caption }
     }
@@ -51,8 +51,8 @@ Item {
                 required property int index
                 readonly property bool hit: index % 3 === 1 && Math.floor(index / 3) < anim.hits
                 width: 28; height: 20; radius: 4
-                color: hit && anim.glow ? Theme.tint(Theme.ok, 0.85) : Theme.tint(Theme.glassRaised, 0.95)
-                border.width: 1; border.color: hit && anim.glow ? Theme.ok : Theme.tint(Theme.glassStroke, 0.6)
+                color: hit && anim.glow ? Theme.tint(Theme.ok, 0.85) : Theme.hover
+                border.width: 1; border.color: hit && anim.glow ? Theme.ok : Theme.hairStrong
                 Behavior on color { ColorAnimation { duration: Theme.base } }
                 Lbl { anchors.centerIn: parent; text: anim.stored.length > 0 ? anim.stored[index % anim.stored.length].address.substr((index * 2) % 28, 2) : "··"; size: 10; tone: "muted"; font.family: Theme.monoFamily }
             }

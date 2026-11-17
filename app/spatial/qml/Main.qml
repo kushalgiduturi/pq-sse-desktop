@@ -11,14 +11,12 @@ Window {
     minimumWidth: 1120
     minimumHeight: 720
     visible: true
-    color: Theme.roomTop
+    color: Theme.world
     title: T.appName + ": search locked files without unlocking them"
 
     property string page: app.mode === "expert" ? "workspace" : "journey"
     property bool inspectorOpen: false
     property int inspectIndex: -1
-    property real mx: 0.5
-    property real my: 0.5
     readonly property var pages: ["journey", "stage", "workspace", "lab", "insights"]
     readonly property bool software: GraphicsInfo.api === GraphicsInfo.Software
     readonly property real inspectorWidth: Math.min(500, width * 0.36)
@@ -78,77 +76,52 @@ Window {
     Binding { target: Theme; property: "reduceMotion"; value: app.reduceMotion }
     Binding { target: Theme; property: "software"; value: win.software }
     Binding { target: Theme; property: "scale"; value: app.textScale }
+    Binding { target: Theme; property: "reduceTransparency"; value: platform.reduceTransparency }
+    Binding { target: Theme; property: "touch"; value: platform.touch }
+    FontLoader { id: onest; source: Qt.resolvedUrl("../fonts/Onest-Variable.ttf") }
+    FontLoader { id: stm; source: Qt.resolvedUrl("../fonts/ShareTechMono-Regular.ttf") }
+    Binding { target: Theme; property: "ui"; value: onest.name; when: onest.status === FontLoader.Ready }
+    Binding { target: Theme; property: "mono"; value: stm.name; when: stm.status === FontLoader.Ready }
     Component.onCompleted: {
         app.setSoftware(win.software)
-        var families = Qt.fontFamilies()
-        Theme.fontFamily = families.indexOf("Segoe UI Variable") >= 0 ? "Segoe UI Variable" : "Segoe UI"
-        Theme.monoFamily = families.indexOf("Cascadia Mono") >= 0 ? "Cascadia Mono" : "Consolas"
         Theme.backdrop = win.software ? null : blurredRoom
     }
 
-    // ------------------------------------------------------------------ background layer
-    Item {
-        id: room
-        anchors.fill: parent
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.roomTop }
-                GradientStop { position: 1.0; color: Theme.roomBottom }
-            }
-        }
-        Repeater {
-            model: [{ c: Theme.accent, x: 0.14, y: 0.20, s: 0.55 }, { c: Theme.carol, x: 0.86, y: 0.12, s: 0.48 },
-                    { c: Theme.bob, x: 0.56, y: 0.92, s: 0.60 }]
-            Rectangle {
-                id: light
-                required property var modelData
-                required property int index
-                property real drift: 0
-                visible: !win.software
-                width: win.width * modelData.s; height: width; radius: width / 2
-                opacity: Theme.dark ? 0.16 : 0.22
-                x: win.width * modelData.x - width / 2 + drift * 50 - (win.mx - 0.5) * 30
-                y: win.height * modelData.y - height / 2 + (1 - drift) * 36 - (win.my - 0.5) * 22
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: light.modelData.c }
-                    GradientStop { position: 1.0; color: Theme.tint(light.modelData.c, 0.0) }
-                }
-                SequentialAnimation on drift {
-                    running: !Theme.reduceMotion && win.active
-                    loops: Animation.Infinite
-                    NumberAnimation { to: 1; duration: 11000 + light.index * 3000; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 0; duration: 11000 + light.index * 3000; easing.type: Easing.InOutSine }
-                }
-            }
-        }
-    }
-    // One blurred copy of the room. Floating glass panels sample it instead of blurring themselves.
-    ShaderEffectSource { id: roomCopy; sourceItem: room; visible: false; live: !win.software; textureSize: Qt.size(win.width / 2, win.height / 2) }
+    // ------------------------------------------------------------------ depth 0: the world, and its one blurred copy
+    // Glass at depth 2 to 4 samples the copy instead of blurring itself (one blur pass, Theme.worldBlur).
     MultiEffect {
         id: blurredRoom
-        anchors.fill: parent
-        source: roomCopy
-        visible: false                     // drawn only through the panels that sample it
-        blurEnabled: true; blur: 1.0; blurMax: 48
+        anchors.fill: room
+        z: -1                              // under the world: seen only through the glass that samples it
+        source: room
+        autoPaddingEnabled: false
+        blurEnabled: true; blur: 1.0; blurMax: Theme.worldBlur
     }
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: !Theme.reduceMotion
-        acceptedButtons: Qt.NoButton
-        onPositionChanged: (mouse) => { win.mx = mouse.x / width; win.my = mouse.y / height }
-    }
+    World { id: room; anchors.fill: parent; scene: false }
 
     // ------------------------------------------------------------------ content layer: pages
+    // The one page panel (depth 2): centered, at most Theme.pageMax wide, narrower while the
+    // inspector drawer is open. Pages are flat inside it.
+    readonly property real availableWidth: win.width - 2 * Theme.barInset - (win.inspectorOpen ? win.inspectorWidth + Theme.sp4 : 0)
+    Surface {
+        id: panel
+        depth: 2
+        pointerLight: true
+        padding: 0
+        y: storyBar.y + storyBar.height + Theme.sp4
+        height: dock.y - Theme.sp4 - y
+        width: Math.min(Theme.pageMax, win.availableWidth)
+        x: Theme.barInset + (win.availableWidth - width) / 2
+        track: x + width
+        Behavior on x { NumberAnimation { duration: Theme.dur4; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
+        Behavior on width { NumberAnimation { duration: Theme.dur4; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
+    }
     Item {
         id: host
         enabled: !win.modalOpen
-        anchors.top: storyBar.bottom; anchors.topMargin: Theme.s16
-        anchors.bottom: dock.top; anchors.bottomMargin: Theme.s16
-        anchors.left: parent.left; anchors.leftMargin: Theme.s32
-        anchors.right: parent.right
-        anchors.rightMargin: win.inspectorOpen ? win.inspectorWidth + Theme.s32 + Theme.s16 : Theme.s32
-        Behavior on anchors.rightMargin { NumberAnimation { duration: Theme.moveSlow; easing.type: Easing.OutCubic } }
+        x: panel.x + Theme.sp8; y: panel.y + Theme.sp6
+        width: panel.width - 2 * Theme.sp8
+        height: panel.height - Theme.sp6 - Theme.sp4
 
         component Page: Item {
             id: pg
@@ -159,10 +132,12 @@ Window {
             opacity: current ? 1 : 0
             visible: opacity > 0.01
             enabled: current
-            scale: current || Theme.reduceMotion ? 1 : (win.pages.indexOf(win.page) > order ? 0.94 : 1.05)
-            transform: Translate { x: Theme.reduceMotion ? 0 : (win.mx - 0.5) * 8; y: Theme.reduceMotion ? 0 : (win.my - 0.5) * 6 }
-            Behavior on opacity { NumberAnimation { duration: Theme.reduceMotion ? Theme.base : Theme.slow; easing.type: Easing.OutCubic } }
-            Behavior on scale { enabled: !Theme.reduceMotion; SpringAnimation { spring: Theme.spring; damping: Theme.damping; epsilon: 0.002 } }
+            // page change: a short fade with an 8 px slide in the direction of travel (none with Reduce motion)
+            transform: Translate {
+                x: pg.current || Theme.reduceMotion ? 0 : (win.pages.indexOf(win.page) > pg.order ? -8 : 8)
+                Behavior on x { NumberAnimation { duration: Theme.dur3; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
+            }
+            Behavior on opacity { NumberAnimation { duration: Theme.dur3; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
         }
         Page { key: "journey"; PageJourney { anchors.fill: parent; onInspect: (i) => win.inspect(i) } }
         Page { key: "stage"; PageStage { anchors.fill: parent; active: win.page === "stage"; onInspect: (i) => win.inspect(i) } }
@@ -175,9 +150,8 @@ Window {
     StoryBar {
         id: storyBar
         enabled: !win.modalOpen
-        anchors.top: parent.top; anchors.topMargin: Theme.s16
-        anchors.left: parent.left; anchors.leftMargin: Theme.s24
-        anchors.right: parent.right; anchors.rightMargin: Theme.s24
+        x: Theme.barInset; y: Theme.barInset
+        width: win.width - 2 * Theme.barInset
         onOpenPalette: palette.show()
         onOpenInsights: win.go("insights")
         onOpenWorkspaceCloud: { app.setRole("cloud"); win.go("workspace") }
@@ -186,16 +160,21 @@ Window {
     Dock {
         id: dock
         enabled: !win.modalOpen
+        items: DEST.map(function (d) { return { key: d.key, icon: d.key, label: d.label } })
+        labelsOnly: Theme.large
+        blur: !win.inspectorOpen           // at most three blurred layers: the open inspector takes the dock's
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.s16
+        y: win.height - height - Theme.barInset
         current: win.page
         onChosen: (key) => win.go(key)
     }
-    PButton {
+    Button {
         enabled: !win.modalOpen
-        anchors.right: parent.right; anchors.rightMargin: Theme.s24
+        kind: "secondary"
+        icon: "inspect"
+        anchors.right: parent.right; anchors.rightMargin: Theme.barInset + Theme.sp2
         anchors.verticalCenter: dock.verticalCenter
-        visible: !win.inspectorOpen && !Theme.large
+        visible: !win.inspectorOpen && !Theme.large && x > dock.x + dock.width + Theme.sp4
         text: T.inspectorOpen
         onClicked: win.inspect(events.count - 1)
         Accessible.description: T.inspectorOpenHint
@@ -204,17 +183,17 @@ Window {
         id: inspector
         enabled: !win.modalOpen
         width: win.inspectorWidth
-        anchors.top: storyBar.bottom; anchors.topMargin: Theme.s16
-        anchors.bottom: dock.top; anchors.bottomMargin: Theme.s16
-        x: win.inspectorOpen ? win.width - width - Theme.s24 : win.width + 40
+        anchors.top: storyBar.bottom; anchors.topMargin: Theme.sp4
+        anchors.bottom: dock.top; anchors.bottomMargin: Theme.sp4
+        x: win.inspectorOpen ? win.width - width - Theme.barInset : win.width + 40
         track: x
         opacity: win.inspectorOpen ? 1 : 0
         visible: opacity > 0.01
         index: win.inspectIndex
         onClose: win.inspectorOpen = false
         onJump: (i) => win.inspect(i)
-        Behavior on x { NumberAnimation { duration: Theme.moveSlow; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: Theme.base } }
+        Behavior on x { NumberAnimation { duration: Theme.dur4; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
+        Behavior on opacity { NumberAnimation { duration: Theme.dur2 } }
     }
     CommandPalette { id: palette; z: 10 }
     Sheet { id: errorSheet; z: 11; error: true }

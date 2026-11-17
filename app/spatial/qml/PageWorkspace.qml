@@ -1,5 +1,6 @@
 // Workspace: the working tools, by role. A rail on the left picks the role; each role
-// shows only its own task cards, with one filled button on the card that is next.
+// shows only its own task sections, with one filled button in the section that is next.
+// Quiet glass: everything is flat inside the page panel; a hairline divides rail and content.
 import QtQuick
 import QtQuick.Dialogs
 
@@ -50,16 +51,16 @@ Item {
         id: rail
         width: 220 * Math.min(1.5, Math.max(1, Theme.scale))
         height: parent.height
-        padding: Theme.s12
+        Rectangle { parent: rail; anchors.right: parent.right; width: 1; height: parent.height; color: Theme.hair }
         Flickable {
           anchors.fill: parent
           contentHeight: railColumn.implicitHeight
           clip: true
           Column {
             id: railColumn
-            width: parent.width
-            spacing: 6
-            Lbl { text: T.workAs; tone: "muted"; size: Theme.caption; leftPadding: 8 }
+            width: parent.width - Theme.sp6
+            spacing: Theme.sp1
+            Txt { text: T.workAs; strong: true; bottomPadding: Theme.sp2 }
             Repeater {
                 model: ["alice"].concat(page.doctors.map(function (d) { return d.name }),
                                         page.isAlice || page.isCloud || page.doctors.some(function (d) { return d.name === page.role }) ? [] : [page.role], ["cloud"])
@@ -67,31 +68,32 @@ Item {
                     id: roleItem
                     required property string modelData
                     readonly property bool on: page.role === modelData
-                    width: rail.width - 2 * rail.padding
-                    height: Math.max(60, roleText.implicitHeight + 16)
-                    radius: 16
-                    color: on ? Theme.tint(Theme.glassRaised, 1) : "transparent"
-                    border.width: on || activeFocus ? 2 : 0
-                    border.color: activeFocus ? Theme.textPrimary : Theme.accent
+                    width: railColumn.width
+                    height: Math.max(56, roleText.implicitHeight + 16)
+                    radius: Theme.rCard
+                    color: on ? Theme.press : hov.hovered ? Theme.rowHover : "transparent"
+                    border.width: activeFocus ? 2 : 0
+                    border.color: Theme.ring
                     activeFocusOnTab: true
                     Accessible.role: Accessible.RadioButton
                     Accessible.name: page.cap(modelData)
                     Accessible.checked: on
                     Keys.onReturnPressed: app.setRole(modelData)
                     Keys.onSpacePressed: app.setRole(modelData)
-                    Avatar { who: page.cap(roleItem.modelData); size: 38; x: 10; anchors.verticalCenter: parent.verticalCenter; color: Theme.roleColor(roleItem.modelData) }
+                    Avatar { who: roleItem.modelData; size: 36; x: 10; anchors.verticalCenter: parent.verticalCenter }
                     Column {
                         id: roleText
                         x: 58; width: parent.width - 66; anchors.verticalCenter: parent.verticalCenter
-                        Lbl { text: page.cap(roleItem.modelData); strong: true; size: Theme.bodyLarge * 0.95 }
-                        Lbl { text: roleItem.modelData === "alice" ? T.roleOwner : roleItem.modelData === "cloud" ? T.roleCloud : T.roleDoctor; tone: "secondary"; size: Theme.caption }
+                        Txt { text: page.cap(roleItem.modelData); strong: true; lineHeight: 1.3 }
+                        Txt { text: roleItem.modelData === "alice" ? T.roleOwner : roleItem.modelData === "cloud" ? T.roleCloud : T.roleDoctor; tone: "secondary"; kind: "sm"; lineHeight: 1.3 }
                     }
-                    HoverHandler { cursorShape: Qt.PointingHandCursor }
+                    HoverHandler { id: hov; cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: app.setRole(roleItem.modelData) }
                 }
             }
-            Item { width: 1; height: 8 }
-            Field { id: newPerson; width: parent.width; hint: T.addPersonHint; onAccepted: addButton.clicked() }
+            Item { width: 1; height: Theme.sp4 }
+            Field { id: newPerson; width: parent.width; label: T.addPerson; hint: T.addPersonHint; onAccepted: addButton.clicked() }
+            Item { width: 1; height: Theme.sp1 }
             PButton { id: addButton; width: parent.width; text: T.addPerson; enabled: newPerson.text.trim().length > 0
                       onClicked: { app.setRole(newPerson.text.trim().toLowerCase()); newPerson.clear() } }
           }
@@ -101,21 +103,22 @@ Item {
     // ---------------------------------------------------------------- cards
     Flickable {
         id: scroller
-        anchors.left: rail.right; anchors.leftMargin: Theme.s24
+        anchors.left: rail.right; anchors.leftMargin: Theme.sp8
         anchors.right: parent.right
         height: parent.height
         contentHeight: content.implicitHeight + 24
         clip: true
-        readonly property real cardWidth: width > 880 ? (width - Theme.s16) / 2 : width
+        readonly property real cardWidth: width > 760 ? (width - Theme.sp10) / 2 : width
 
         Column {
             id: content
             width: parent.width
-            spacing: Theme.s16
+            spacing: Theme.sp8
             Column {
                 width: parent.width
-                Lbl { text: page.fill(T.workspaceTitle, { role: page.cap(page.role) }); size: Theme.headline; strong: true }
-                Lbl { text: T.workspaceSub + (app.practice ? " " + T.practicePass : ""); tone: "secondary"; width: parent.width }
+                spacing: Theme.sp1
+                Txt { text: page.fill(T.workspaceTitle, { role: page.cap(page.role) }); kind: "xl"; width: parent.width }
+                Txt { text: T.workspaceSub + (app.practice ? " " + T.practicePass : ""); tone: "secondary"; width: Math.min(parent.width, 720) }
             }
 
             // "Let me try": the task from Journey stays visible while it is done by hand.
@@ -123,14 +126,18 @@ Item {
                 visible: app.task.text !== undefined && app.task.text !== ""
                 width: parent.width
                 height: taskColumn.implicitHeight + 2 * padding
-                rim: Theme.accent; rimWidth: 2
+                depth: 1
+                radius: Theme.rCard
+                padding: Theme.sp5
                 Column {
                     id: taskColumn
                     width: parent.width
                     spacing: 8
-                    Lbl { text: T.journeyTask + ": " + (app.task.title || ""); strong: true; size: Theme.bodyLarge; width: parent.width }
-                    Lbl { text: app.task.text || ""; tone: "secondary"; width: parent.width }
-                    Lbl { visible: app.lessonCheck.step === app.task.step && app.lessonCheck.ok === false; text: "⚠ " + (app.lessonCheck.text || ""); width: parent.width }
+                    Txt { text: T.journeyTask + ": " + (app.task.title || ""); kind: "lg"; width: parent.width }
+                    Txt { text: app.task.text || ""; tone: "secondary"; width: parent.width }
+                    Row { visible: app.lessonCheck.step === app.task.step && app.lessonCheck.ok === false; spacing: Theme.sp2; width: parent.width
+                          Icon { name: "alert"; size: 16; color: Theme.warn; anchors.verticalCenter: parent.verticalCenter }
+                          Txt { text: app.lessonCheck.text || ""; width: parent.width - 24 } }
                     Row { spacing: 10
                           PButton { primary: true; enabled: !app.busy; text: T.journeyCheck
                                     onClicked: { var step = app.task.step; app.checkLessonStep(step); if (app.lessonCheck.ok) app.navigate("journey") } }
@@ -142,7 +149,7 @@ Item {
             Flow {
                 visible: page.isAlice
                 width: parent.width
-                spacing: Theme.s16
+                spacing: Theme.sp10
 
                 TaskCard {
                     width: scroller.cardWidth
@@ -168,17 +175,23 @@ Item {
                     hasMore: page.owner.groups.length > 0
                     summary: page.owner.groups.length === 0 ? T.docsNoGroup
                            : page.groupState.docs.length === 0 ? T.docsNone : page.fill(T.docsCount, { n: page.groupState.docs.length, g: page.activeGroup })
-                    Flow { width: parent.width; spacing: 8
+                    Flow { width: parent.width; spacing: Theme.sp2
                            Repeater { model: page.owner.groups
                                       Pick { required property var modelData; text: modelData.name; selected: page.activeGroup === modelData.name; onClicked: page.group = modelData.name } } }
-                    Repeater {
+                    Column {
+                        width: parent.width
+                        Repeater {
                         model: page.groupState.docs
-                        Rectangle {
+                        Item {
                             id: docRow
                             required property var modelData
-                            width: parent.width; height: Math.max(40, docTitle.implicitHeight + 14); radius: 10
-                            color: Theme.tint(Theme.glassRaised, 0.8); border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.5)
-                            Lbl { id: docTitle; x: 12; width: parent.width - docButtons.width - 24; anchors.verticalCenter: parent.verticalCenter; text: docRow.modelData.title; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap }
+                            width: parent.width; height: Math.max(Theme.touch ? 48 : 44, docTitle.implicitHeight + 16)
+                            Rectangle { anchors.fill: parent; anchors.leftMargin: -Theme.sp2; anchors.rightMargin: -Theme.sp2; radius: Theme.rSm
+                                        color: docHover.hovered ? Theme.rowHover : "transparent" }
+                            HoverHandler { id: docHover }
+                            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.hair }
+                            Icon { name: "document"; size: 18; color: Theme.text2; anchors.verticalCenter: parent.verticalCenter }
+                            Txt { id: docTitle; x: 28; width: parent.width - docButtons.width - 36; anchors.verticalCenter: parent.verticalCenter; text: docRow.modelData.title; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap; lineHeight: 1.2 }
                             Row {
                                 id: docButtons
                                 anchors.right: parent.right; anchors.rightMargin: 4; anchors.verticalCenter: parent.verticalCenter
@@ -190,18 +203,21 @@ Item {
                                           onClicked: app.deleteDocument(page.activeGroup, docRow.modelData.id) }
                             }
                         }
+                        }
                     }
+                    Item { width: 1; height: Theme.sp2; visible: page.owner.groups.length > 0 }
                     Field { id: docTitleField; visible: page.owner.groups.length > 0; width: parent.width; hint: T.docsTitleHint }
-                    Rectangle {
+                    Item {
                         visible: page.owner.groups.length > 0
-                        width: parent.width; height: 96; radius: 12
-                        color: Theme.tint(Theme.roomTop, 0.55); border.width: docText.activeFocus ? 2 : 1
-                        border.color: docText.activeFocus ? Theme.accent : Theme.tint(Theme.glassStroke, 0.8)
-                        Lbl { visible: docText.text.length === 0; x: 14; y: 10; text: T.docsTextHint; tone: "muted" }
+                        width: parent.width; height: 104
+                        Surface { anchors.fill: parent; depth: 1; radius: Theme.rCtl; padding: 0 }
+                        Rectangle { visible: docText.activeFocus; anchors.fill: parent; anchors.margins: -2; radius: Theme.rCtl + 2
+                                    color: "transparent"; border.width: 2; border.color: Theme.ring }
+                        Txt { visible: docText.text.length === 0; x: 16; y: 11; text: T.docsTextHint; tone: "tertiary" }
                         Flickable {
-                            anchors.fill: parent; anchors.margins: 10; clip: true; contentHeight: docText.implicitHeight
-                            TextEdit { id: docText; width: parent.width; wrapMode: TextEdit.Wrap; color: Theme.textPrimary; selectionColor: Theme.accent
-                                       font.family: Theme.fontFamily; font.pixelSize: Theme.body; activeFocusOnTab: true; selectByMouse: true
+                            anchors.fill: parent; anchors.leftMargin: 16; anchors.rightMargin: 16; anchors.topMargin: 11; anchors.bottomMargin: 10; clip: true; contentHeight: docText.implicitHeight
+                            TextEdit { id: docText; width: parent.width; wrapMode: TextEdit.Wrap; color: Theme.text; selectionColor: Theme.accent; selectedTextColor: Theme.accentInk
+                                       font.family: Theme.ui; font.pixelSize: Theme.fsMd; activeFocusOnTab: true; selectByMouse: true
                                        Accessible.role: Accessible.EditableText; Accessible.name: T.docsTextHint; KeyNavigation.priority: KeyNavigation.BeforeItem; KeyNavigation.tab: docAdd }
                         }
                     }
@@ -222,11 +238,25 @@ Item {
                     more: page.owner.open && page.owner.groups.length === 0
                     summary: !page.owner.open ? "" : (page.owner.people.length === 0 ? T.peopleNone : "")
                              + (page.owner.pending.length > 0 ? " " + page.fill(T.peopleWaiting, { n: page.owner.pending.length }) : "")
-                    Repeater {
-                        model: page.owner.people
-                        Chip { required property var modelData
-                               text: page.cap(modelData.name) + ": " + (modelData.revoked ? T.peopleRevoked : modelData.groups.join(", "))
-                               mark: modelData.revoked ? "fail" : "ok" }
+                    Column {
+                        width: parent.width
+                        Repeater {
+                            model: page.owner.people
+                            Item {
+                                id: personRow
+                                required property var modelData
+                                width: parent.width; height: 52
+                                Avatar { who: personRow.modelData.name; size: 32; anchors.verticalCenter: parent.verticalCenter }
+                                Column {
+                                    x: 44; width: parent.width - 44 - personPill.width - 12; anchors.verticalCenter: parent.verticalCenter
+                                    Txt { text: page.cap(personRow.modelData.name); strong: true; lineHeight: 1.3 }
+                                    Txt { visible: !personRow.modelData.revoked; text: personRow.modelData.groups.join(", "); kind: "sm"; tone: "secondary"; lineHeight: 1.3; width: parent.width; elide: Text.ElideRight; wrapMode: Text.NoWrap }
+                                }
+                                Pill { id: personPill; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                       text: personRow.modelData.revoked ? T.peopleRevokedPill : T.peopleActive; status: personRow.modelData.revoked ? "bad" : "ok" }
+                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.hair }
+                            }
+                        }
                     }
                     Repeater {
                         model: page.owner.pending
@@ -280,9 +310,9 @@ Item {
                     Flow { width: parent.width; spacing: 8
                            Repeater { model: page.owner.people.filter(function (p) { return !p.revoked })
                                       Pick { required property var modelData; text: page.cap(modelData.name); selected: page.revokeUid === modelData.uid; onClicked: page.revokeUid = modelData.uid } } }
-                    Segmented { visible: page.owner.people.length > 0; width: parent.width; name: T.policyName; labels: [T.revokeQuick, T.revokeThorough]
+                    Segmented { visible: page.owner.people.length > 0; width: Math.min(parent.width, 360); name: T.policyName; labels: [T.revokeQuick, T.revokeThorough]
                                 current: page.policy === "R" ? 0 : 1; onChosen: (i) => page.policy = i === 0 ? "R" : "RE" }
-                    Lbl { visible: page.owner.people.length > 0; width: parent.width; text: page.policy === "R" ? T.revokeQuickNote : T.revokeThoroughNote; tone: "secondary" }
+                    Txt { visible: page.owner.people.length > 0; width: parent.width; text: page.policy === "R" ? T.revokeQuickNote : T.revokeThoroughNote; tone: "secondary"; kind: "sm" }
                     PButton { visible: page.owner.people.length > 0; danger: true; primary: page.revokeUid !== ""; enabled: !app.busy && page.revokeUid !== ""; text: T.revokeBtn
                               onClicked: { app.revoke(page.revokeUid, page.policy); page.revokeUid = "" } }
                 }
@@ -292,7 +322,7 @@ Item {
             Flow {
                 visible: !page.isAlice && !page.isCloud
                 width: parent.width
-                spacing: Theme.s16
+                spacing: Theme.sp10
 
                 TaskCard {
                     width: scroller.cardWidth
@@ -336,11 +366,14 @@ Item {
                     title: T.cardVerify
                     readonly property var checks: page.doctor.result.checks || []
                     id: verifyCard
-                    rim: page.doctor.result.failed ? Theme.fail : Theme.glassStroke
+                    caution: page.doctor.result.failed === true
                     summary: checks.length === 0 ? T.verifyNone : page.doctor.result.failed ? T.verifyFailed : page.fill(T.verifyAll, { n: checks.length })
-                    Repeater {
-                        model: verifyCard.checks
-                        Chip { required property var modelData; text: modelData.name + (modelData.ok ? "" : ": " + modelData.detail); mark: modelData.ok ? "ok" : "fail" }
+                    Flow {
+                        width: parent.width; spacing: Theme.sp2
+                        Repeater {
+                            model: verifyCard.checks
+                            Chip { required property var modelData; maxWidth: verifyCard.width; text: modelData.name + (modelData.ok ? "" : ": " + modelData.detail); mark: modelData.ok ? "ok" : "fail" }
+                        }
                     }
                     PButton { visible: verifyCard.checks.length > 0 && events.count > 0; text: T.inspectorOpen; onClicked: page.inspect(events.count - 1) }
                 }
@@ -352,7 +385,7 @@ Item {
                            Repeater { model: page.doctor.result.hits || []
                                       PButton { required property var modelData; text: page.fill(T.openBtn, { id: modelData.id }); enabled: !app.busy
                                                 onClicked: app.openDocument(page.role, page.doctor.result.group, modelData.id, modelData.epoch) } } }
-                    Lbl { visible: page.doctor.opened.title !== undefined; width: parent.width; text: page.doctor.opened.title || ""; strong: true; size: Theme.bodyLarge }
+                    Txt { visible: page.doctor.opened.title !== undefined; width: parent.width; text: page.doctor.opened.title || ""; kind: "lg" }
                     Lbl { visible: page.doctor.opened.title !== undefined; width: parent.width; text: page.doctor.opened.text || ""; tone: "secondary" }
                 }
             }
@@ -361,7 +394,7 @@ Item {
             Flow {
                 visible: page.isCloud
                 width: parent.width
-                spacing: Theme.s16
+                spacing: Theme.sp10
 
                 TaskCard {
                     width: scroller.cardWidth
@@ -398,10 +431,11 @@ Item {
                         model: page.cloud.log.slice(0, 14)
                         Row {
                             required property var modelData
-                            spacing: 16
-                            Lbl { width: 70; text: modelData.time; tone: "muted"; font.family: Theme.monoFamily; size: Theme.caption }
-                            Lbl { width: 150; text: modelData.endpoint; size: Theme.caption; strong: true }
-                            Lbl { text: Theme.fmt(T.logBytes, { in: modelData.bytesIn, out: modelData.bytesOut }); tone: "secondary"; size: Theme.caption }
+                            spacing: Theme.sp4
+                            height: 32
+                            Txt { width: 80; text: modelData.time; tone: "tertiary"; kind: "mono"; anchors.verticalCenter: parent.verticalCenter }
+                            Txt { width: 160; text: modelData.endpoint; kind: "sm"; strong: true; anchors.verticalCenter: parent.verticalCenter }
+                            Txt { text: Theme.fmt(T.logBytes, { in: modelData.bytesIn, out: modelData.bytesOut }); tone: "secondary"; kind: "mono"; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
                     PButton { visible: page.cloud.running; text: T.refresh; enabled: !app.busy; onClicked: app.refresh() }

@@ -1,4 +1,5 @@
-// A modal sheet used for the three-part error message and for a glossary entry.
+// A modal sheet (the three-part error message, a glossary entry, the welcome): a dim backdrop,
+// never blurred, and a depth-4 surface with radius 28 and a dense fill.
 import QtQuick
 
 Item {
@@ -21,12 +22,15 @@ Item {
     function show() { copied = false; open = true; (actionText.length > 0 ? actionButton : closeButton).forceActiveFocus() }
     Keys.onEscapePressed: { open = false; dismissed() }
 
-    Rectangle { anchors.fill: parent; color: Theme.tint(Theme.roomTop, 0.55); TapHandler { onTapped: sheet.open = false } }
+    Rectangle { anchors.fill: parent; color: Theme.dim; TapHandler { onTapped: sheet.open = false } }
     Glass {
         floating: true
-        rim: sheet.error ? Theme.fail : Theme.glassStroke
-        rimWidth: sheet.error ? 2 : 1
-        width: Math.min(640, parent.width - 80)
+        blur: false
+        radius: Theme.rPanel
+        padding: Theme.sp8
+        width: Math.min(600, parent.width - 80)
+        scale: sheet.open ? 1 : 0.96
+        Behavior on scale { NumberAnimation { duration: Theme.dur3; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
         height: body.implicitHeight + 2 * padding
         anchors.centerIn: parent
         Accessible.role: Accessible.AlertMessage
@@ -34,11 +38,11 @@ Item {
         Column {
             id: body
             width: parent.width
-            spacing: 14
+            spacing: Theme.sp3
             Row {
-                spacing: 10
-                Lbl { visible: sheet.error; text: "✕"; color: Theme.fail; size: Theme.title; strong: true }
-                Lbl { text: sheet.title; size: Theme.title; strong: true; width: body.width - 40 }
+                spacing: Theme.sp3
+                Icon { visible: sheet.error; name: "alert"; color: Theme.bad; size: 22; anchors.verticalCenter: parent.verticalCenter }
+                Txt { text: sheet.title; kind: "xl"; width: body.width - (sheet.error ? 34 : 0) }
             }
             Repeater {
                 model: sheet.rows
@@ -46,14 +50,16 @@ Item {
                     required property var modelData
                     width: body.width
                     spacing: 2
-                    Lbl { text: modelData.head; tone: "muted"; size: Theme.caption; strong: true; visible: text.length > 0 }
-                    Lbl { text: modelData.body; width: parent.width; tone: "secondary"; size: Theme.bodyLarge * 0.95 }
+                    Txt { text: modelData.head; kind: "sm"; strong: true; visible: text.length > 0 }
+                    Txt { text: modelData.body; width: parent.width; tone: "secondary" }
                 }
             }
-            Row {
-                spacing: 10
+            Item { width: 1; height: Theme.sp2 }
+            Flow {
+                width: parent.width
+                spacing: Theme.sp2
                 PButton { id: actionButton; visible: sheet.actionText.length > 0; text: sheet.actionText; primary: true; onClicked: { sheet.open = false; sheet.action() } }
-                PButton { id: closeButton; text: sheet.closeText; primary: sheet.actionText.length === 0; onClicked: { sheet.open = false; sheet.dismissed() } }
+                PButton { id: closeButton; text: sheet.closeText; primary: sheet.actionText.length === 0; quiet: sheet.actionText.length > 0; onClicked: { sheet.open = false; sheet.dismissed() } }
                 PButton {
                     visible: sheet.technical.length > 0
                     text: sheet.copied ? T.errorCopied : T.errorCopy

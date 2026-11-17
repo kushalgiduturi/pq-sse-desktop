@@ -1,5 +1,6 @@
 // The Step Inspector: one recorded step at four levels of detail, with a player that
 // replays the record. Nothing here is computed in QML: the record comes from Python.
+// Quiet glass: a depth-4 drawer on the right; the picture sits in a depth-1 inset.
 import QtQuick
 
 Glass {
@@ -18,7 +19,8 @@ Glass {
     signal jump(int index)
 
     floating: true
-    padding: Theme.s24
+    radius: Theme.rFloat
+    padding: Theme.sp6
     Accessible.role: Accessible.Pane
     Accessible.name: T.inspectorOpen
 
@@ -53,7 +55,7 @@ Glass {
         }
     }
 
-    Lbl { visible: ins.shown === null; anchors.centerIn: parent; width: parent.width - 20; horizontalAlignment: Text.AlignHCenter; text: T.inspectorEmpty; tone: "secondary" }
+    Empty { visible: ins.shown === null; anchors.centerIn: parent; width: parent.width - 20; icon: "inspect"; title: T.inspectorEmpty }
 
     Flickable {
         visible: ins.shown !== null
@@ -63,22 +65,23 @@ Glass {
         Column {
             id: column
             width: parent.width
-            spacing: 12
+            spacing: Theme.sp4
 
             Item {
                 width: parent.width; height: head.implicitHeight
                 Column {
                     id: head
                     width: parent.width - 48
+                    spacing: Theme.sp1
                     Row {
-                        spacing: 10
-                        Avatar { who: ins.shown ? (ins.shown.tag === "receiver" ? ins.shown.who : ins.shown.tagLabel) : ""; size: 30
-                                 color: Theme.roleColor(ins.shown ? (ins.shown.tag === "receiver" ? ins.shown.who : ins.shown.tag) : "") }
-                        Lbl { text: ins.shown ? ins.shown.title : ""; size: Theme.headline * 0.85; strong: true }
+                        spacing: Theme.sp3
+                        Avatar { who: ins.shown ? (ins.shown.tag === "receiver" ? ins.shown.who : ins.shown.tag) : ""; size: 32; anchors.verticalCenter: parent.verticalCenter }
+                        Txt { text: ins.shown ? ins.shown.title : ""; kind: "xl"; width: head.width - 44; anchors.verticalCenter: parent.verticalCenter }
                     }
-                    Lbl { text: ins.shown ? ins.shown.technical + (ins.shown.scope === "practice" ? T.inspectorPractice : "") : ""; tone: "secondary"; size: Theme.caption; width: parent.width }
+                    Txt { text: ins.shown ? ins.shown.technical + (ins.shown.scope === "practice" ? T.inspectorPractice : "") : ""; tone: "secondary"; kind: "sm"; width: parent.width }
                 }
-                PButton { anchors.right: parent.right; quiet: true; text: T.close; onClicked: ins.close() }
+                Button { anchors.right: parent.right; kind: "ghost"; small: true; icon: "close"; text: ""; minWidth: 36
+                         Accessible.name: T.close; onClicked: ins.close() }
             }
 
             Segmented {
@@ -91,13 +94,11 @@ Glass {
             }
 
             // The picture of this step is visible at every level: it is the anchor.
-            Rectangle {
+            Item {
                 width: parent.width
                 height: 190 + (Theme.scale - 1) * 150
-                radius: Theme.rCard
-                color: Theme.tint(Theme.roomTop, 0.6)
-                border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.6)
                 clip: true
+                Surface { anchors.fill: parent; depth: 1; radius: Theme.rCard; padding: 0 }
                 Loader {
                     anchors.fill: parent; anchors.margins: 12
                     active: ins.shown !== null
@@ -110,25 +111,25 @@ Glass {
                     }
                 }
             }
-            Lbl { width: parent.width; tone: "muted"; size: Theme.caption; text: ins.shown ? ins.shown.replayNote : "" }
+            Txt { width: parent.width; tone: "tertiary"; kind: "sm"; text: ins.shown ? ins.shown.replayNote : "" }
 
             Flow {
                 width: parent.width
-                spacing: 6
-                PButton { minWidth: 0; text: T.stepBack; onClicked: ins.toStep(ins.step - 1) }
-                PButton { minWidth: 0; text: ins.playing ? T.pause : T.play; primary: true; onClicked: ins.playing ? ins.pause() : ins.play() }
-                PButton { minWidth: 0; text: T.stepNext; onClicked: ins.toStep(ins.step + 1) }
-                PButton { minWidth: 0; text: T.replay; onClicked: ins.replay() }
-                PButton {
-                    minWidth: 0
+                spacing: Theme.sp2
+                Button { small: true; kind: "secondary"; text: T.stepBack; onClicked: ins.toStep(ins.step - 1) }
+                Button { small: true; kind: "primary"; icon: ins.playing ? "pause" : "play"; text: ins.playing ? T.pause : T.play; onClicked: ins.playing ? ins.pause() : ins.play() }
+                Button { small: true; kind: "secondary"; text: T.stepNext; onClicked: ins.toStep(ins.step + 1) }
+                Button { small: true; kind: "ghost"; text: T.replay; onClicked: ins.replay() }
+                Button {
+                    small: true; kind: "ghost"
                     text: Theme.fmt(T.speedX, { n: ins.speed })
                     Accessible.name: T.speed + " " + ins.speed
                     onClicked: ins.speed = ins.speeds[(ins.speeds.indexOf(ins.speed) + 1) % ins.speeds.length]
                 }
             }
-            Rectangle {          // scrubber of this step
-                width: parent.width; height: 6; radius: 3
-                color: Theme.tint(Theme.glassRaised, 1)
+            Item {               // scrubber of this step: an inset track and the played part in accent
+                width: parent.width; height: 6
+                Surface { anchors.fill: parent; depth: 1; radius: 3; padding: 0 }
                 Rectangle { width: parent.width * ins.progress; height: 6; radius: 3; color: Theme.accent }
                 MouseArea {
                     anchors.fill: parent; anchors.margins: -8
@@ -140,14 +141,14 @@ Glass {
             // Layer 1: plain words
             Column {
                 visible: app.detailLevel === 0
-                width: parent.width; spacing: 8
-                Lbl { width: parent.width; text: ins.shown ? ins.shown.line : ""; size: Theme.bodyLarge; strong: true }
-                Lbl { width: parent.width; text: ins.shown ? ins.shown.more : ""; tone: "secondary"; size: Theme.bodyLarge * 0.95 }
+                width: parent.width; spacing: Theme.sp2
+                Txt { width: parent.width; text: ins.shown ? ins.shown.line : ""; kind: "lg" }
+                Txt { width: parent.width; text: ins.shown ? ins.shown.more : ""; tone: "secondary" }
             }
             // Layer 2: what moved, as a numbered timeline
             Column {
                 visible: app.detailLevel === 1
-                width: parent.width; spacing: 6
+                width: parent.width; spacing: 0
                 Repeater {
                     model: ins.shown ? ins.shown.steps : []
                     Item {
@@ -155,25 +156,27 @@ Glass {
                         required property string modelData
                         required property int index
                         width: column.width
-                        height: Math.max(30, stepText.implicitHeight + 8)
+                        height: Math.max(Theme.touch ? 44 : 32, stepText.implicitHeight + 12)
                         activeFocusOnTab: true
                         Accessible.role: Accessible.Button
                         Accessible.name: Theme.fmt(T.stepN, { n: index + 1, text: modelData })
                         Keys.onReturnPressed: ins.toStep(index)
                         Rectangle {
-                            width: 26; height: 26; radius: 13
-                            color: stepRow.index === ins.step ? Theme.accent : stepRow.index < ins.step ? Theme.ok : Theme.tint(Theme.glassRaised, 1)
-                            border.width: stepRow.activeFocus ? 2 : 0; border.color: Theme.textPrimary
-                            Text {
-                                anchors.centerIn: parent
-                                text: stepRow.index < ins.step ? "✓" : stepRow.index + 1
-                                color: stepRow.index <= ins.step ? Theme.accentOn : Theme.textSecondary
-                                font.pixelSize: Theme.caption; font.weight: Font.DemiBold; font.family: Theme.fontFamily
-                            }
+                            anchors.fill: parent; anchors.leftMargin: -Theme.sp2; anchors.rightMargin: -Theme.sp2
+                            radius: Theme.rSm
+                            color: stepRow.index === ins.step ? Theme.hover : "transparent"
+                            border.width: stepRow.activeFocus ? 2 : 0; border.color: Theme.ring
                         }
-                        Lbl {
+                        Icon {          // done: a check; now: a chevron; later: nothing
+                            visible: stepRow.index <= ins.step
+                            anchors.verticalCenter: parent.verticalCenter
+                            name: stepRow.index < ins.step ? "check" : "chevron"
+                            size: 16
+                            color: stepRow.index < ins.step ? Theme.text3 : Theme.text
+                        }
+                        Txt {
                             id: stepText
-                            x: 38; width: parent.width - 38
+                            x: 28; width: parent.width - 28
                             anchors.verticalCenter: parent.verticalCenter
                             text: stepRow.modelData
                             tone: stepRow.index === ins.step ? "primary" : "secondary"
@@ -187,40 +190,39 @@ Glass {
             // Layer 3: under the hood
             Column {
                 visible: app.detailLevel === 2
-                width: parent.width; spacing: 6
+                width: parent.width; spacing: Theme.sp2
                 Repeater {
                     model: ins.shown ? ins.shown.hood : []
-                    Lbl {
+                    Txt {
                         required property string modelData
                         required property int index
                         width: column.width
                         text: modelData
-                        font.family: index < 2 ? Theme.monoFamily : Theme.fontFamily
+                        kind: index < 2 ? "mono" : "md"
                         tone: index === 0 ? "primary" : "secondary"
-                        strong: index === 0
                     }
                 }
             }
-            Lbl { visible: app.detailLevel === 2 && ins.shown && ins.shown.terms.length > 0; text: T.termsTitle; tone: "muted"; size: Theme.caption }
+            Txt { visible: app.detailLevel === 2 && ins.shown && ins.shown.terms.length > 0; text: T.termsTitle; kind: "sm"; strong: true }
             Flow {
                 visible: app.detailLevel === 2
-                width: parent.width; spacing: 6
+                width: parent.width; spacing: Theme.sp1
                 Repeater { model: ins.shown ? ins.shown.terms : []
                            Chip { required property var modelData; text: modelData.name; clickable: true; onClicked: app.runPalette("glossary:" + modelData.key) } }
             }
             // Layer 4: why it is safe
             Column {
                 visible: app.detailLevel === 3
-                width: parent.width; spacing: 8
-                Lbl { width: parent.width; text: ins.shown ? ins.shown.safe : ""; size: Theme.bodyLarge * 0.95 }
-                Lbl { width: parent.width; visible: ins.shown && ins.shown.simplification.length > 0; tone: "secondary"
+                width: parent.width; spacing: Theme.sp2
+                Txt { width: parent.width; text: ins.shown ? ins.shown.safe : "" }
+                Txt { width: parent.width; visible: ins.shown && ins.shown.simplification.length > 0; tone: "secondary"
                       text: ins.shown ? T.simplification + ins.shown.simplification : "" }
             }
-            Lbl { width: parent.width; tone: "muted"; size: Theme.caption; text: ins.shown ? T.metaphor + ins.shown.metaphor : "" }
+            Txt { width: parent.width; tone: "tertiary"; kind: "sm"; text: ins.shown ? T.metaphor + ins.shown.metaphor : "" }
 
             // The whole session: scrub back through earlier steps and replay any of them.
-            Rectangle { width: parent.width; height: 1; color: Theme.tint(Theme.glassStroke, 0.5) }
-            Lbl { width: parent.width; tone: "muted"; size: Theme.caption; text: T.stageTimeline; visible: ins.override === null }
+            Rectangle { width: parent.width; height: 1; color: Theme.hair }
+            Txt { width: parent.width; kind: "sm"; strong: true; text: T.stageTimeline; visible: ins.override === null }
             SessionTimeline { width: parent.width; current: ins.index; visible: ins.override === null; onChosen: (i) => ins.jump(i) }
         }
     }

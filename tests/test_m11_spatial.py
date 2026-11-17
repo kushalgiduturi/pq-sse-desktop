@@ -454,7 +454,7 @@ def test_no_user_visible_literal_left_in_qml():
     """Every label lives in copy.py. Allowed literals: identifiers such as icon or role keys."""
     import re
 
-    allowed = re.compile(r'(name|who): "(journey|stage|workspace|lab|insights|search|alice|cloud|lock|close|inspect)"')
+    allowed = re.compile(r'(name|who|icon|glyph): "[a-z][A-Za-z]*"')   # icon and character ids, never shown
     offenders = []
     for path in qml_path().parent.glob("*.qml"):
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

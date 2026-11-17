@@ -12,7 +12,7 @@ from pqsse import paths
 
 from .copy import STYLEGUIDE
 
-QML = "app/spatial/qml/quiet/StyleGuide.qml"
+QML = "app/spatial/qml/StyleGuide.qml"
 
 
 class StyleGuide:

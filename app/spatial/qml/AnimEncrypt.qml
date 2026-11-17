@@ -52,8 +52,8 @@ Item {
                 width: anim.cell; height: 34
                 Rectangle {
                     anchors.fill: parent; anchors.margins: 1; radius: 6
-                    color: letter.p > 0.5 ? Theme.tint(Theme.accent, 0.22) : Theme.tint(Theme.glassRaised, 0.9)
-                    border.width: 1; border.color: letter.p > 0.5 ? Theme.accent : Theme.tint(Theme.glassStroke, 0.6)
+                    color: letter.p > 0.5 ? Theme.tint(Theme.accent, 0.22) : Theme.hover
+                    border.width: 1; border.color: letter.p > 0.5 ? Theme.accent : Theme.hairStrong
                 }
                 Text {
                     anchors.centerIn: parent

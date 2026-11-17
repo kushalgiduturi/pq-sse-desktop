@@ -1,4 +1,5 @@
-// Segmented control with a sliding thumb. Arrow keys move the selection.
+// Segmented control: a depth-1 inset track with a raised pill that slides with the spring.
+// The selected label is bolder; arrow keys move the selection.
 import QtQuick
 
 Item {
@@ -9,29 +10,45 @@ Item {
     signal chosen(int index)
 
     readonly property real cell: width / Math.max(1, labels.length)
-    implicitHeight: Theme.controlHeight
-    implicitWidth: 400
+    implicitHeight: Theme.ctlH
+    implicitWidth: 360
     activeFocusOnTab: true
     Accessible.role: Accessible.PageTabList
     Accessible.name: seg.name
     Keys.onLeftPressed: if (current > 0) chosen(current - 1)
     Keys.onRightPressed: if (current < labels.length - 1) chosen(current + 1)
 
-    Rectangle {
-        anchors.fill: parent
-        radius: height / 2
-        color: Theme.tint(Theme.glassRaised, 0.9)
-        border.width: seg.activeFocus ? 2 : 1
-        border.color: seg.activeFocus ? Theme.textPrimary : Theme.tint(Theme.glassStroke, 0.6)
+    Surface { anchors.fill: parent; depth: 1; radius: height / 2; padding: 0 }
+    Item {
+        id: pill
+        x: seg.current * seg.cell + 3
+        y: 3
+        width: seg.cell - 6
+        height: seg.height - 6
+        Behavior on x {
+            enabled: !Theme.reduceMotion
+            NumberAnimation { duration: Theme.dur4; easing.type: Easing.OutBack; easing.overshoot: Theme.springOvershoot }
+        }
+        Rectangle {
+            anchors.fill: parent
+            radius: height / 2
+            color: Theme.raised
+            Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                        anchors.leftMargin: parent.radius * 0.6; anchors.rightMargin: parent.radius * 0.6
+                        height: 1; color: Theme.edgeHi }
+        }
+        Rectangle {        // a short contact shadow so the pill reads as raised (light theme)
+            z: -1
+            anchors.fill: parent; anchors.topMargin: 1; anchors.bottomMargin: -1
+            radius: height / 2
+            color: Theme.raisedShade
+        }
     }
     Rectangle {
-        x: seg.current * seg.cell + 4
-        y: 4
-        width: seg.cell - 8
-        height: parent.height - 8
+        visible: seg.activeFocus
+        anchors.fill: parent; anchors.margins: -3
         radius: height / 2
-        color: Theme.accent
-        Behavior on x { NumberAnimation { duration: Theme.moveBase; easing.type: Easing.OutCubic } }
+        color: "transparent"; border.width: 2; border.color: Theme.ring
     }
     Repeater {
         model: seg.labels
@@ -44,16 +61,17 @@ Item {
             height: seg.height
             Accessible.role: Accessible.PageTab
             Accessible.name: modelData
-            Text {
+            Accessible.selected: index === seg.current
+            Txt {
                 anchors.centerIn: parent
                 width: parent.width - 12
                 horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
+                elide: Text.ElideRight; wrapMode: Text.NoWrap
                 text: cellItem.modelData
-                color: cellItem.index === seg.current ? Theme.accentOn : Theme.textPrimary
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.body * 0.95
-                font.weight: cellItem.index === seg.current ? Font.DemiBold : Font.Normal
+                kind: "sm"
+                strong: cellItem.index === seg.current
+                tone: cellItem.index === seg.current ? "primary" : "secondary"
+                lineHeight: 1.0
             }
             HoverHandler { cursorShape: Qt.PointingHandCursor }
             TapHandler { onTapped: seg.chosen(cellItem.index) }

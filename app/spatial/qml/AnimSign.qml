@@ -15,8 +15,8 @@ Item {
     component Paper: Rectangle {
         property bool tampered: false
         width: 150; height: 78; radius: 10
-        color: Theme.tint(Theme.glassRaised, 0.95)
-        border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.7)
+        color: Theme.hover
+        border.width: 1; border.color: Theme.hairStrong
         Column {
             x: 10; y: 10; spacing: 6
             Repeater {

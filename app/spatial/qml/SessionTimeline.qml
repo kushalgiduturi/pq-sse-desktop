@@ -1,19 +1,20 @@
-// The recorded session as a row of marks. Each mark is one real event; choosing one
-// replays it. The current one is larger and has a ring, so it does not rely on color.
+// The recorded session as a row of short ticks. Each tick is one real event; choosing one
+// replays it. The current one is taller and full strength, so it does not rely on color.
+// Only real status is colored: a passed check (ok) and an attack (bad). Practice events are fainter.
 import QtQuick
 
 Item {
     id: tl
     property int current: -1
     signal chosen(int index)
-    implicitHeight: 54
+    implicitHeight: 48
 
-    Lbl { visible: events.count === 0; anchors.verticalCenter: parent.verticalCenter; text: T.stageTimelineEmpty; tone: "muted"; size: Theme.caption }
+    Txt { visible: events.count === 0; anchors.verticalCenter: parent.verticalCenter; text: T.stageTimelineEmpty; tone: "tertiary"; kind: "sm" }
     ListView {
         id: list
         anchors.fill: parent
         orientation: ListView.Horizontal
-        spacing: 4
+        spacing: 2
         clip: true
         model: events.count
         onCountChanged: positionViewAtEnd()
@@ -22,27 +23,36 @@ Item {
             required property int index
             readonly property var rec: events.records[index]
             readonly property bool on: index === tl.current
-            width: 30; height: list.height
+            width: Theme.touch ? 44 : 24; height: list.height
             activeFocusOnTab: true
             Accessible.role: Accessible.Button
             Accessible.name: Theme.fmt(T.stepN, { n: index + 1, text: rec ? rec.line : "" })
             Keys.onReturnPressed: tl.chosen(index)
+            Keys.onSpacePressed: tl.chosen(index)
+            Rectangle {
+                anchors.fill: parent; anchors.bottomMargin: 16
+                radius: Theme.rSm
+                color: hov.hovered ? Theme.hover : "transparent"
+                border.width: mark.activeFocus ? 2 : 0
+                border.color: Theme.ring
+            }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: mark.on ? 4 : 9
-                width: mark.on ? 26 : 16; height: width; radius: width / 2
-                color: !rec ? Theme.glassStroke : rec.kind === "verify" ? Theme.ok : Theme.roleColor(rec.tag === "receiver" ? rec.who : rec.tag)
-                opacity: rec && rec.scope === "practice" ? 0.45 : 1
-                border.width: mark.on || mark.activeFocus ? 3 : 0
-                border.color: Theme.textPrimary
-                Behavior on width { NumberAnimation { duration: Theme.moveFast } }
+                y: mark.on ? 4 : 10
+                width: 3; height: mark.on ? 24 : 14; radius: 1.5
+                color: !mark.rec ? Theme.text3 : mark.rec.kind === "verify" ? Theme.ok
+                     : mark.rec.tag === "security" ? Theme.bad : mark.on ? Theme.text : Theme.text3
+                opacity: mark.rec && mark.rec.scope === "practice" ? 0.5 : 1
+                Behavior on height { NumberAnimation { duration: Theme.dur1 } }
             }
-            Lbl {
+            Txt {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                text: rec && rec.algorithm > 0 ? rec.algorithm : "·"
-                size: Theme.caption * 0.9
-                tone: mark.on ? "primary" : "muted"
+                text: mark.rec && mark.rec.algorithm > 0 ? mark.rec.algorithm : ""
+                kind: "mono"
+                font.pixelSize: Theme.fsXs
+                tone: mark.on ? "primary" : "tertiary"
+                lineHeight: 1.0
             }
             HoverHandler { id: hov; cursorShape: Qt.PointingHandCursor }
             TapHandler { onTapped: tl.chosen(mark.index) }

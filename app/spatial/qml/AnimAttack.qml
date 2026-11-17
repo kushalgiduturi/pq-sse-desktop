@@ -29,16 +29,16 @@ Item {
         Rectangle {
             x: anim.cracked && !Theme.reduceMotion ? -3 : 0
             width: 38; height: 60; radius: 8
-            color: Theme.tint(Theme.glassRaised, 0.95); border.width: 2
-            border.color: anim.cracked ? Theme.fail : Theme.tint(Theme.glassStroke, 0.8)
+            color: Theme.hover; border.width: 2
+            border.color: anim.cracked ? Theme.fail : Theme.hairStrong
             rotation: anim.cracked && !Theme.reduceMotion ? -5 : 0
             Behavior on rotation { NumberAnimation { duration: Theme.base; easing.type: Easing.OutBack } }
         }
         Rectangle {
             x: anim.cracked && !Theme.reduceMotion ? 43 : 38
             width: 38; height: 60; radius: 8
-            color: Theme.tint(Theme.glassRaised, 0.95); border.width: 2
-            border.color: anim.cracked ? Theme.fail : Theme.tint(Theme.glassStroke, 0.8)
+            color: Theme.hover; border.width: 2
+            border.color: anim.cracked ? Theme.fail : Theme.hairStrong
             rotation: anim.cracked && !Theme.reduceMotion ? 5 : 0
             Behavior on rotation { NumberAnimation { duration: Theme.base; easing.type: Easing.OutBack } }
         }

@@ -64,7 +64,7 @@ Item {
                         visible: node.index < page.steps.length - 1
                         x: parent.width / 2 + 18; y: 16
                         width: parent.width - 36; height: 3; radius: 2
-                        color: node.done ? Theme.ok : Theme.tint(Theme.glassStroke, 0.7)
+                        color: node.done ? Theme.ok : Theme.hairStrong
                         Behavior on color { ColorAnimation { duration: Theme.slow } }
                     }
                     Rectangle {          // the current step has a soft ring around it
@@ -77,9 +77,9 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         y: node.on ? 0 : 4
                         width: node.on ? 34 : 26; height: width; radius: width / 2
-                        color: node.done ? Theme.ok : node.on ? Theme.accent : Theme.tint(Theme.glassRaised, 1)
+                        color: node.done ? Theme.ok : node.on ? Theme.accent : Theme.hover
                         border.width: node.on || node.activeFocus ? 3 : 1
-                        border.color: node.on || node.activeFocus ? Theme.textPrimary : Theme.tint(Theme.glassStroke, 0.8)
+                        border.color: node.on || node.activeFocus ? Theme.textPrimary : Theme.hairStrong
                         Behavior on width { NumberAnimation { duration: Theme.moveBase; easing.type: Easing.OutBack } }
                         Text {
                             anchors.centerIn: parent
@@ -186,7 +186,7 @@ Item {
                 title: T.journeyChallenges
                 summary: page.fill(T.journeyChallengesSub, { done: page.challengesDone, all: page.challenges.length })
                 Rectangle {
-                    width: parent.width; height: 8; radius: 4; color: Theme.tint(Theme.glassRaised, 1)
+                    width: parent.width; height: 8; radius: 4; color: Theme.hover
                     Rectangle { width: parent.width * page.challengesDone / Math.max(1, page.challenges.length); height: 8; radius: 4; color: Theme.ok
                                 Behavior on width { NumberAnimation { duration: Theme.moveSlow; easing.type: Easing.OutCubic } } }
                 }

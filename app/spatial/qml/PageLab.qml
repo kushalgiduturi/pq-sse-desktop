@@ -116,7 +116,7 @@ Item {
                 Lbl { width: parent.width; text: lab.current ? lab.current.tries : ""; tone: "secondary" }
                 Rectangle {
                     width: parent.width; height: 250 * Math.max(1, Theme.scale); radius: Theme.rCard
-                    color: Theme.tint(Theme.roomTop, 0.6); border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.6)
+                    color: Theme.dim; border.width: 1; border.color: Theme.hairStrong
                     AnimAttack { anchors.fill: parent; anchors.margins: 12; record: lab.current; progress: lab.progress }
                 }
                 Lbl { width: parent.width; text: T.labAttackerPicture; tone: "muted"; size: Theme.caption }
@@ -154,7 +154,7 @@ Item {
                             width: (parent.width - Theme.s12) / 2
                             height: columnBody.implicitHeight + 28
                             radius: Theme.rCard
-                            color: Theme.tint(Theme.glassRaised, 0.8)
+                            color: Theme.hover
                             border.width: 2; border.color: modelData.safe ? Theme.ok : Theme.fail
                             Column {
                                 id: columnBody

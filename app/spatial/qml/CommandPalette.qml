@@ -35,16 +35,18 @@ Item {
         app.runPalette(id)
     }
 
-    Rectangle { anchors.fill: parent; color: Theme.tint(Theme.roomTop, 0.55); TapHandler { onTapped: palette.hide() } }
+    Rectangle { anchors.fill: parent; color: Theme.dim; TapHandler { onTapped: palette.hide() } }
 
     Glass {
         floating: true
-        width: Math.min(720, parent.width - 80)
+        blur: false
+        padding: Theme.sp4
+        width: Math.min(680, parent.width - 80)
         height: Math.min(520, parent.height - 160)
         anchors.horizontalCenter: parent.horizontalCenter
         y: 90
         scale: palette.open ? 1 : 0.96
-        Behavior on scale { enabled: !Theme.reduceMotion; SpringAnimation { spring: Theme.spring; damping: Theme.damping } }
+        Behavior on scale { NumberAnimation { duration: Theme.dur3; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOutCurve } }
         Accessible.role: Accessible.Dialog
         Accessible.name: T.paletteOpen
 
@@ -53,10 +55,10 @@ Item {
             property alias text: field.text
             function focusInput() { field.focusInput() }
             width: parent.width
-            height: Theme.controlHeight
+            height: field.height
             Field {
                 id: field
-                anchors.fill: parent
+                width: parent.width
                 hint: T.paletteHint
                 onTextChanged: palette.refresh()
                 onAccepted: palette.run(palette.cursor)
@@ -79,10 +81,8 @@ Item {
                 required property int index
                 width: list.width
                 height: Math.max(48, texts.implicitHeight + 14)
-                radius: 12
-                color: index === palette.cursor ? Theme.tint(Theme.accent, 0.25) : "transparent"
-                border.width: index === palette.cursor ? 1 : 0
-                border.color: Theme.accent
+                radius: Theme.rSm
+                color: index === palette.cursor ? Theme.press : "transparent"
                 Accessible.role: Accessible.ListItem
                 Accessible.name: modelData.group + ": " + modelData.label
                 Column {
@@ -90,14 +90,14 @@ Item {
                     x: 14
                     width: parent.width - 150
                     anchors.verticalCenter: parent.verticalCenter
-                    Lbl { text: rowItem.modelData.label; strong: true; width: parent.width; elide: Text.ElideRight; wrapMode: Text.NoWrap }
-                    Lbl { visible: text.length > 0; text: rowItem.modelData.hint; tone: "secondary"; size: Theme.caption; width: parent.width; maximumLineCount: 2; elide: Text.ElideRight }
+                    Txt { text: rowItem.modelData.label; strong: true; width: parent.width; elide: Text.ElideRight; wrapMode: Text.NoWrap; lineHeight: 1.3 }
+                    Txt { visible: text.length > 0; text: rowItem.modelData.hint; tone: "secondary"; kind: "sm"; width: parent.width; maximumLineCount: 2; elide: Text.ElideRight; lineHeight: 1.3 }
                 }
-                Lbl { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: rowItem.modelData.group; tone: "muted"; size: Theme.caption }
+                Txt { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: rowItem.modelData.group; tone: "tertiary"; kind: "sm"; wrapMode: Text.NoWrap }
                 HoverHandler { onHoveredChanged: if (hovered) palette.cursor = rowItem.index }
                 TapHandler { onTapped: palette.run(rowItem.index) }
             }
-            Lbl { visible: palette.results.length === 0; anchors.centerIn: parent; text: T.paletteEmpty; tone: "secondary" }
+            Empty { visible: palette.results.length === 0; anchors.centerIn: parent; icon: "search"; title: T.paletteEmpty }
         }
     }
 }

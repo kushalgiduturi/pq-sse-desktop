@@ -1,85 +1,87 @@
-// The floating dock: five destinations with icon and label, keys 1 to 5.
-// The hovered item grows; its neighbours grow a little.
+// The dock: a small depth-4 tray at the bottom center. Each item is a line icon over a short
+// label; the selected one carries a dot under it. Hover magnifies the item under the pointer
+// and its neighbours a little, a press dips with the press spring, and the tray tilts at
+// most 3 degrees toward the pointer (navigation only; none with Reduce motion or touch).
+// items: [{key, icon, label}]
 import QtQuick
 
-Glass {
+Surface {
     id: dock
-    property string current: "journey"
-    property int hovered: -1
+    property var items: []
+    property string current: ""
+    property bool labelsOnly: false
     signal chosen(string key)
+    depth: 4
+    radius: Theme.rFloat
+    padding: Theme.sp2
+    width: row.implicitWidth + 2 * padding
+    height: row.implicitHeight + 2 * padding
+    Accessible.role: Accessible.PageTabList
 
-    floating: true
-    radius: Theme.rDock
-    padding: 10
-    width: row.implicitWidth + 36
-    height: Theme.large ? row.implicitHeight + 20 : 78 * Math.max(1, Theme.scale)
-    Accessible.role: Accessible.ToolBar
-    Accessible.name: T.dockName
+    property real px: -1
+    transform: Rotation {
+        origin.x: dock.width / 2; origin.y: dock.height / 2
+        axis { x: 0; y: 1; z: 0 }
+        angle: dock.px < 0 ? 0 : ((dock.px / dock.width) - 0.5) * 2 * Theme.tiltMax
+        Behavior on angle { NumberAnimation { duration: Theme.dur3; easing.type: Easing.OutCubic } }
+    }
+    HoverHandler {
+        id: dh
+        onPointChanged: dock.px = hovered ? point.position.x : -1
+        onHoveredChanged: if (!hovered) dock.px = -1
+    }
 
     Row {
         id: row
-        anchors.centerIn: parent
-        spacing: 6
+        spacing: Theme.sp1
         Repeater {
-            model: DEST
+            model: dock.items
             Item {
-                id: cell
+                id: it
                 required property var modelData
                 required property int index
-                readonly property bool active: dock.current === modelData.key
-                readonly property int distance: dock.hovered < 0 ? 9 : Math.abs(dock.hovered - index)
-                width: Theme.large ? cellLabel.implicitWidth + 30 : 98 * Math.max(1, Theme.scale)
-                height: Theme.large ? cellLabel.implicitHeight + 16 : 58 * Math.max(1, Theme.scale)
-                scale: distance === 0 ? 1.16 : distance === 1 ? 1.05 : 1.0
-                transformOrigin: Item.Bottom
+                readonly property bool sel: modelData.key === dock.current
+                readonly property real cx: x + width / 2 + dock.padding
+                readonly property real near: dock.px < 0 || Theme.still ? 0 : Math.max(0, 1 - Math.abs(dock.px - cx) / 120)
+                width: Math.max(72, lab.implicitWidth + 24)
+                height: dock.labelsOnly ? lab.implicitHeight + 28 : 62
                 activeFocusOnTab: true
-                Behavior on scale { enabled: !Theme.reduceMotion; SpringAnimation { spring: Theme.hoverSpring; damping: Theme.hoverDamping } }
-                Accessible.role: Accessible.Button
-                Accessible.name: Theme.fmt(T.dockItem, { label: modelData.label, hint: modelData.hint, n: index + 1 })
-                Accessible.onPressAction: dock.chosen(modelData.key)
+                Accessible.role: Accessible.PageTab
+                Accessible.name: modelData.label
+                Accessible.selected: sel
                 Keys.onReturnPressed: dock.chosen(modelData.key)
                 Keys.onSpacePressed: dock.chosen(modelData.key)
+                scale: tap.pressed ? 0.94 : 1 + 0.08 * near
+                Behavior on scale { enabled: !Theme.reduceMotion; NumberAnimation { duration: Theme.dur2; easing.type: Easing.OutBack; easing.overshoot: Theme.pressOvershoot } }
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 16
-                    color: cell.active ? Theme.accent : (cell.distance === 0 ? Theme.tint(Theme.glassRaised, 0.9) : "transparent")
-                    border.width: cell.activeFocus ? 2 : 0
-                    border.color: Theme.textPrimary
-                    Behavior on color { ColorAnimation { duration: Theme.fast } }
+                    radius: Theme.rCard
+                    color: it.sel ? Theme.hover : (ih.hovered ? Theme.rowHover : "transparent")
                 }
-                Icon {
-                    visible: !Theme.large
-                    name: cell.modelData.key
-                    color: cell.active ? Theme.accentOn : Theme.textPrimary
+                Rectangle {
+                    visible: it.activeFocus
+                    anchors.fill: parent; anchors.margins: -2
+                    radius: Theme.rCard + 2
+                    color: "transparent"; border.width: 2; border.color: Theme.ring
+                }
+                Column {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -3
+                    spacing: 4
+                    Icon { visible: !dock.labelsOnly; name: it.modelData.icon; size: 22; color: it.sel ? Theme.text : Theme.text2; anchors.horizontalCenter: parent.horizontalCenter }
+                    Txt { id: lab; text: it.modelData.label; kind: "xs"; strong: it.sel; tone: it.sel ? "primary" : "secondary"
+                          wrapMode: Text.NoWrap; lineHeight: 1.0; anchors.horizontalCenter: parent.horizontalCenter }
+                }
+                Rectangle {          // the selected dot
+                    visible: it.sel
                     anchors.horizontalCenter: parent.horizontalCenter
-                    y: 7
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 4
+                    width: 4; height: 4; radius: 2
+                    color: Theme.text
                 }
-                Text {
-                    id: cellLabel
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: Theme.large ? 8 : 6
-                    text: cell.modelData.label
-                    color: cell.active ? Theme.accentOn : Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.caption
-                    font.weight: cell.active ? Font.DemiBold : Font.Normal
-                }
-                Text {
-                    visible: !Theme.large
-                    anchors.right: parent.right; anchors.top: parent.top
-                    anchors.rightMargin: 8; anchors.topMargin: 4
-                    text: cell.index + 1
-                    color: cell.active ? Theme.accentOn : Theme.textMuted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.caption * 0.85
-                }
-                HoverHandler {
-                    cursorShape: Qt.PointingHandCursor
-                    onHoveredChanged: dock.hovered = hovered ? cell.index : (dock.hovered === cell.index ? -1 : dock.hovered)
-                }
-                TapHandler { onTapped: dock.chosen(cell.modelData.key) }
+                HoverHandler { id: ih; cursorShape: Qt.PointingHandCursor }
+                TapHandler { id: tap; onTapped: dock.chosen(it.modelData.key) }
             }
         }
     }
