@@ -26,7 +26,7 @@ Item {
     Lbl {
         y: 104; width: parent.width
         size: Theme.caption; tone: "secondary"
-        text: anim.packet ? "Inside: " + anim.packet.contents + " Who can read it: " + anim.packet.readers
+        text: anim.packet ? Theme.fmt(T.moveInside, { contents: anim.packet.contents, readers: anim.packet.readers })
                           : (anim.record ? anim.record.line : "")
     }
 }

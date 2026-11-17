@@ -76,14 +76,14 @@ Glass {
                                  color: Theme.roleColor(ins.shown ? (ins.shown.tag === "receiver" ? ins.shown.who : ins.shown.tag) : "") }
                         Lbl { text: ins.shown ? ins.shown.title : ""; size: Theme.headline * 0.85; strong: true }
                     }
-                    Lbl { text: ins.shown ? ins.shown.technical + (ins.shown.scope === "practice" ? " (on a practice copy)" : "") : ""; tone: "secondary"; size: Theme.caption; width: parent.width }
+                    Lbl { text: ins.shown ? ins.shown.technical + (ins.shown.scope === "practice" ? T.inspectorPractice : "") : ""; tone: "secondary"; size: Theme.caption; width: parent.width }
                 }
                 PButton { anchors.right: parent.right; quiet: true; text: T.close; onClicked: ins.close() }
             }
 
             Segmented {
                 width: parent.width
-                name: "Detail level"
+                name: T.detailLevel
                 labels: width > 430 * Theme.scale ? [T.layerPlain, T.layerMoved, T.layerHood, T.layerSafe]
                                                  : [T.layerPlainShort, T.layerMovedShort, T.layerHoodShort, T.layerSafeShort]
                 current: app.detailLevel
@@ -93,7 +93,7 @@ Glass {
             // The picture of this step is visible at every level: it is the anchor.
             Rectangle {
                 width: parent.width
-                height: 190
+                height: 190 + (Theme.scale - 1) * 150
                 radius: Theme.rCard
                 color: Theme.tint(Theme.roomTop, 0.6)
                 border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.6)
@@ -102,7 +102,8 @@ Glass {
                     anchors.fill: parent; anchors.margins: 12
                     active: ins.shown !== null
                     source: !ins.shown ? "" : ins.shown.kind.indexOf("attack:") === 0 ? "AnimAttack.qml" : ({ encrypt: "AnimEncrypt.qml", kem: "AnimKem.qml", sign: "AnimSign.qml",
-                                                 search: "AnimSearch.qml", verify: "AnimVerify.qml" })[ins.shown.anim] || "AnimMove.qml"
+                                                 search: "AnimSearch.qml", verify: "AnimVerify.qml",
+                                                 update: "AnimUpdate.qml", revoke: "AnimRevoke.qml" })[ins.shown.anim] || "AnimMove.qml"
                     onLoaded: {
                         item.record = Qt.binding(function () { return ins.shown })
                         item.progress = Qt.binding(function () { return ins.progress })
@@ -111,15 +112,16 @@ Glass {
             }
             Lbl { width: parent.width; tone: "muted"; size: Theme.caption; text: ins.shown ? ins.shown.replayNote : "" }
 
-            Row {
+            Flow {
+                width: parent.width
                 spacing: 6
-                PButton { text: T.stepBack; implicitWidth: 74; onClicked: ins.toStep(ins.step - 1) }
-                PButton { text: ins.playing ? T.pause : T.play; primary: true; implicitWidth: 84; onClicked: ins.playing ? ins.pause() : ins.play() }
-                PButton { text: T.stepNext; implicitWidth: 74; onClicked: ins.toStep(ins.step + 1) }
-                PButton { text: T.replay; implicitWidth: 84; onClicked: ins.replay() }
+                PButton { minWidth: 0; text: T.stepBack; onClicked: ins.toStep(ins.step - 1) }
+                PButton { minWidth: 0; text: ins.playing ? T.pause : T.play; primary: true; onClicked: ins.playing ? ins.pause() : ins.play() }
+                PButton { minWidth: 0; text: T.stepNext; onClicked: ins.toStep(ins.step + 1) }
+                PButton { minWidth: 0; text: T.replay; onClicked: ins.replay() }
                 PButton {
-                    text: ins.speed + "x"
-                    implicitWidth: 70
+                    minWidth: 0
+                    text: Theme.fmt(T.speedX, { n: ins.speed })
                     Accessible.name: T.speed + " " + ins.speed
                     onClicked: ins.speed = ins.speeds[(ins.speeds.indexOf(ins.speed) + 1) % ins.speeds.length]
                 }
@@ -156,7 +158,7 @@ Glass {
                         height: Math.max(30, stepText.implicitHeight + 8)
                         activeFocusOnTab: true
                         Accessible.role: Accessible.Button
-                        Accessible.name: "Step " + (index + 1) + ": " + modelData
+                        Accessible.name: Theme.fmt(T.stepN, { n: index + 1, text: modelData })
                         Keys.onReturnPressed: ins.toStep(index)
                         Rectangle {
                             width: 26; height: 26; radius: 13

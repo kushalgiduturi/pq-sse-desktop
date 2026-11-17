@@ -19,7 +19,7 @@ Item {
         var groups = app.state.owner ? app.state.owner.groups : []
         for (var i = 0; i < groups.length; i++)
             if (groups[i].name === facts.g && groups[i].docs.length > 0) return groups[i].docs[groups[i].docs.length - 1].title
-        return "A document of " + (facts.g || "the group")
+        return Theme.fmt(T.encDocument, { g: facts.g || "the group" })
     }
     readonly property string cipher: {
         var stored = app.state.cloud ? app.state.cloud.storedDocs : []
@@ -84,10 +84,10 @@ Item {
         y: 46; spacing: 6
         opacity: anim.p1 >= 1 ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.base } }
-        Chip { text: "AES-256-GCM" }
-        Chip { text: "nonce 12 bytes" }
-        Chip { text: "tag 16 bytes" }
-        Chip { visible: anim.record && anim.record.facts.bytes !== undefined; text: (anim.record ? anim.record.facts.bytes : "") + " bytes" }
+        Chip { text: T.encAes }
+        Chip { text: T.encNonce }
+        Chip { text: T.encTag }
+        Chip { visible: anim.record && anim.record.facts.bytes !== undefined; text: Theme.fmt(T.encBytes, { n: anim.record ? anim.record.facts.bytes : "" }) }
     }
     // Index entries: secret addresses that snap into a hash chain. One lane on the CPU,
     // several lanes lighting up together on the GPU.
@@ -115,7 +115,7 @@ Item {
         }
         Lbl {
             y: 24; size: Theme.caption; tone: "muted"
-            text: (anim.record ? anim.record.facts.entries : "") + " index entries, " + (anim.gpu ? "computed in one batch on the GPU" : "computed one after another on the CPU")
+            text: Theme.fmt(anim.gpu ? T.encEntriesGpu : T.encEntriesCpu, { n: anim.record ? anim.record.facts.entries : "" })
             opacity: anim.p2 > 0 ? 1 : 0
         }
     }
@@ -128,11 +128,11 @@ Item {
         color: "transparent"; border.width: 2; border.color: Theme.alice
         rotation: -6
         opacity: anim.p3
-        Lbl { id: stampText; anchors.centerIn: parent; text: "stamped by Alice (ML-DSA)"; color: Theme.alice; size: Theme.caption; strong: true }
+        Lbl { id: stampText; anchors.centerIn: parent; text: T.encStamp; color: Theme.alice; size: Theme.caption; strong: true }
     }
     Lbl {
         anchors.bottom: parent.bottom
         size: Theme.caption; tone: "muted"
-        text: anim.realCipher ? "Scrambled letters: the real stored bytes." : "Scrambled letters: sample bytes (the cloud is not running)."
+        text: anim.realCipher ? T.encReal : T.encSample
     }
 }

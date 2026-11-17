@@ -5,7 +5,7 @@ import ctypes
 import sys
 
 THEMES = ("system", "dark", "light")
-TEXT_SCALES = {"small": 0.9, "normal": 1.0, "large": 1.25}
+TEXT_SCALES = {"small": 0.9, "normal": 1.0, "large": 1.25, "larger": 1.5, "largest": 2.0}
 DEFAULTS = {"theme": "system", "detail_level": 1}
 _SPI_GETCLIENTAREAANIMATION = 0x1042
 

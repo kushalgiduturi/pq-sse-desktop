@@ -25,7 +25,7 @@ Item {
             width: 30; height: list.height
             activeFocusOnTab: true
             Accessible.role: Accessible.Button
-            Accessible.name: "Step " + (index + 1) + ": " + (rec ? rec.line : "")
+            Accessible.name: Theme.fmt(T.stepN, { n: index + 1, text: rec ? rec.line : "" })
             Keys.onReturnPressed: tl.chosen(index)
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter

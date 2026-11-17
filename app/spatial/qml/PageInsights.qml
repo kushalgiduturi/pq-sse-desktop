@@ -46,15 +46,14 @@ Item {
                     Repeater {
                         model: app.benchBuild
                         Lbl { required property var modelData; width: column.width - 60; font.family: Theme.monoFamily; size: Theme.caption; tone: "secondary"
-                              text: modelData.occurrences + " entries, " + modelData.engine + ": addresses " + modelData.prf_s.toFixed(4) + " s, addresses and chain "
-                                    + modelData.symmetric_s.toFixed(4) + " s, whole step " + modelData.total_s.toFixed(3) + " s"
-                                    + (modelData.gpu ? " (speedup: addresses " + modelData.prf_speedup.toFixed(1) + "x, whole step " + modelData.total_speedup.toFixed(2) + "x)" : "") }
+                              text: Theme.fmt(T.benchRow, { n: modelData.occurrences, engine: modelData.engine, prf: modelData.prf_s.toFixed(4), sym: modelData.symmetric_s.toFixed(4), total: modelData.total_s.toFixed(3) })
+                                    + (modelData.gpu ? Theme.fmt(T.benchSpeedup, { prf: modelData.prf_speedup.toFixed(1), total: modelData.total_speedup.toFixed(2) }) : "") }
                     },
                     Lbl { visible: app.benchOps.length > 0; text: T.benchOpsNote; tone: "muted"; size: Theme.caption },
                     Repeater {
                         model: app.benchOps
                         Lbl { required property var modelData; width: column.width - 60; font.family: Theme.monoFamily; size: Theme.caption; tone: "secondary"
-                              text: modelData.operation + " (" + modelData.params + "): " + modelData.ms.toFixed(2) + " ms" }
+                              text: Theme.fmt(T.benchOpRow, { op: modelData.operation, params: modelData.params, ms: modelData.ms.toFixed(2) }) }
                     }
                 ]
             }
@@ -92,8 +91,9 @@ Item {
                     Segmented { width: parent.width; name: T.settingsTheme; labels: [T.themeSystem, T.themeDark, T.themeLight]
                                 current: ["system", "dark", "light"].indexOf(app.theme); onChosen: (i) => app.setTheme(["system", "dark", "light"][i]) }
                     Lbl { text: T.settingsText; tone: "muted"; size: Theme.caption }
-                    Segmented { width: parent.width; name: T.settingsText; labels: [T.textSmall, T.textNormal, T.textLarge]
-                                current: ["small", "normal", "large"].indexOf(app.textSize); onChosen: (i) => app.setTextSize(["small", "normal", "large"][i]) }
+                    Flow { width: parent.width; spacing: 8
+                           Repeater { model: [["small", T.textSmall], ["normal", T.textNormal], ["large", T.textLarge], ["larger", T.textLarger], ["largest", T.textLargest]]
+                                      Pick { required property var modelData; text: modelData[1]; selected: app.textSize === modelData[0]; onClicked: app.setTextSize(modelData[0]) } } }
                     Pick { text: T.settingsMotion; selected: app.reduceMotionSetting; onClicked: app.setReduceMotion(!app.reduceMotionSetting) }
                     Lbl { width: parent.width; text: T.settingsMotionNote + (app.motionReason.length > 0 ? " " + app.motionReason : ""); tone: "secondary"; size: Theme.caption }
                     Lbl { text: T.settingsMode; tone: "muted"; size: Theme.caption }

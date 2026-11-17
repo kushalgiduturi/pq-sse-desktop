@@ -10,7 +10,8 @@ Item {
     property bool busy: false
     signal clicked()
 
-    implicitWidth: Math.max(quiet ? 0 : 120, label.implicitWidth + (quiet ? 16 : 40))
+    property real minWidth: quiet ? 0 : 120
+    implicitWidth: Math.max(minWidth, label.implicitWidth + (quiet ? 16 : 40))
     implicitHeight: quiet ? Theme.controlHeight * 0.8 : Theme.controlHeight
     opacity: enabled ? 1.0 : 0.45
     activeFocusOnTab: true

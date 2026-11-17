@@ -28,7 +28,7 @@ Item {
         visible: anim.keyword.length > 0
         Lbl { id: wordText; anchors.centerIn: parent; text: "'" + anim.keyword + "'"; size: Theme.caption }
     }
-    Lbl { x: 0; y: 106; size: Theme.caption; tone: "muted"; text: anim.keyword.length > 0 ? "stays here" : "" }
+    Lbl { x: 0; y: 106; size: Theme.caption; tone: "muted"; text: anim.keyword.length > 0 ? T.searchStays : "" }
 
     // the slip
     Rectangle {
@@ -39,7 +39,7 @@ Item {
         opacity: anim.seal > 0.3 && anim.back < 0.05 ? 1 : 0
         scale: 0.7 + 0.3 * anim.seal
         Behavior on opacity { NumberAnimation { duration: Theme.base } }
-        Lbl { anchors.centerIn: parent; text: "slip"; color: Theme.onRole; size: Theme.caption; strong: true }
+        Lbl { anchors.centerIn: parent; text: T.searchSlip; color: Theme.onRole; size: Theme.caption; strong: true }
     }
     // what the cloud stores: cells of scrambled values; the addressed ones glow
     Grid {
@@ -74,9 +74,7 @@ Item {
     Lbl {
         anchors.bottom: parent.bottom; width: parent.width
         size: Theme.caption; tone: "muted"
-        text: anim.back > 0 ? "The cloud returns " + (anim.facts.entries !== undefined ? anim.facts.entries : "the") + " scrambled entries, with its stamp."
-            : anim.glow ? "The cloud finds what is stored at the listed addresses. It never sees the word."
-            : anim.fly > 0 ? "The sealed slip travels to the cloud."
-            : "The app turns the word into secret addresses and seals them in a slip."
+        text: anim.back > 0 ? Theme.fmt(T.searchBack, { n: anim.facts.entries !== undefined ? anim.facts.entries : "the" })
+            : anim.glow ? T.searchGlow : anim.fly > 0 ? T.searchFly : T.searchSeal
     }
 }

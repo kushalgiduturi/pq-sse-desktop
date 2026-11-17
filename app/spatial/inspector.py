@@ -11,7 +11,7 @@ from pqsse import attacklab, narrator
 from ..glossary import GLOSSARY
 from .copy import ATTACK_STEPS, INSPECT, PRIMITIVES, TERMS, T
 
-ANIMATIONS = ("encrypt", "kem", "sign", "search", "verify", "move")
+ANIMATIONS = ("encrypt", "kem", "sign", "search", "verify", "move", "update", "revoke")
 
 
 class _Safe(dict):
@@ -20,7 +20,7 @@ class _Safe(dict):
 
 
 def _facts(event: narrator.Event) -> _Safe:
-    facts = _Safe({k: (", ".join(v) if isinstance(v, (list, tuple)) else v) for k, v in event.data.items()})
+    facts = _Safe({k: ((", ".join(v) or "none") if isinstance(v, (list, tuple)) else v) for k, v in event.data.items()})
     facts["who"] = event.who or "Someone"
     return facts
 

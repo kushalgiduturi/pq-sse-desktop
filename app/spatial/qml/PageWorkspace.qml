@@ -48,10 +48,15 @@ Item {
     // ---------------------------------------------------------------- role rail
     Glass {
         id: rail
-        width: 220 * Math.max(1, Theme.scale)
+        width: 220 * Math.min(1.5, Math.max(1, Theme.scale))
         height: parent.height
         padding: Theme.s12
-        Column {
+        Flickable {
+          anchors.fill: parent
+          contentHeight: railColumn.implicitHeight
+          clip: true
+          Column {
+            id: railColumn
             width: parent.width
             spacing: 6
             Lbl { text: T.workAs; tone: "muted"; size: Theme.caption; leftPadding: 8 }
@@ -63,7 +68,7 @@ Item {
                     required property string modelData
                     readonly property bool on: page.role === modelData
                     width: rail.width - 2 * rail.padding
-                    height: 60 * Math.max(1, Theme.scale)
+                    height: Math.max(60, roleText.implicitHeight + 16)
                     radius: 16
                     color: on ? Theme.tint(Theme.glassRaised, 1) : "transparent"
                     border.width: on || activeFocus ? 2 : 0
@@ -76,9 +81,10 @@ Item {
                     Keys.onSpacePressed: app.setRole(modelData)
                     Avatar { who: page.cap(roleItem.modelData); size: 38; x: 10; anchors.verticalCenter: parent.verticalCenter; color: Theme.roleColor(roleItem.modelData) }
                     Column {
-                        x: 58; anchors.verticalCenter: parent.verticalCenter
+                        id: roleText
+                        x: 58; width: parent.width - 66; anchors.verticalCenter: parent.verticalCenter
                         Lbl { text: page.cap(roleItem.modelData); strong: true; size: Theme.bodyLarge * 0.95 }
-                        Lbl { text: roleItem.modelData === "alice" ? "Data owner" : roleItem.modelData === "cloud" ? "Storage server" : "Doctor"; tone: "secondary"; size: Theme.caption }
+                        Lbl { text: roleItem.modelData === "alice" ? T.roleOwner : roleItem.modelData === "cloud" ? T.roleCloud : T.roleDoctor; tone: "secondary"; size: Theme.caption }
                     }
                     HoverHandler { cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: app.setRole(roleItem.modelData) }
@@ -88,6 +94,7 @@ Item {
             Field { id: newPerson; width: parent.width; hint: T.addPersonHint; onAccepted: addButton.clicked() }
             PButton { id: addButton; width: parent.width; text: T.addPerson; enabled: newPerson.text.trim().length > 0
                       onClicked: { app.setRole(newPerson.text.trim().toLowerCase()); newPerson.clear() } }
+          }
         }
     }
 
@@ -151,7 +158,7 @@ Item {
                     PButton { visible: page.owner.open && !page.owner.paired; primary: true; enabled: !app.busy && page.cloud.running
                               text: T.alicePairBtn; onClicked: app.pairOwnerAndCloud() }
                     Lbl { visible: page.owner.open && !page.owner.paired && !page.cloud.running; width: parent.width; tone: "muted"; size: Theme.caption
-                          text: "Start the cloud first: choose Cloud in the rail on the left." }
+                          text: T.startCloudFirst }
                 }
 
                 TaskCard {
@@ -171,13 +178,17 @@ Item {
                             required property var modelData
                             width: parent.width; height: Math.max(40, docTitle.implicitHeight + 14); radius: 10
                             color: Theme.tint(Theme.glassRaised, 0.8); border.width: 1; border.color: Theme.tint(Theme.glassStroke, 0.5)
-                            PButton { anchors.right: parent.right; anchors.rightMargin: 84; anchors.verticalCenter: parent.verticalCenter; quiet: true; text: T.docsEdit
-                                      Accessible.name: T.docsEdit + " " + docRow.modelData.title
-                                      onClicked: { page.editId = docRow.modelData.id; docTitleField.text = docRow.modelData.title; docText.text = docRow.modelData.text } }
-                            Lbl { id: docTitle; x: 12; width: parent.width - 180; anchors.verticalCenter: parent.verticalCenter; text: docRow.modelData.title; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap }
-                            PButton { anchors.right: parent.right; anchors.rightMargin: 4; anchors.verticalCenter: parent.verticalCenter; quiet: true; text: T.docsDelete
-                                      enabled: !app.busy; Accessible.name: T.docsDelete + " " + docRow.modelData.title
-                                      onClicked: app.deleteDocument(page.activeGroup, docRow.modelData.id) }
+                            Lbl { id: docTitle; x: 12; width: parent.width - docButtons.width - 24; anchors.verticalCenter: parent.verticalCenter; text: docRow.modelData.title; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap }
+                            Row {
+                                id: docButtons
+                                anchors.right: parent.right; anchors.rightMargin: 4; anchors.verticalCenter: parent.verticalCenter
+                                PButton { quiet: true; text: T.docsEdit
+                                          Accessible.name: T.docsEdit + " " + docRow.modelData.title
+                                          onClicked: { page.editId = docRow.modelData.id; docTitleField.text = docRow.modelData.title; docText.text = docRow.modelData.text } }
+                                PButton { quiet: true; text: T.docsDelete
+                                          enabled: !app.busy; Accessible.name: T.docsDelete + " " + docRow.modelData.title
+                                          onClicked: app.deleteDocument(page.activeGroup, docRow.modelData.id) }
+                            }
                         }
                     }
                     Field { id: docTitleField; visible: page.owner.groups.length > 0; width: parent.width; hint: T.docsTitleHint }
@@ -269,7 +280,7 @@ Item {
                     Flow { width: parent.width; spacing: 8
                            Repeater { model: page.owner.people.filter(function (p) { return !p.revoked })
                                       Pick { required property var modelData; text: page.cap(modelData.name); selected: page.revokeUid === modelData.uid; onClicked: page.revokeUid = modelData.uid } } }
-                    Segmented { visible: page.owner.people.length > 0; width: parent.width; name: "Policy"; labels: [T.revokeQuick, T.revokeThorough]
+                    Segmented { visible: page.owner.people.length > 0; width: parent.width; name: T.policyName; labels: [T.revokeQuick, T.revokeThorough]
                                 current: page.policy === "R" ? 0 : 1; onChosen: (i) => page.policy = i === 0 ? "R" : "RE" }
                     Lbl { visible: page.owner.people.length > 0; width: parent.width; text: page.policy === "R" ? T.revokeQuickNote : T.revokeThoroughNote; tone: "secondary" }
                     PButton { visible: page.owner.people.length > 0; danger: true; primary: page.revokeUid !== ""; enabled: !app.busy && page.revokeUid !== ""; text: T.revokeBtn
@@ -375,7 +386,7 @@ Item {
                     }
                     Repeater {
                         model: page.cloud.storedEntries
-                        Lbl { required property var modelData; width: parent.width; text: "address " + modelData.address + "...  value " + modelData.value
+                        Lbl { required property var modelData; width: parent.width; text: Theme.fmt(T.storesEntry, { address: modelData.address, value: modelData.value })
                               font.family: Theme.monoFamily; size: Theme.caption; tone: "muted"; wrapMode: Text.WrapAnywhere }
                     }
                 }
@@ -390,10 +401,10 @@ Item {
                             spacing: 16
                             Lbl { width: 70; text: modelData.time; tone: "muted"; font.family: Theme.monoFamily; size: Theme.caption }
                             Lbl { width: 150; text: modelData.endpoint; size: Theme.caption; strong: true }
-                            Lbl { text: modelData.bytesIn + " bytes in, " + modelData.bytesOut + " bytes out"; tone: "secondary"; size: Theme.caption }
+                            Lbl { text: Theme.fmt(T.logBytes, { in: modelData.bytesIn, out: modelData.bytesOut }); tone: "secondary"; size: Theme.caption }
                         }
                     }
-                    PButton { visible: page.cloud.running; text: "Refresh"; enabled: !app.busy; onClicked: app.refresh() }
+                    PButton { visible: page.cloud.running; text: T.refresh; enabled: !app.busy; onClicked: app.refresh() }
                 }
             }
         }

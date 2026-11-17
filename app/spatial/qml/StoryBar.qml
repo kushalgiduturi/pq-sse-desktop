@@ -6,11 +6,12 @@ Glass {
     signal openPalette()
     signal openInsights()
     signal openWorkspaceCloud()
+    signal openInspector()
 
     floating: true
     radius: height / 2
     padding: 0
-    height: Math.max(52, sentence.implicitHeight + 24)
+    height: Theme.large ? sentence.implicitHeight + chips.height + 34 : Math.max(52, sentence.implicitHeight + 24)
 
     Avatar {
         id: who
@@ -36,8 +37,8 @@ Glass {
     Lbl {
         id: sentence
         x: 52
-        width: chips.x - 64
-        anchors.verticalCenter: parent.verticalCenter
+        y: Theme.large ? 12 : (parent.height - height) / 2
+        width: Theme.large ? parent.width - 72 : chips.x - 64
         text: app.busy ? T.storyBusy.replace("{label}", app.busyLabel) : app.story.line
         size: Theme.bodyLarge * 0.95
         font.weight: Font.Medium
@@ -46,11 +47,19 @@ Glass {
         Accessible.role: Accessible.StatusBar
         Accessible.name: text
     }
-    Row {
+    Flow {
         id: chips
         anchors.right: parent.right
         anchors.rightMargin: 12
-        anchors.verticalCenter: parent.verticalCenter
+        y: Theme.large ? sentence.y + sentence.height + 8 : (parent.height - height) / 2
+        // one line at normal sizes (as wide as the chips need), wrapping under the sentence at large sizes
+        readonly property real natural: {
+            var w = 0
+            for (var i = 0; i < children.length; i++) if (children[i].visible) w += children[i].width + spacing
+            return Math.max(0, w - spacing)
+        }
+        width: Theme.large ? parent.width - 64 : natural + 1
+        layoutDirection: Qt.LeftToRight
         spacing: 8
         Chip {
             text: app.practice ? T.chipPractice : T.chipOwn
@@ -74,5 +83,6 @@ Glass {
             onClicked: app.setMode(app.mode === "expert" ? "beginner" : "expert")
         }
         Chip { text: T.paletteOpen; clickable: true; onClicked: bar.openPalette() }
+        Chip { visible: Theme.large; text: T.inspectorChip; clickable: true; onClicked: bar.openInspector() }
     }
 }

@@ -416,7 +416,9 @@ class Owner:
             if g in self.groups:
                 self._rotate(g, policy)
                 rotated.append(g)
-        narrator.emit("revoke", rec["name"], policy=policy, groups=rotated)
+        remaining = sorted({r["name"] for r in self.receivers.values()
+                            if not r["revoked"] and any(g in r["groups"] for g in rotated)})
+        narrator.emit("revoke", rec["name"], policy=policy, groups=rotated, remaining=remaining)
         return rotated
 
     def _rotate(self, g: str, policy: str) -> None:

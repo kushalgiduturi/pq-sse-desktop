@@ -447,3 +447,83 @@ def test_welcome_terms_and_palette_extras(qapp):
         assert "ml-kem" in keys and "ml-dsa" in keys and all(key in glossary.GLOSSARY for key in keys)
     finally:
         bridge.shutdown()
+
+
+# ---------------------------------------------------------------- follow-up: copy, focus, text size, new animations
+def test_no_user_visible_literal_left_in_qml():
+    """Every label lives in copy.py. Allowed literals: identifiers such as icon or role keys."""
+    import re
+
+    allowed = re.compile(r'(name|who): "(journey|stage|workspace|lab|insights|search|alice|cloud|lock|close|inspect)"')
+    offenders = []
+    for path in qml_path().parent.glob("*.qml"):
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for match in re.finditer(r'\b(text|title|name|summary|sub|hint|label|description): *"([A-Za-z][^"]*)"', line):
+                if not allowed.search(match.group(0)):
+                    offenders.append(f"{path.name}:{number}: {match.group(0)}")
+    assert offenders == []
+
+
+def test_text_sizes_reach_200_percent():
+    assert ui_settings.TEXT_SCALES["largest"] == 2.0
+    for key in ui_settings.TEXT_SCALES:
+        assert ("text" + key.capitalize()) in ui_copy.T
+
+
+def test_update_and_revoke_have_their_own_animation_and_facts():
+    assert ui_copy.INSPECT["update"]["anim"] == "update" and ui_copy.INSPECT["revoke"]["anim"] == "revoke"
+    for anim in ("AnimUpdate.qml", "AnimRevoke.qml"):
+        assert (qml_path().parent / anim).is_file()
+    from pqsse.sandbox import World
+
+    seen = []
+    stop = narrator.subscribe(seen.append)
+    try:
+        world = World()
+        world.owner.create_group("Finance")
+        bob = world.join("bob", ["Finance"])
+        world.join("carol", ["Finance"])
+        world.owner.revoke(bob.uid, "R")
+    finally:
+        stop()
+    revoke = next(e for e in seen if e.kind == "revoke")
+    assert revoke.data["remaining"] == ["carol"] and revoke.data["groups"] == ["Finance"]
+    record = inspector.build(revoke)
+    assert "carol" in record["steps"][-1]
+    alone = inspector.build(narrator.Event("revoke", "Bob", {"policy": "R", "groups": ["Finance"], "remaining": []}, 0.0))
+    assert alone["steps"][-1].endswith("none.")
+
+
+def test_modal_layers_disable_what_is_behind_and_restore_focus(qapp):
+    session = new_session()
+    session.settings["reduce_motion"] = True
+    view = SpatialWindow(session, sync=True)
+    try:
+        window = view.window
+        assert window.property("modalOpen") is False
+        view.bridge.runPalette("welcome")                 # opens the welcome sheet
+        qapp.processEvents()
+        assert window.property("modalOpen") is True
+        disabled = [o for o in window.findChildren(QObject)
+                    if o.metaObject().className().startswith(("StoryBar", "Dock")) and o.property("enabled") is False]
+        assert len(disabled) == 2                        # Story bar and dock cannot take focus while the sheet is open
+        view.bridge.dismissWelcome(False)
+        sheet = next(o for o in window.findChildren(QObject)
+                     if o.metaObject().className().startswith("Sheet") and o.property("open") is True)
+        sheet.setProperty("open", False)
+        qapp.processEvents()
+        assert window.property("modalOpen") is False
+        assert view.warnings == []
+    finally:
+        view.close()
+
+
+def test_classic_window_opens_when_the_spatial_window_cannot(monkeypatch, qapp):
+    from app import main as app_main
+    from app.spatial import window as spatial_window
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("Qt Quick is not available")
+
+    monkeypatch.setattr(spatial_window, "SpatialWindow", broken)
+    assert app_main.run_spatial(qapp, new_session()) is None

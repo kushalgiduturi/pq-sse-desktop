@@ -15,6 +15,18 @@ Item {
     function isDone(key) { return app.lessonDone.indexOf(key) >= 0 }
     function fill(text, map) { for (var k in map) text = text.split("{" + k + "}").join(map[k]); return text }
 
+    // At 150 % and 200 % text the page stacks into one scrolling column; otherwise it fits the window.
+    Flickable {
+    id: scroll
+    anchors.fill: parent
+    contentHeight: board.height
+    interactive: Theme.large
+    clip: true
+    Item {
+    id: board
+    width: scroll.width
+    height: Theme.large ? side.y + sideColumn.implicitHeight + 16 : scroll.height
+
     Column {
         id: header
         width: parent.width
@@ -44,7 +56,8 @@ Item {
                     height: parent.height
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
-                    Accessible.name: page.fill(T.journeyStepOf, { n: index + 1, all: page.steps.length }) + ": " + modelData.title + (done ? ". " + T.journeyDone : "")
+                    Accessible.name: page.fill(T.journeyStepOf, { n: index + 1, all: page.steps.length }) + ": " + modelData.title
+                                     + (on ? ". " + T.journeyCurrent : "") + (done ? ". " + T.journeyDone : "")
                     Keys.onReturnPressed: app.setLessonStep(index)
                     Keys.onSpacePressed: app.setLessonStep(index)
                     Rectangle {
@@ -95,13 +108,14 @@ Item {
     Glass {
         id: focus
         anchors.top: path.bottom; anchors.topMargin: Theme.s16
-        anchors.bottom: parent.bottom
-        width: parent.width * 0.60
+        height: Theme.large ? text.implicitHeight + actions.height + 2 * padding + 16 : board.height - y
+        width: Theme.large ? parent.width : parent.width * 0.60
         rim: Theme.accent; rimWidth: 2
         Flickable {
             anchors.fill: parent
             anchors.bottomMargin: actions.height + 12
             contentHeight: text.implicitHeight
+            interactive: !Theme.large
             clip: true
             Column {
                 id: text
@@ -141,11 +155,13 @@ Item {
 
     // ---------------------------------------------------------------- what happened, challenges, reset
     Flickable {
-        anchors.top: path.bottom; anchors.topMargin: Theme.s16
-        anchors.left: focus.right; anchors.leftMargin: Theme.s16
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        id: side
+        x: Theme.large ? 0 : focus.width + Theme.s16
+        y: Theme.large ? focus.y + focus.height + Theme.s16 : focus.y
+        width: Theme.large ? parent.width : parent.width - focus.width - Theme.s16
+        height: Theme.large ? sideColumn.implicitHeight + 12 : board.height - y
         contentHeight: sideColumn.implicitHeight + 12
+        interactive: !Theme.large
         clip: true
         Column {
             id: sideColumn
@@ -193,8 +209,8 @@ Item {
                         Row {
                             x: 16; spacing: 4
                             visible: !item.modelData.done
-                            PButton { quiet: true; text: T.journeyHint; onClicked: page.hintFor = page.hintFor === item.modelData.key ? "" : item.modelData.key }
-                            PButton { quiet: true; text: T.journeyGo; onClicked: app.navigate(item.modelData.where) }
+                            PButton { quiet: true; text: T.journeyHint; Accessible.name: T.journeyHint + ": " + item.modelData.title; onClicked: page.hintFor = page.hintFor === item.modelData.key ? "" : item.modelData.key }
+                            PButton { quiet: true; text: T.journeyGo; Accessible.name: T.journeyGo + ": " + item.modelData.title; onClicked: app.navigate(item.modelData.where) }
                         }
                     }
                 }
@@ -211,5 +227,7 @@ Item {
                 }
             }
         }
+    }
+    }
     }
 }

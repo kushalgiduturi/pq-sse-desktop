@@ -33,8 +33,8 @@ Item {
     Paper { id: genuine; x: 4; y: 8 }
     Paper { id: changed; x: 4; y: 96; tampered: true; opacity: anim.scan > 0 ? 1 : 0.35 }
     Lbl { x: 162; y: 8; width: parent.width - 166; size: Theme.caption; tone: "secondary"
-          text: anim.record ? anim.record.title + ": the genuine content" : "" }
-    Lbl { x: 162; y: 96; width: parent.width - 166; size: Theme.caption; tone: "secondary"; text: "The same content with one line changed" }
+          text: anim.record ? Theme.fmt(T.signGenuine, { title: anim.record.title }) : "" }
+    Lbl { x: 162; y: 96; width: parent.width - 166; size: Theme.caption; tone: "secondary"; text: T.signChanged }
 
     // the stamp
     Rectangle {
@@ -44,13 +44,13 @@ Item {
         border.width: 2; border.color: anim.who
         rotation: -8
         opacity: anim.progress > 0.02 ? 1 : 0
-        Lbl { anchors.centerIn: parent; text: anim.marked ? "signed" : "stamp"; color: anim.marked ? anim.who : Theme.accentOn; size: Theme.caption; strong: true }
+        Lbl { anchors.centerIn: parent; text: anim.marked ? T.signSigned : T.signStamp; color: anim.marked ? anim.who : Theme.accentOn; size: Theme.caption; strong: true }
     }
     Rectangle {          // the copied mark on the changed sheet
         x: 84; y: 118; width: 56; height: 30; radius: 6
         color: "transparent"; border.width: 2; border.color: anim.who; rotation: -8
         opacity: anim.scan > 0 ? 0.9 : 0
-        Lbl { anchors.centerIn: parent; text: "signed"; color: anim.who; size: Theme.caption; strong: true }
+        Lbl { anchors.centerIn: parent; text: T.signSigned; color: anim.who; size: Theme.caption; strong: true }
     }
     // the magnifier
     Item {
@@ -60,6 +60,6 @@ Item {
         Behavior on y { NumberAnimation { duration: Theme.moveBase } }
         Icon { name: "search"; width: 34; height: 34 }
     }
-    Chip { x: 162; y: 44; mark: "ok"; text: "mark matches the content"; opacity: anim.scan > 0.45 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: Theme.base } } }
-    Chip { x: 162; y: 130; mark: "fail"; text: "mark does not match"; opacity: anim.verdict ? 1 : 0; Behavior on opacity { NumberAnimation { duration: Theme.base } } }
+    Chip { x: 162; y: 44; mark: "ok"; text: T.signMatches; opacity: anim.scan > 0.45 ? 1 : 0; Behavior on opacity { NumberAnimation { duration: Theme.base } } }
+    Chip { x: 162; y: 130; mark: "fail"; text: T.signNoMatch; opacity: anim.verdict ? 1 : 0; Behavior on opacity { NumberAnimation { duration: Theme.base } } }
 }

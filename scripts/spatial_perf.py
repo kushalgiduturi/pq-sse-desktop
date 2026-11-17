@@ -33,6 +33,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seconds", type=float, default=8.0)
     parser.add_argument("--report", type=Path, default=None)
+    parser.add_argument("--size", default="1440x900", help="window size, for example 3840x2160")
     args = parser.parse_args()
     data = tempfile.mkdtemp(prefix="pqsse-perf-")
     os.environ["PQSSE_DATA_DIR"] = data
@@ -52,6 +53,8 @@ def main() -> int:
     started = time.perf_counter()
     view = SpatialWindow(session, sync=True)
     window, bridge = view.window, view.bridge
+    size = tuple(int(v) for v in args.size.lower().split("x"))
+    window.resize(*size)
     startup_ms = (time.perf_counter() - started) * 1000
     stamps: list[float] = []
     draw_start: list[float] = []

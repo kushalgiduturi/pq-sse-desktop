@@ -26,6 +26,8 @@ def main() -> int:
     parser.add_argument("--prefix", default="shot")
     parser.add_argument("--light", action="store_true")
     parser.add_argument("--reduce-motion", action="store_true")
+    parser.add_argument("--text", default="normal")
+    parser.add_argument("--size", default="1440x900")
     args = parser.parse_args()
     data = tempfile.mkdtemp(prefix="pqsse-shots-")
     os.environ["PQSSE_DATA_DIR"] = data
@@ -41,9 +43,11 @@ def main() -> int:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         session.settings["port"] = sock.getsockname()[1]
-    session.settings.update(theme="light" if args.light else "dark", reduce_motion=args.reduce_motion, mode="beginner", show_welcome=False)
+    session.settings.update(theme="light" if args.light else "dark", reduce_motion=args.reduce_motion, mode="beginner", show_welcome=False, font_size=args.text)
     view = SpatialWindow(session, sync=True)
     window, bridge = view.window, view.bridge
+    width, height = (int(v) for v in args.size.lower().split("x"))
+    window.resize(width, height)
     args.out.mkdir(parents=True, exist_ok=True)
     plan: list = []
 
@@ -66,6 +70,10 @@ def main() -> int:
              lambda: window.setProperty("inspectorOpen", True), None, None, None, lambda: shot("inspector-encrypt"),
              lambda: window.setProperty("inspectIndex", next((r["index"] for r in bridge.events.records if r["kind"] == "search"), 0)),
              None, None, None, lambda: shot("inspector-search"),
+             lambda: window.setProperty("inspectIndex", next((r["index"] for r in bridge.events.records if r["kind"] == "update" and r["scope"] == ""), 0)),
+             None, None, None, None, None, None, lambda: shot("inspector-update"),
+             lambda: window.setProperty("inspectIndex", next((r["index"] for r in bridge.events.records if r["kind"] == "revoke" and r["scope"] == ""), 0)),
+             None, None, None, None, None, None, None, None, lambda: shot("inspector-revoke"),
              lambda: window.setProperty("inspectorOpen", False),
              lambda: page("workspace"), lambda: bridge.setRole("alice"), None, lambda: shot("workspace-alice"),
              lambda: bridge.setRole("bob"), None, lambda: shot("workspace-bob"),

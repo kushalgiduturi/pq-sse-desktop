@@ -9,6 +9,7 @@ QtObject {
     property bool reduceMotion: false
     property bool software: false
     property real scale: 1.0
+    readonly property bool large: scale > 1.3          // 150 % and 200 %: layouts stack and scroll instead of shrinking
     property Item backdrop: null          // the blurred copy of the room, sampled by floating glass
     property string fontFamily: "Segoe UI"
     property string monoFamily: "Consolas"
@@ -50,6 +51,12 @@ QtObject {
         return sum % 2 === 0 ? bob : carol
     }
     function tint(c, alpha) { return Qt.rgba(c.r, c.g, c.b, alpha) }
+    // Fill {name} placeholders of a text from copy.py: Theme.fmt(T.stageMore, { n: 3 })
+    function fmt(text, values) {
+        var out = String(text)
+        for (var key in values) out = out.split("{" + key + "}").join(String(values[key]))
+        return out
+    }
 
     // Type scale (pixels), scaled by the text size setting
     readonly property real caption: 12 * scale

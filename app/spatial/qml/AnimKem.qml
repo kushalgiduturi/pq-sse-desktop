@@ -7,15 +7,15 @@ Item {
     id: anim
     property var record: null
     property real progress: 0
-    readonly property string receiver: record ? (record.kind === "revoke" ? "others" : record.who) : ""
+    readonly property string receiver: record ? (record.kind === "revoke" ? T.kemOthers : record.who) : ""
     readonly property real fly: Math.max(0, Math.min(1, (progress - 0.30) / 0.40))
     readonly property bool sealed: progress > 0.22
     readonly property bool opened: progress > 0.78
 
-    Avatar { id: left; who: "Alice"; size: 40; x: 6; y: 30 }
+    Avatar { id: left; who: T.stageTitleAlice; size: 40; x: 6; y: 30 }
     Avatar { id: right; who: anim.receiver; size: 40; x: parent.width - 46; y: 30
              color: anim.record && anim.record.kind === "revoke" ? Theme.bob : Theme.roleColor(anim.receiver) }
-    Lbl { x: 0; y: 74; text: "Alice"; size: Theme.caption; tone: "secondary" }
+    Lbl { x: 0; y: 74; text: T.stageTitleAlice; size: Theme.caption; tone: "secondary" }
     Lbl { anchors.right: parent.right; y: 74; text: anim.receiver; size: Theme.caption; tone: "secondary" }
 
     // public key: an open lock next to the receiver
@@ -36,7 +36,7 @@ Item {
         border.width: 2; border.color: Theme.warn
         opacity: anim.sealed ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.base } }
-        Lbl { anchors.centerIn: parent; text: anim.opened ? "open" : "sealed"; size: Theme.caption; strong: true; color: anim.opened ? Theme.textPrimary : Theme.accentOn }
+        Lbl { anchors.centerIn: parent; text: anim.opened ? T.kemOpen : T.kemSealed; size: Theme.caption; strong: true; color: anim.opened ? Theme.textPrimary : Theme.accentOn }
     }
     // the same secret on both sides: matching glow
     Repeater {
@@ -52,15 +52,13 @@ Item {
     }
     Row {
         y: 100; spacing: 6
-        Chip { text: "ML-KEM"; }
-        Chip { text: "post-quantum safe" }
-        Chip { visible: anim.record && anim.record.facts.cap_bytes !== undefined; text: (anim.record ? anim.record.facts.cap_bytes : "") + " bytes sealed" }
+        Chip { text: T.kemName }
+        Chip { text: T.kemSafe }
+        Chip { visible: anim.record && anim.record.facts.cap_bytes !== undefined; text: Theme.fmt(T.kemBytes, { n: anim.record ? anim.record.facts.cap_bytes : "" }) }
     }
     Lbl {
         anchors.bottom: parent.bottom; width: parent.width
         size: Theme.caption; tone: "muted"
-        text: anim.opened ? "Both sides now hold the same secret (green rings). The secret itself was never sent."
-            : anim.sealed ? "A fresh secret is sealed with the public key. Only the matching private key opens it."
-            : "The open lock is the public key. Anyone may use it to seal."
+        text: anim.opened ? T.kemOpened : anim.sealed ? T.kemSealing : T.kemPublic
     }
 }

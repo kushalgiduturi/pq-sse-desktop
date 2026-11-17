@@ -18,8 +18,8 @@ Item {
     visible: opacity > 0.01
     opacity: open ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Theme.fast } }
-    function show() { copied = false; open = true; closeButton.forceActiveFocus() }
-    Keys.onEscapePressed: open = false
+    function show() { copied = false; open = true; (actionText.length > 0 ? actionButton : closeButton).forceActiveFocus() }
+    Keys.onEscapePressed: { open = false; dismissed() }
 
     Rectangle { anchors.fill: parent; color: Theme.tint(Theme.roomTop, 0.55); TapHandler { onTapped: sheet.open = false } }
     Glass {
@@ -52,7 +52,7 @@ Item {
             }
             Row {
                 spacing: 10
-                PButton { visible: sheet.actionText.length > 0; text: sheet.actionText; primary: true; onClicked: { sheet.open = false; sheet.action() } }
+                PButton { id: actionButton; visible: sheet.actionText.length > 0; text: sheet.actionText; primary: true; onClicked: { sheet.open = false; sheet.action() } }
                 PButton { id: closeButton; text: sheet.closeText; primary: sheet.actionText.length === 0; onClicked: { sheet.open = false; sheet.dismissed() } }
                 PButton {
                     visible: sheet.technical.length > 0

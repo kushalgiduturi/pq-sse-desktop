@@ -22,6 +22,35 @@ Window {
     readonly property var pages: ["journey", "stage", "workspace", "lab", "insights"]
     readonly property bool software: GraphicsInfo.api === GraphicsInfo.Software
     readonly property real inspectorWidth: Math.min(500, width * 0.36)
+    // A modal layer is open: everything behind it is disabled, so Tab cannot leave it,
+    // and the control that had the focus gets it back when the layer closes.
+    readonly property bool modalOpen: palette.open || errorSheet.open || glossarySheet.open || welcomeSheet.open
+    property var focusBefore: null
+    onModalOpenChanged: {
+        if (modalOpen) {
+            if (!focusBefore) focusBefore = win.activeFocusItem
+        } else {
+            var item = focusBefore
+            focusBefore = null
+            // after this change has re-enabled the layers behind the closed one
+            Qt.callLater(function () { if (item && item.visible && item.enabled) item.forceActiveFocus() })
+        }
+    }
+    // Keyboard focus moved: scroll every scrolling area that holds the focused control so it is visible.
+    onActiveFocusItemChanged: ensureVisible(activeFocusItem)
+    function ensureVisible(item) {
+        if (!item) return
+        for (var p = item.parent; p; p = p.parent) {
+            if (p.contentItem !== undefined && p.contentY !== undefined && p.flickableDirection !== undefined) {
+                var top = item.mapToItem(p.contentItem, 0, 0).y
+                var bottom = top + item.height
+                var margin = 16
+                if (top - margin < p.contentY) p.contentY = Math.max(0, top - margin)
+                else if (bottom + margin > p.contentY + p.height)
+                    p.contentY = Math.min(Math.max(0, p.contentHeight - p.height), bottom + margin - p.height)
+            }
+        }
+    }
 
     function go(key) { if (pages.indexOf(key) >= 0) page = key }
     function inspect(index) {
@@ -113,6 +142,7 @@ Window {
     // ------------------------------------------------------------------ content layer: pages
     Item {
         id: host
+        enabled: !win.modalOpen
         anchors.top: storyBar.bottom; anchors.topMargin: Theme.s16
         anchors.bottom: dock.top; anchors.bottomMargin: Theme.s16
         anchors.left: parent.left; anchors.leftMargin: Theme.s32
@@ -144,30 +174,35 @@ Window {
     // ------------------------------------------------------------------ floating layer
     StoryBar {
         id: storyBar
+        enabled: !win.modalOpen
         anchors.top: parent.top; anchors.topMargin: Theme.s16
         anchors.left: parent.left; anchors.leftMargin: Theme.s24
         anchors.right: parent.right; anchors.rightMargin: Theme.s24
         onOpenPalette: palette.show()
         onOpenInsights: win.go("insights")
         onOpenWorkspaceCloud: { app.setRole("cloud"); win.go("workspace") }
+        onOpenInspector: win.inspect(events.count - 1)
     }
     Dock {
         id: dock
+        enabled: !win.modalOpen
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.s16
         current: win.page
         onChosen: (key) => win.go(key)
     }
     PButton {
+        enabled: !win.modalOpen
         anchors.right: parent.right; anchors.rightMargin: Theme.s24
         anchors.verticalCenter: dock.verticalCenter
-        visible: !win.inspectorOpen
+        visible: !win.inspectorOpen && !Theme.large
         text: T.inspectorOpen
         onClicked: win.inspect(events.count - 1)
         Accessible.description: T.inspectorOpenHint
     }
     Inspector {
         id: inspector
+        enabled: !win.modalOpen
         width: win.inspectorWidth
         anchors.top: storyBar.bottom; anchors.topMargin: Theme.s16
         anchors.bottom: dock.top; anchors.bottomMargin: Theme.s16

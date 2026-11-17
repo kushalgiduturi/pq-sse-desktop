@@ -13,6 +13,19 @@ Item {
     readonly property var current: { for (var i = 0; i < attacks.length; i++) if (attacks[i].key === chosen) return attacks[i]; return null }
     property real progress: 0
     function replay() { progress = 0; if (Theme.reduceMotion) progress = 1; else player.restart() }
+    // Shared-element transition: a copy of the chosen card grows into the detail panel,
+    // then the detail fades in where it landed. With Reduce motion the detail just appears.
+    function open(card, key) {
+        if (key === chosen) return
+        if (Theme.reduceMotion) { chosen = key; return }
+        var from = card.mapToItem(lab, 0, 0)
+        var to = detailArea.mapToItem(lab, 0, 0)
+        ghost.x = from.x; ghost.y = from.y; ghost.width = card.width; ghost.height = card.height
+        ghost.title = card.modelData.title
+        ghost.toX = to.x; ghost.toY = to.y; ghost.toW = detailArea.width; ghost.toH = Math.min(320, lab.height - to.y)
+        ghost.pending = key
+        grow.restart()
+    }
     onCurrentChanged: replay()
     NumberAnimation { id: player; target: lab; property: "progress"; from: 0; to: 1; duration: 3200 }
     Connections { target: app; function onAttackFinished(key) { if (key === lab.chosen) lab.replay() } }
@@ -52,9 +65,9 @@ Item {
                     Behavior on scale { SpringAnimation { spring: Theme.hoverSpring; damping: Theme.hoverDamping } }
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
-                    Accessible.name: modelData.title + ". " + modelData.line + ". " + (modelData.ran ? (modelData.passed ? "Caught by " + modelData.caughtBy : T.labNotCaught) : T.labNotRun)
-                    Keys.onReturnPressed: lab.chosen = modelData.key
-                    Keys.onSpacePressed: lab.chosen = modelData.key
+                    Accessible.name: Theme.fmt(T.labCardName, { title: modelData.title, line: modelData.line, state: modelData.ran ? (modelData.passed ? Theme.fmt(T.labCaughtShort, { by: modelData.caughtBy }) : T.labNotCaught) : T.labNotRun })
+                    Keys.onReturnPressed: lab.open(card, modelData.key)
+                    Keys.onSpacePressed: lab.open(card, modelData.key)
                     Column {
                         id: inside
                         width: parent.width
@@ -71,13 +84,14 @@ Item {
                                    : card.modelData.passed ? T.labCaught.replace("{by}", card.modelData.caughtBy) : T.labNotCaught }
                     }
                     HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: lab.chosen = card.modelData.key }
+                    TapHandler { onTapped: lab.open(card, card.modelData.key) }
                 }
             }
         }
     }
 
     Flickable {
+        id: detailArea
         anchors.top: header.bottom; anchors.topMargin: Theme.s16
         anchors.bottom: parent.bottom
         anchors.left: grid.right; anchors.leftMargin: Theme.s16
@@ -91,7 +105,10 @@ Item {
 
             // ---- the chosen attack
             TaskCard {
+                id: detailCard
                 visible: lab.current !== null
+                opacity: 1
+                Behavior on opacity { NumberAnimation { duration: Theme.base } }
                 width: parent.width
                 title: lab.current ? lab.current.title : ""
                 rim: Theme.attacker
@@ -144,10 +161,10 @@ Item {
                                 x: 14; y: 14; width: parent.width - 28; spacing: 8
                                 Lbl { text: column.modelData.name; strong: true; size: Theme.bodyLarge }
                                 Chip { maxWidth: parent.width; mark: column.modelData.safe ? "ok" : "fail"
-                                       text: column.modelData.safe ? "Old documents: locked" : "Old documents: still readable" }
-                                Chip { maxWidth: parent.width; mark: "ok"; text: "New documents: locked" }
+                                       text: column.modelData.safe ? T.labOldLocked : T.labOldReadable }
+                                Chip { maxWidth: parent.width; mark: "ok"; text: T.labNewLocked }
                                 Lbl { width: parent.width; visible: lab.collusion && lab.collusion.ran && lab.collusion.lines.length > column.modelData.line
-                                      text: lab.collusion && lab.collusion.lines.length > column.modelData.line ? "Measured: " + lab.collusion.lines[column.modelData.line] : ""
+                                      text: lab.collusion && lab.collusion.lines.length > column.modelData.line ? Theme.fmt(T.labMeasured, { line: lab.collusion.lines[column.modelData.line] }) : ""
                                       size: Theme.caption }
                                 Lbl { width: parent.width; text: column.modelData.note; tone: "secondary"; size: Theme.caption }
                             }
@@ -159,5 +176,32 @@ Item {
                           onClicked: app.runAttack("collusion") }
             }
         }
+    }
+
+    // the travelling copy of a card (shared element)
+    Rectangle {
+        id: ghost
+        property string title: ""
+        property string pending: ""
+        property real toX: 0; property real toY: 0; property real toW: 0; property real toH: 0
+        visible: false
+        z: 20
+        radius: Theme.rCard
+        color: Theme.tint(Theme.glassFill, 0.97)
+        border.width: 2; border.color: Theme.attacker
+        Lbl { x: 20; y: 18; text: ghost.title; strong: true; size: Theme.title }
+    }
+    SequentialAnimation {
+        id: grow
+        ScriptAction { script: { ghost.visible = true; ghost.opacity = 1; detailCard.opacity = 0 } }
+        ParallelAnimation {
+            NumberAnimation { target: ghost; property: "x"; to: ghost.toX; duration: Theme.slow; easing.type: Easing.OutCubic }
+            NumberAnimation { target: ghost; property: "y"; to: ghost.toY; duration: Theme.slow; easing.type: Easing.OutCubic }
+            NumberAnimation { target: ghost; property: "width"; to: ghost.toW; duration: Theme.slow; easing.type: Easing.OutCubic }
+            NumberAnimation { target: ghost; property: "height"; to: ghost.toH; duration: Theme.slow; easing.type: Easing.OutCubic }
+        }
+        ScriptAction { script: { lab.chosen = ghost.pending; detailCard.opacity = 1 } }
+        NumberAnimation { target: ghost; property: "opacity"; to: 0; duration: Theme.base }
+        ScriptAction { script: ghost.visible = false }
     }
 }

@@ -15,7 +15,7 @@ Item {
     readonly property var cloud: app.state.cloud
     readonly property var doctors: app.state.receivers
     readonly property string lensDoctor: doctors.length > 0 ? doctors[0].name : "bob"
-    readonly property var lensNotes: [T.lensNoteEveryone, T.lensNoteAlice, T.lensNoteBob.replace(/Bob/g, cap(lensDoctor)).replace(/his/g, "their").replace(/him/g, "them"), T.lensNoteCloud]
+    readonly property var lensNotes: [T.lensNoteEveryone, T.lensNoteAlice, Theme.fmt(T.lensNoteDoctor, { who: cap(lensDoctor) }), T.lensNoteCloud]
     function cap(s) { return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s }
     function hiddenFrom(zone) {             // zone: "alice", "cloud" or a doctor's name
         if (lens === 0) return false
@@ -57,8 +57,8 @@ Item {
         id: lensControl
         anchors.horizontalCenter: parent.horizontalCenter
         width: Math.min(620, parent.width - 40)
-        name: "Whose view"
-        labels: [T.lensEveryone, T.lensAlice, stage.cap(stage.lensDoctor) + " sees", T.lensCloud]
+        name: T.lensName
+        labels: [T.lensEveryone, T.lensAlice, Theme.fmt(T.lensDoctorSees, { who: stage.cap(stage.lensDoctor) }), T.lensCloud]
         current: stage.lens
         onChosen: (i) => stage.lens = i
     }
@@ -69,7 +69,7 @@ Item {
         property string who: ""
         width: parent.width; spacing: 6
         Repeater { model: 4; Rectangle { required property int index; width: parent.width * [0.9, 0.7, 0.8, 0.5][index]; height: 10; radius: 5; color: Theme.tint(Theme.textMuted, 0.35) } }
-        Lbl { width: parent.width; tone: "muted"; size: Theme.caption; text: "Not visible to " + who + "." }
+        Lbl { width: parent.width; tone: "muted"; size: Theme.caption; text: Theme.fmt(T.notVisible, { who: who }) }
     }
     component Zone: Glass {
         id: zone
@@ -87,7 +87,9 @@ Item {
         Accessible.name: label + ". " + sub
         Row { id: zoneHead; spacing: 12
               Avatar { who: zone.label; size: 44; color: Theme.roleColor(zone.name) }
-              Column { Lbl { text: zone.label; size: Theme.title; strong: true } Lbl { text: zone.sub; tone: "secondary"; size: Theme.caption } } }
+              Column { width: zone.width - 2 * zone.padding - 56
+                       Lbl { text: zone.label; size: Theme.title; strong: true; width: parent.width; elide: Text.ElideRight; wrapMode: Text.NoWrap }
+                       Lbl { text: zone.sub; tone: "secondary"; size: Theme.caption; width: parent.width } } }
         Flickable {
             anchors.top: zoneHead.bottom; anchors.topMargin: 12
             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
@@ -108,7 +110,7 @@ Item {
             id: aliceZone
             name: "alice"; label: T.stageTitleAlice; sub: T.stageSubAlice
             width: field.side; height: parent.height
-            Hidden { visible: stage.hiddenFrom("alice"); who: stage.lens === 3 ? "the cloud" : stage.cap(stage.lensDoctor) }
+            Hidden { visible: stage.hiddenFrom("alice"); who: stage.lens === 3 ? T.theCloud : stage.cap(stage.lensDoctor) }
             Lbl { visible: !stage.hiddenFrom("alice") && !stage.owner.open; width: parent.width; text: T.stageNoOwner; tone: "secondary" }
             Repeater {
                 model: stage.hiddenFrom("alice") ? [] : stage.owner.groups
@@ -116,7 +118,7 @@ Item {
                     id: groupBox
                     required property var modelData
                     width: parent.width; spacing: 4
-                    Chip { maxWidth: groupBox.width; text: modelData.name + ": " + modelData.docs.length + " documents, key period " + modelData.epoch; mark: "dot"; dot: Theme.alice }
+                    Chip { maxWidth: groupBox.width; text: Theme.fmt(T.stageGroup, { g: modelData.name, n: modelData.docs.length, e: modelData.epoch }); mark: "dot"; dot: Theme.alice }
                     Repeater {
                         model: groupBox.modelData.docs.slice(0, 4)
                         Rectangle {
@@ -126,7 +128,7 @@ Item {
                             Lbl { id: docTitle; x: 10; width: parent.width - 20; anchors.verticalCenter: parent.verticalCenter; text: modelData.title; size: Theme.caption; maximumLineCount: 1; elide: Text.ElideRight; wrapMode: Text.NoWrap }
                         }
                     }
-                    Lbl { visible: groupBox.modelData.docs.length > 4; text: "and " + (groupBox.modelData.docs.length - 4) + " more"; tone: "muted"; size: Theme.caption }
+                    Lbl { visible: groupBox.modelData.docs.length > 4; text: Theme.fmt(T.stageMore, { n: groupBox.modelData.docs.length - 4 }); tone: "muted"; size: Theme.caption }
                 }
             }
             Lbl { visible: !stage.hiddenFrom("alice") && stage.owner.open; width: parent.width; text: T.keyPicture; tone: "muted"; size: Theme.caption }
@@ -141,12 +143,12 @@ Item {
             scale: Theme.reduceMotion ? 1 : 0.97
             Lbl { visible: !stage.cloud.running; width: parent.width; text: T.stageNoCloud; tone: "secondary" }
             Lbl { visible: stage.cloud.running && stage.cloud.docs === 0; width: parent.width; text: T.stageCloudEmpty; tone: "secondary" }
-            Chip { maxWidth: parent.width; visible: stage.cloud.docs > 0; text: stage.cloud.docs + " locked documents, " + stage.cloud.entries + " index entries"; mark: "dot"; dot: Theme.cloud }
+            Chip { maxWidth: parent.width; visible: stage.cloud.docs > 0; text: Theme.fmt(T.stageStored, { docs: stage.cloud.docs, entries: stage.cloud.entries }); mark: "dot"; dot: Theme.cloud }
             Repeater {
                 model: stage.cloud.storedDocs
                 Lbl { required property var modelData; width: parent.width; text: modelData.hex.substr(0, 44).replace(/(..)/g, "$1 "); font.family: Theme.monoFamily; size: Theme.caption; tone: "muted"; maximumLineCount: 1; wrapMode: Text.NoWrap; elide: Text.ElideRight }
             }
-            Lbl { visible: stage.cloud.docs > 0; width: parent.width; text: "These are the real stored bytes. " + stage.cloud.requests + " requests so far."; tone: "muted"; size: Theme.caption }
+            Lbl { visible: stage.cloud.docs > 0; width: parent.width; text: Theme.fmt(T.stageRealBytes, { n: stage.cloud.requests }); tone: "muted"; size: Theme.caption }
         }
 
         Column {
@@ -162,16 +164,16 @@ Item {
                     id: docZone
                     required property var modelData
                     name: modelData.name; label: modelData.display
-                    sub: T.stageSubDoctor + (modelData.joined ? ". May search: " + modelData.groups.join(", ") : ". Has not joined yet.")
+                    sub: T.stageSubDoctor + (modelData.joined ? Theme.fmt(T.doctorMaySearch, { groups: modelData.groups.join(", ") }) : T.doctorNotJoined)
                     width: field.side
                     height: (field.height - (Math.min(3, stage.doctors.length) - 1) * Theme.s12) / Math.max(1, Math.min(3, stage.doctors.length))
                     Hidden { visible: stage.lens === 2 && stage.hiddenFrom(docZone.name); who: stage.cap(stage.lensDoctor) }
                     Lbl { visible: stage.lens === 3 || stage.lens === 1; width: parent.width; tone: "muted"; size: Theme.caption
-                          text: stage.lens === 3 ? "The cloud knows this pass and its groups. It does not know what was searched." : "Alice knows whom she approved. She does not see searches." }
+                          text: stage.lens === 3 ? T.stageCloudKnows : T.stageAliceKnows }
                     Chip { maxWidth: parent.width; visible: (stage.lens === 0 || (stage.lens === 2 && !stage.hiddenFrom(docZone.name))) && docZone.modelData.result.keyword !== undefined && docZone.modelData.result.keyword !== ""
-                           text: "'" + docZone.modelData.result.keyword + "': " + (docZone.modelData.result.hits ? docZone.modelData.result.hits.length : 0) + " matches, checks passed"; mark: "ok" }
+                           text: Theme.fmt(T.stageMatches, { w: docZone.modelData.result.keyword, n: docZone.modelData.result.hits ? docZone.modelData.result.hits.length : 0 }); mark: "ok" }
                     Lbl { visible: (stage.lens === 0 || (stage.lens === 2 && !stage.hiddenFrom(docZone.name))) && docZone.modelData.opened.title !== undefined
-                          width: parent.width; size: Theme.caption; text: "Opened: " + (docZone.modelData.opened.title || "") }
+                          width: parent.width; size: Theme.caption; text: Theme.fmt(T.stageOpened, { title: docZone.modelData.opened.title || "" }) }
                 }
             }
         }

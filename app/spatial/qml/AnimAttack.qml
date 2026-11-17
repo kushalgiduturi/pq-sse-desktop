@@ -21,7 +21,7 @@ Item {
         color: Theme.attacker
         Lbl { anchors.centerIn: parent; text: "!"; color: Theme.onRole; size: Theme.title; strong: true }
     }
-    Lbl { x: 0; y: 80; text: "attacker"; size: Theme.caption; tone: "secondary" }
+    Lbl { x: 0; y: 80; text: T.attackFigure; size: Theme.caption; tone: "secondary" }
 
     // the item under attack
     Item {
@@ -45,7 +45,7 @@ Item {
         Lbl { anchors.centerIn: parent; text: anim.cracked ? "✕" : ""; color: Theme.fail; size: Theme.headline; strong: true }
     }
     Lbl { x: 120; y: 86; width: 100; horizontalAlignment: Text.AlignHCenter; size: Theme.caption; tone: "secondary"
-          text: anim.cracked ? "tampered item, refused" : "item under attack" }
+          text: anim.cracked ? T.attackCracked : T.attackItem }
 
     // the checks, in the order the run reached them
     Column {
@@ -53,7 +53,7 @@ Item {
         width: parent.width - 240
         spacing: 3
         Lbl { visible: anim.checks.length === 0; width: parent.width; size: Theme.caption; tone: "secondary"
-              text: anim.ran ? (anim.record.caughtBy ? "Stopped by: " + anim.record.caughtBy : "") : "Run the attack to see which check reacts." }
+              text: anim.ran ? (anim.record.caughtBy ? Theme.fmt(T.attackStopped, { by: anim.record.caughtBy }) : "") : T.attackRunFirst }
         Repeater {
             model: anim.checks
             Row {
@@ -65,7 +65,7 @@ Item {
                 opacity: shown ? 1 : 0.3
                 Text { width: 14; text: !line.shown ? "○" : line.modelData[1] ? "✓" : "✕"
                        color: !line.shown ? Theme.textMuted : line.modelData[1] ? Theme.ok : Theme.fail; font.pixelSize: Theme.body; font.weight: Font.Bold }
-                Lbl { text: line.modelData[0] + (line.shown && !line.modelData[1] ? ": caught here" : ""); size: Theme.caption
+                Lbl { text: line.shown && !line.modelData[1] ? Theme.fmt(T.attackCaughtHere, { name: line.modelData[0] }) : line.modelData[0]; size: Theme.caption
                       strong: line.shown && !line.modelData[1]; tone: line.shown ? "primary" : "muted" }
             }
         }
@@ -77,6 +77,6 @@ Item {
         opacity: anim.named ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.base } }
         mark: anim.record && anim.record.passed ? "ok" : "fail"
-        text: anim.record ? (anim.record.passed ? "Caught by: " + anim.record.caughtBy : "NOT caught") : ""
+        text: anim.record ? (anim.record.passed ? Theme.fmt(T.labCaught, { by: anim.record.caughtBy }) : T.labNotCaught) : ""
     }
 }

@@ -95,7 +95,7 @@ Item {
                             width: tip.implicitWidth + 16; height: tip.implicitHeight + 10; radius: 8
                             color: Theme.glassRaised; border.width: 1; border.color: Theme.glassStroke
                             Lbl { id: tip; anchors.centerIn: parent; size: Theme.caption; wrapMode: Text.NoWrap
-                                  text: (bar.modelData ? T.benchLegendGpu : T.benchLegendCpu) + ", " + group.modelData.toLocaleString(Qt.locale("en_US"), "f", 0) + " entries: " + bar.v.toFixed(4) + " s" }
+                                  text: Theme.fmt(T.chartTooltip, { engine: bar.modelData ? T.benchLegendGpu : T.benchLegendCpu, n: group.modelData.toLocaleString(Qt.locale("en_US"), "f", 0), s: bar.v.toFixed(4) }) }
                         }
                     }
                 }
