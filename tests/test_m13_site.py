@@ -91,3 +91,14 @@ def test_site_static_checks():
                     reason="needs Qt WebEngine (the dev environment has it; the release build environment does not)")
 def test_site_browser_checks():
     _check_site()
+
+
+def test_feature_inventory_matches_the_app_and_is_up_to_date():
+    """Every label in site/data/features.json is a string the app shows, every named test exists,
+    and docs/FEATURE_INVENTORY.md is the current rendering of the JSON."""
+    import json
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import build_feature_inventory as inv
+    data = json.loads(inv.FEATURES.read_text(encoding="utf-8"))
+    assert inv.check(data) == []
+    assert inv.OUT.read_text(encoding="utf-8") == inv.render(data), "run scripts/build_feature_inventory.py"
