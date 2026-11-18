@@ -597,6 +597,58 @@ html.sp-ui .sp-type > * { margin: 0 0 var(--sp-3); }
   html.sp-ui .sp-seg { display: flex; width: 100%; }
 }
 
+/* ── 22b. product first: split hero, theme twins, flow, features ───────── */
+html.sp-ui .sp-hero--split {
+  max-width: none; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(24px, 4vw, 56px);
+  align-items: center; padding: clamp(16px, 5vh, 48px) 0 clamp(32px, 7vh, 72px);
+}
+html.sp-ui .sp-hero--split h1 { font-size: var(--sp-fs-display); line-height: 1.1; }
+html.sp-ui .sp-hero--split .sp-hero-lede { margin: var(--sp-4) 0 0; color: var(--sp-text); font-size: var(--sp-fs-md); line-height: 1.55; }
+html.sp-ui .sp-hero--split .sp-hero-who { margin: var(--sp-3) 0 0; color: var(--sp-text-2); font-size: var(--sp-fs-sm); line-height: 1.5; }
+html.sp-ui .sp-hero--split .sp-actions { margin-top: var(--sp-6); }
+html.sp-ui .sp-hero-shot figcaption { font-size: var(--sp-fs-xs); }
+html.sp-ui img.sp-on-light { display: none; }
+html.sp-ui[data-theme="light"] img.sp-on-light { display: block; }
+html.sp-ui[data-theme="light"] img.sp-on-dark { display: none; }
+@media (prefers-color-scheme: light) {
+  html.sp-ui:not([data-theme="dark"]) img.sp-on-light { display: block; }
+  html.sp-ui:not([data-theme="dark"]) img.sp-on-dark { display: none; }
+}
+html.sp-ui .sp-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+html.sp-ui .sp-flow li { padding: var(--sp-1) var(--sp-5); border-left: 1px solid var(--sp-hair); min-width: 0; }
+html.sp-ui .sp-flow li:first-child { padding-left: 0; border-left: 0; }
+html.sp-ui .sp-flow b { display: block; margin: var(--sp-2) 0 var(--sp-1); font-weight: 650; }
+html.sp-ui .sp-flow span:not(.sp-flow-num) { color: var(--sp-text-2); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-flow-num { color: var(--sp-text-3); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-metrics--links .sp-metric { color: inherit; text-decoration: none; }
+html.sp-ui .sp-metrics--links .sp-metric:hover .sp-metric-label { color: var(--sp-text); text-decoration: underline; }
+html.sp-ui .sp-small { font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-toc { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin-top: var(--sp-5); font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-feature { padding: var(--sp-5) 0; border-top: 1px solid var(--sp-hair); scroll-margin-top: 96px; }
+html.sp-ui .sp-section-head + .sp-feature { border-top: 0; padding-top: 0; }
+html.sp-ui .sp-feature h3 { margin: 0 0 var(--sp-2); font-size: var(--sp-fs-md); font-weight: 650; }
+html.sp-ui .sp-feature h3 .sp-pill { margin-left: var(--sp-2); vertical-align: 2px; }
+html.sp-ui .sp-feature > p { margin: 0 0 var(--sp-3); max-width: var(--sp-prose-max); }
+html.sp-ui .sp-dl { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: var(--sp-1) var(--sp-5); margin: 0; font-size: var(--sp-fs-sm); }
+html.sp-ui .sp-dl dt { color: var(--sp-text-2); }
+html.sp-ui .sp-dl dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+html.sp-ui .sp-dl code { font-family: var(--sp-font-mono); font-size: var(--sp-fs-xs); }
+html.sp-ui .sp-sub-section { padding: var(--sp-5) 0 0; border-top: 1px solid var(--sp-hair); scroll-margin-top: 96px; }
+html.sp-ui .sp-sub-section h3 { margin: 0 0 var(--sp-2); font-size: var(--sp-fs-md); font-weight: 650; }
+html.sp-ui .sp-sub-section > p { max-width: var(--sp-prose-max); }
+html.sp-ui .sp-anchor { display: block; scroll-margin-top: 96px; }
+html.sp-ui .sp-num { text-align: right; }
+@media (max-width: 1023px) {
+  html.sp-ui .sp-hero--split { grid-template-columns: 1fr; }
+  html.sp-ui .sp-flow { grid-template-columns: 1fr; }
+  html.sp-ui .sp-flow li { padding: var(--sp-3) 0; border-left: 0; border-top: 1px solid var(--sp-hair); }
+  html.sp-ui .sp-flow li:first-child { border-top: 0; }
+}
+@media (max-width: 760px) {
+  html.sp-ui .sp-dl { grid-template-columns: 1fr; gap: 0; }
+  html.sp-ui .sp-dl dd { margin-bottom: var(--sp-2); }
+}
+
 /* ── 23. print: the install guide on paper ─────────────────────────────── */
 @media print {
   html.sp-ui, html.sp-ui[data-theme] {

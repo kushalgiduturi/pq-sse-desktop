@@ -21,6 +21,10 @@ key = "home"
 href = "index.html"
 label = "Home"
 [[nav]]
+key = "features"
+href = "features.html"
+label = "Features"
+[[nav]]
 key = "download"
 href = "download.html"
 label = "Download"
@@ -52,41 +56,121 @@ links = [
 ]
 
 [home]
-title = "PQ-SSE Desktop: search locked files without unlocking them"
-hero = "Search locked files without unlocking them"
-hero_text = "Alice keeps her documents in a cloud she does not trust. Bob and Carol may search some of them. The cloud stores everything, answers every search, and never sees a word. PQ-SSE Desktop lets you watch that happen on your own PC, step by step."
+title = "PQ-SSE Desktop: search encrypted documents through a server you do not trust"
+description = "PQ-SSE Desktop is a free Windows app that encrypts documents, lets approved people search them through a server that never sees the words, and checks every answer. Post-quantum keys (ML-KEM, ML-DSA). Research and teaching software."
+hero = "Search encrypted documents through a server you do not trust"
+lede = "PQ-SSE Desktop is a Windows app that encrypts documents, lets the people you approve search them through a storage server that never sees the words, and checks that every answer is complete and unchanged. Its keys and signatures use the post-quantum standards ML-KEM and ML-DSA."
+audience = "For students and teachers of cryptography, researchers reproducing the PQ-SSE paper, and anyone who wants to watch searchable encryption run. Not for protecting real records: it has not been audited."
 primary = "Download for Windows"
-secondary = "How it works"
+secondary = "See the features"
 meta = "Free and open source. Windows 10 or 11, 64-bit. Version {version}, released {released}."
+# the hero screenshot: [name of the light picture, name of the dark picture, alt text, caption]
+hero_shot = ["light-workspace-alice", "dark-workspace-alice",
+  "The Workspace screen of PQ-SSE Desktop, working as Alice, the data owner.",
+  "The Workspace screen as Alice, the data owner: her keys are unlocked, four documents in the group Finance, and the fields to add another. The bar at the top says in one sentence what just happened."]
 
-cast_title = "Who is in the story"
+can_title = "What you can do with it"
+can_more = "All features"
+# [title, sentence, anchor on the Features page]
+can = [
+  ["Lock and index documents", "Add or import documents (.txt, .md, .pdf). Each one is encrypted before it leaves the owner's side, and an encrypted index makes it searchable.", "documents"],
+  ["Approve who may search which group", "A person sends a signed join request. The owner sees its key fingerprint, ticks the groups they may search, and approves.", "join"],
+  ["Search without unlocking", "Type one word. The app turns it into secret addresses, and the server returns what is stored there without learning the word.", "search"],
+  ["Check every answer", "Before anything is shown, {counts.checks} checks confirm the answer is signed, complete, unchanged and recent. If one fails, nothing is shown.", "verify"],
+  ["Change the locks when someone leaves", "Revoke a person: the server refuses their pass and each group they had gets a new key. Choose quick (policy R) or thorough (policy RE).", "revoke"],
+  ["Attack it and watch it fail", "{security_lab.attacks} attacks by a cheating server or an outsider run on a throwaway copy, and each one shows the check that stopped it.", "security-lab"],
+]
+
+flow_title = "What happens when you search"
+flow_more = "How it works, step by step"
+# [what happens, one plain sentence]
+flow = [
+  ["You type a word", "It stays on your computer."],
+  ["The app makes a token", "The word becomes a list of secret addresses, encrypted so that only the server can read the list."],
+  ["The server looks them up", "It returns what is stored at those addresses, with its signature. It never learns the word."],
+  ["The app checks the answer", "{counts.checks} checks against the owner's signed summary. One failure and nothing is shown."],
+  ["You open what you may", "Documents decrypt only with the keys of the groups you were approved for."],
+]
+
+screens_title = "Inside the app"
+screens_more = "Every feature, by screen"
+# one line per screen; the screen names come from the app (app/spatial/copy.py)
+screens = { journey = "A guided lesson of {counts.lesson_steps} short steps that runs the real system in a separate practice area, plus {counts.challenges} challenges.", stage = "What each party holds and what moved between them, with a lens to see the same data as Alice, a doctor or the server sees it.", workspace = "The working tools, one role at a time: the data owner, a doctor, or the storage server.", lab = "{security_lab.attacks} attacks and a comparison of the two ways to revoke, each run on a throwaway copy.", insights = "The GPU engine and its self-test, measurements, settings, the data folder, logs and About." }
+
+proof_title = "Proof, not claims"
+proof_note = "Measured on {measured} on {machine.cpu}, {machine.gpu}, {machine.os}, Python {machine.python}, post-quantum code: {machine.pq_backend}. Timings are from the app's own benchmark with {bench.default_params}, all three parties in one process (the same encoded messages as over HTTP, without the network)."
+# [value, label, link]; values are filled from site/data/facts.json and the release file list
+proof = [
+  ["{tests.passed}", "automated tests passed", "features.html#evidence"],
+  ["{security_lab.caught} of {security_lab.attacks}", "attacks caught by a named check", "features.html#security-lab"],
+  ["{counts.checks}", "checks on every search answer", "features.html#verify"],
+  ["{bench.search_ms} ms", "one search: token, lookup and checks", "features.html#measured"],
+  ["{bench.revoke_r_ms} ms", "revoking one person, policy R", "features.html#measured"],
+  ["{web_size}", "web installer", "download.html"],
+]
+
+limits_title = "Read this before you rely on it"
+limits_more = "Security and privacy in full"
+limits = [
+  "Research and teaching software. It has not been audited. Do not use it to protect real records.",
+  "The default post-quantum code is pure Python: slow, and not constant time.",
+  "The server runs on the same PC (127.0.0.1, no TLS). There is no setup across several machines.",
+  "The server still learns sizes, counts, timing and when a search is repeated. It never sees words, text or keys.",
+  "Policy R leaves older documents readable to a revoked person who teams up with the server. Policy RE closes that gap at a higher cost.",
+  "The GPU only speeds up building large indexes. For small ones it is slower than the processor.",
+  "The installers are not code signed, so Windows warns before it runs them.",
+]
+
+lesson_title = "How the lesson tells it"
+lesson_text = "The guided lesson in Journey gives each party a name, so every step has someone attached to it. The same names appear on the Stage."
+lesson_more = "About Journey"
 cast = [
-  ["person", "Alice", "Owns the documents and holds the keys. She decides who may search what."],
-  ["cloud", "The Cloud", "Rented storage. It keeps the locked documents and answers searches, but cannot read either."],
-  ["person", "Bob and Carol", "Doctors. Each may search only the groups Alice approved, and can prove the answer is complete."],
+  ["person", "Alice", "A hospital records manager: the data owner. She holds the keys and decides who may search which group."],
+  ["person", "Bob and Carol", "Doctors: receivers. Each may search only the groups Alice approved them for."],
+  ["cloud", "The Cloud", "Rented storage that nobody trusts: the server. It stores the encrypted documents and answers searches."],
 ]
 
-shots_title = "What it looks like"
-shots = [
-  ["dark-stage", "The Stage in the dark theme: Alice, the Cloud and Bob, with the real stored bytes in the middle."],
-  ["light-workspace-alice", "Alice's workspace in the light theme: her keys, her documents and who may search them."],
-  ["dark-lab", "The Security Lab: each attack runs on a throwaway copy and shows the check that stops it."],
-  ["light-inspector-search", "The step inspector: one real search, replayed at four levels of detail."],
-]
+# ------------------------------------------------------------------ features page
+[features]
+title = "Features"
+description = "Every feature of PQ-SSE Desktop: what it does, where it is in the app (screen and exact button names), what the server sees, its limits, and the tests that cover it."
+lede = "Everything the app does, grouped by what you are trying to do. Button and screen names are the app's own. Each feature says where to find it, what the server sees, and its limits."
+toc_label = "On this page"
+where = "Where"
+labels = "Labels in the app"
+produces = "What you get"
+cloud_sees = "What the server sees"
+limits = "Limits"
+tested = "Tested by"
+status_tested = "Covered by automated tests; not checked by hand for this page"
+status_partial = "Works, with the limit named here"
+source_base = "https://github.com/kushalgiduturi/pq-sse-desktop/blob/master/"
 
-facts_title = "What it is, plainly"
-facts = [
-  "Every step is the real protocol, not an animation of one: ten algorithms, from key setup to revoking a doctor.",
-  "Keys are made with ML-KEM and documents are signed with ML-DSA, the post-quantum standards NIST published in 2024.",
-  "Everything runs on your PC. The cloud part is a second program on the same machine; nothing is sent to the internet.",
-  "It is research and teaching software. It has not been audited, and the post-quantum code is slow and not constant time.",
-]
-next_title = "Where to go next"
-next = [
-  ["download.html", "Download", "Pick the right file for your PC and check it."],
-  ["install.html", "Install guide", "What Windows will ask, and why it warns about new software."],
-  ["how-it-works.html", "How it works", "The ten algorithms in plain language."],
-]
+lab_title = "The Security Lab, run for this page"
+lab_intro = "Each attack was run for real on {measured} by scripts/make_facts.py. The column on the right is the check that stopped it, as the app reports it."
+lab_head = ["Attack", "What the attacker tries", "Stopped by"]
+lab_compare = "The comparison of policy R and policy RE also ran: {compare_result}."
+compare_ok = "it behaved as described"
+compare_failed = "it did not behave as described"
+
+measured_title = "Measured results"
+measured_intro = "From the app's own benchmark (python -m pqsse.bench, the same code as Insights, Measurements), run on {measured}:"
+measured_machine = "{machine.cpu}; {machine.gpu}; {machine.os}; Python {machine.python}; post-quantum code: {machine.pq_backend}."
+measured_ops = "Time per operation, in milliseconds, for each parameter set (mean of 3 runs; all parties in one process, without the network)"
+measured_build = "Building an index on the processor and on the GPU, in seconds ({bench.build_params})"
+measured_build_head = ["Index entries", "Engine", "Secret addresses", "Addresses and hash chain", "Whole step"]
+measured_csv = "The raw numbers as CSV files:"
+measured_honest = "Read the GPU rows honestly: the GPU computes the secret addresses much faster on large batches, but the whole step barely changes, because signing with the pure-Python ML-DSA and encrypting the documents stay on the processor. For small indexes the GPU is slower."
+
+cloud_title = "What the server sees, in one place"
+cloud_sees_label = "It sees"
+cloud_never_label = "It never sees"
+
+evidence_title = "Tests"
+evidence_text = "{tests.passed} of {tests.total} automated tests passed on {measured} ({tests.skipped} skipped, {tests.failed} failed), in {tests.files} test files. Each feature above names the tests that exercise it."
+
+not_title = "Not included"
+not_intro = "Things the app does not do. Each one was checked against the code."
 
 [styleguide]
 title = "Style guide"

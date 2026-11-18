@@ -1,0 +1,31 @@
+operation,kem,sig,backend,milliseconds
+Setup,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),15.160400
+Join,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),185.067167
+"Update (add, 20 keywords)",ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),81.529533
+Publish,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),72.183167
+TokenGen,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),0.287633
+Search,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),63.182000
+Verify,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),11.833067
+Decrypt,ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),11.447433
+"Revoke R (30 docs, remaining users rekeyed)",ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),394.625500
+Revoke RE (30 docs re-encrypted),ML-KEM-512,ML-DSA-44,kyber-py + dilithium-py (pure Python),2355.828700
+Setup,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),25.340900
+Join,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),233.015917
+"Update (add, 20 keywords)",ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),185.468467
+Publish,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),96.489633
+TokenGen,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),0.231567
+Search,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),60.629000
+Verify,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),15.662267
+Decrypt,ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),11.021767
+"Revoke R (30 docs, remaining users rekeyed)",ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),1157.722400
+Revoke RE (30 docs re-encrypted),ML-KEM-768,ML-DSA-65,kyber-py + dilithium-py (pure Python),8553.646900
+Setup,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),96.091400
+Join,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),283.889617
+"Update (add, 20 keywords)",ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),138.677167
+Publish,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),81.625700
+TokenGen,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),0.287767
+Search,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),122.175833
+Verify,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),32.281000
+Decrypt,ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),20.943933
+"Revoke R (30 docs, remaining users rekeyed)",ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),934.772200
+Revoke RE (30 docs re-encrypted),ML-KEM-1024,ML-DSA-87,kyber-py + dilithium-py (pure Python),3175.518600

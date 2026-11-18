@@ -1,0 +1,434 @@
+{
+  "schema": 1,
+  "measured": "2026-11-18",
+  "machine": {
+    "os": "Windows build 10.0.26300",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13620H",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 8 GB",
+    "python": "3.11.9",
+    "pq_backend": "kyber-py + dilithium-py (pure Python)"
+  },
+  "counts": {
+    "checks": 8,
+    "check_names": [
+      "state signature",
+      "segments complete",
+      "older segments final",
+      "freshness",
+      "no rollback",
+      "response signature",
+      "completeness",
+      "hash chain"
+    ],
+    "lesson_steps": 13,
+    "challenges": 7,
+    "features": 31,
+    "screens": 5,
+    "algorithms": 10
+  },
+  "tests": {
+    "total": 192,
+    "passed": 192,
+    "skipped": 0,
+    "failed": 0,
+    "files": 17
+  },
+  "security_lab": {
+    "attacks": 10,
+    "caught": 10,
+    "comparison_ran": true,
+    "rows": [
+      {
+        "key": "drop",
+        "title": "Drop a result",
+        "line": "The cloud omits one matching entry.",
+        "behaved_as_claimed": true,
+        "check": "completeness",
+        "caught_by": "the 'completeness' check in Bob's Verify step"
+      },
+      {
+        "key": "modify",
+        "title": "Modify a result",
+        "line": "The cloud changes one returned value.",
+        "behaved_as_claimed": true,
+        "check": "hash chain",
+        "caught_by": "the 'hash chain' check in Bob's Verify step"
+      },
+      {
+        "key": "reorder",
+        "title": "Reorder results",
+        "line": "The cloud swaps entries.",
+        "behaved_as_claimed": true,
+        "check": "completeness",
+        "caught_by": "the 'completeness' check in Bob's Verify step"
+      },
+      {
+        "key": "truncate",
+        "title": "Truncate results",
+        "line": "The cloud cuts the response short.",
+        "behaved_as_claimed": true,
+        "check": "completeness",
+        "caught_by": "the 'completeness' check in Bob's Verify step"
+      },
+      {
+        "key": "substitute",
+        "title": "Substitute a document",
+        "line": "The cloud returns a different genuine document.",
+        "behaved_as_claimed": true,
+        "check": "document signature",
+        "caught_by": "Alice's stamp (signature) on the document, checked in Bob's Decrypt step"
+      },
+      {
+        "key": "replay",
+        "title": "Replay an update",
+        "line": "An old signed update batch is sent again.",
+        "behaved_as_claimed": true,
+        "check": "bad_sequence",
+        "caught_by": "the update sequence number, checked by the cloud"
+      },
+      {
+        "key": "forge",
+        "title": "Forge an update",
+        "line": "A batch signed by the wrong key.",
+        "behaved_as_claimed": true,
+        "check": "bad_signature",
+        "caught_by": "Alice's stamp (signature) on every update, checked by the cloud"
+      },
+      {
+        "key": "rollback",
+        "title": "Roll back a state",
+        "line": "The cloud serves an older signed state.",
+        "behaved_as_claimed": true,
+        "check": "no rollback",
+        "caught_by": "the 'no rollback' check in Bob's Verify step"
+      },
+      {
+        "key": "expired",
+        "title": "Use an expired state",
+        "line": "The cloud serves a state past its expiry.",
+        "behaved_as_claimed": true,
+        "check": "freshness",
+        "caught_by": "the 'freshness' check in Bob's Verify step"
+      },
+      {
+        "key": "revoked",
+        "title": "Revoked user retries search",
+        "line": "A revoked receiver tries again.",
+        "behaved_as_claimed": true,
+        "check": "revoked",
+        "caught_by": "the cloud's check of the doctor's pass (credential)"
+      },
+      {
+        "key": "collusion",
+        "title": "Collusion: R vs RE",
+        "line": "Revoked user colludes with the cloud.",
+        "behaved_as_claimed": true,
+        "check": "policy RE",
+        "caught_by": "re-locking everything under policy RE (policy R alone does not stop this)"
+      }
+    ]
+  },
+  "bench": {
+    "default_params": "ML-KEM-768 + ML-DSA-65",
+    "build_params": "ML-KEM-512 + ML-DSA-44",
+    "search_ms": 76.5,
+    "revoke_r_ms": 1157.7,
+    "revoke_re_ms": 8553.6,
+    "operations": [
+      {
+        "operation": "Setup",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 15.16
+      },
+      {
+        "operation": "Join",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 185.07
+      },
+      {
+        "operation": "Update (add, 20 keywords)",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 81.53
+      },
+      {
+        "operation": "Publish",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 72.18
+      },
+      {
+        "operation": "TokenGen",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 0.29
+      },
+      {
+        "operation": "Search",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 63.18
+      },
+      {
+        "operation": "Verify",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 11.83
+      },
+      {
+        "operation": "Decrypt",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 11.45
+      },
+      {
+        "operation": "Revoke R (30 docs, remaining users rekeyed)",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 394.63
+      },
+      {
+        "operation": "Revoke RE (30 docs re-encrypted)",
+        "kem": "ML-KEM-512",
+        "sig": "ML-DSA-44",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 2355.83
+      },
+      {
+        "operation": "Setup",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 25.34
+      },
+      {
+        "operation": "Join",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 233.02
+      },
+      {
+        "operation": "Update (add, 20 keywords)",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 185.47
+      },
+      {
+        "operation": "Publish",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 96.49
+      },
+      {
+        "operation": "TokenGen",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 0.23
+      },
+      {
+        "operation": "Search",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 60.63
+      },
+      {
+        "operation": "Verify",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 15.66
+      },
+      {
+        "operation": "Decrypt",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 11.02
+      },
+      {
+        "operation": "Revoke R (30 docs, remaining users rekeyed)",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 1157.72
+      },
+      {
+        "operation": "Revoke RE (30 docs re-encrypted)",
+        "kem": "ML-KEM-768",
+        "sig": "ML-DSA-65",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 8553.65
+      },
+      {
+        "operation": "Setup",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 96.09
+      },
+      {
+        "operation": "Join",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 283.89
+      },
+      {
+        "operation": "Update (add, 20 keywords)",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 138.68
+      },
+      {
+        "operation": "Publish",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 81.63
+      },
+      {
+        "operation": "TokenGen",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 0.29
+      },
+      {
+        "operation": "Search",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 122.18
+      },
+      {
+        "operation": "Verify",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 32.28
+      },
+      {
+        "operation": "Decrypt",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 20.94
+      },
+      {
+        "operation": "Revoke R (30 docs, remaining users rekeyed)",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 934.77
+      },
+      {
+        "operation": "Revoke RE (30 docs re-encrypted)",
+        "kem": "ML-KEM-1024",
+        "sig": "ML-DSA-87",
+        "backend": "kyber-py + dilithium-py (pure Python)",
+        "milliseconds": 3175.52
+      }
+    ],
+    "build": [
+      {
+        "occurrences": 1000,
+        "engine": "CPU",
+        "prf_s": 0.0049,
+        "chain_s": 0.0014,
+        "documents_s": 0.0263,
+        "batch_sign_s": 0.022,
+        "cloud_store_s": 0.0093,
+        "total_s": 0.0661,
+        "prf_speedup": 1.0,
+        "symmetric_speedup": 1.0,
+        "total_speedup": 1.0
+      },
+      {
+        "occurrences": 1000,
+        "engine": "GPU",
+        "prf_s": 0.0048,
+        "chain_s": 0.0011,
+        "documents_s": 0.0218,
+        "batch_sign_s": 0.0213,
+        "cloud_store_s": 0.0094,
+        "total_s": 0.0605,
+        "prf_speedup": 1.031,
+        "symmetric_speedup": 1.0898,
+        "total_speedup": 1.0931
+      },
+      {
+        "occurrences": 10000,
+        "engine": "CPU",
+        "prf_s": 0.047,
+        "chain_s": 0.0138,
+        "documents_s": 0.3436,
+        "batch_sign_s": 0.0488,
+        "cloud_store_s": 0.0331,
+        "total_s": 0.494,
+        "prf_speedup": 1.0,
+        "symmetric_speedup": 1.0,
+        "total_speedup": 1.0
+      },
+      {
+        "occurrences": 10000,
+        "engine": "GPU",
+        "prf_s": 0.0086,
+        "chain_s": 0.0076,
+        "documents_s": 0.4106,
+        "batch_sign_s": 0.0888,
+        "cloud_store_s": 0.0312,
+        "total_s": 0.5546,
+        "prf_speedup": 5.4573,
+        "symmetric_speedup": 3.7525,
+        "total_speedup": 0.8908
+      },
+      {
+        "occurrences": 100000,
+        "engine": "CPU",
+        "prf_s": 0.4693,
+        "chain_s": 0.2084,
+        "documents_s": 3.8504,
+        "batch_sign_s": 0.0444,
+        "cloud_store_s": 0.312,
+        "total_s": 4.9782,
+        "prf_speedup": 1.0,
+        "symmetric_speedup": 1.0,
+        "total_speedup": 1.0
+      },
+      {
+        "occurrences": 100000,
+        "engine": "GPU",
+        "prf_s": 0.0614,
+        "chain_s": 0.0596,
+        "documents_s": 4.1021,
+        "batch_sign_s": 0.0348,
+        "cloud_store_s": 0.3132,
+        "total_s": 4.6607,
+        "prf_speedup": 7.6414,
+        "symmetric_speedup": 5.5991,
+        "total_speedup": 1.0681
+      }
+    ],
+    "csv": [
+      "data/bench/operations.csv",
+      "data/bench/buildindex.csv"
+    ]
+  }
+}

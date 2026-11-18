@@ -1,0 +1,26 @@
+<!-- page: key=features; title=features.title; description=features.description -->
+<div class="sp-panel sp-glass">
+  <header class="sp-section">
+    <h1 class="sp-title">{{ features.title }}</h1>
+    <p class="sp-lede">{{ features.lede }}</p>
+    <nav class="sp-toc" aria-label="{{ features.toc_label }}">{{{ toc_links }}}</nav>
+  </header>
+
+  {{{ feature_sections }}}
+
+  <section class="sp-section" id="cloud" aria-labelledby="cloud-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="cloud-title">{{ features.cloud_title }}</h2></div>
+    {{{ cloud_block }}}
+  </section>
+
+  <section class="sp-section" id="not-included" aria-labelledby="not-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="not-title">{{ features.not_title }}</h2></div>
+    <p class="sp-prose">{{ features.not_intro }}</p>
+    <ul class="sp-list">{{{ not_items }}}</ul>
+  </section>
+
+  <section class="sp-section" id="evidence" aria-labelledby="evidence-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="evidence-title">{{ features.evidence_title }}</h2></div>
+    <p class="sp-prose">{{ evidence_text }}</p>
+  </section>
+</div>

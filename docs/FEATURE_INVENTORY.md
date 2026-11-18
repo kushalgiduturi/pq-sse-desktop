@@ -58,7 +58,7 @@ A doctor sends a signed join request; Alice sees it with the key fingerprint, ti
 - **What it produces:** An access pass (capability) with the keys of the chosen groups, sealed for that doctor with ML-KEM and AES-256-GCM and signed by Alice.
 - **What the Cloud sees:** That a request and a sealed pass passed through, their sizes, and which groups the doctor may ask about. Not the group keys.
 - **Tests:** `tests/test_m2_protocol.py`: `test_join_with_wrong_proof_of_ownership_is_rejected`, `test_unapproved_key_is_rejected`, `test_a_capability_only_opens_for_its_receiver` (12 tests in the file)
-- **Limits:** A doctor's groups are fixed at approval. To change them, revoke and approve a new request. The 'asks to join. Key fingerprint' line is written in the QML file, not in copy.py.
+- **Limits:** A doctor's groups are fixed at approval. To change them, revoke and approve a new request.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ### Build the index and publish the summary
@@ -133,7 +133,7 @@ Alice takes a person's access away; the cloud refuses their pass, each affected 
 - **What it produces:** A new key period (epoch) per group, sealed once per remaining doctor. With RE every document is encrypted and signed again.
 - **What the Cloud sees:** That a revocation happened, which pass is refused, and with RE the full re-upload.
 - **Tests:** `tests/test_m2_revocation.py`: `test_revoke_policy_r`, `test_revoke_policy_re`, `test_r_then_re_then_new_member` (4 tests in the file)
-- **Limits:** Policy R: documents from before the change stay under the old key, so a revoked person who teams up with the cloud can still read them. Policy RE closes that gap but re-encrypts everything. Cannot be undone. After a revocation the Stage still lists the revoked doctor's old groups and last search (see App mismatches).
+- **Limits:** Policy R: documents from before the change stay under the old key, so a revoked person who teams up with the cloud can still read them. Policy RE closes that gap but re-encrypts everything. Cannot be undone. Known display issue: after a revocation the Stage still lists the revoked doctor's old groups and last search result.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ## Learn and inspect
@@ -198,7 +198,7 @@ Thirteen short steps run the whole system for real in a separate practice area, 
 - **Where:** Journey; labels: "Your journey", "Run this step for me", "Let me try", "Check my work", "Reset lesson", "Back to my own data"
 - **What it produces:** A practice area with its own data; every passphrase there is the word lesson. Your own data is not touched.
 - **Tests:** `tests/test_m9_learn_app.py`: `test_guided_lesson_runs_start_to_finish_resumes_and_resets`, `test_let_me_try_and_check_my_work` (7 tests in the file)
-- **Limits:** The last step's text still names classic window places (Attack Lab, Who sees what, the toolbar). See App mismatches.
+- **Limits:** Known text issue: the last step still names places in the classic window (Attack Lab, Who sees what, the toolbar). In this window they are the Security Lab, the Stage lens and Mode in Insights.
 - **Status:** Partial: works, with the gap named under Limits
 
 ### Challenges
@@ -397,3 +397,4 @@ Places where the app, its docs or the brief disagree. None is fixed yet.
 - **README.md and docs/START_HERE.md:** Describe the classic window (Learn tab, Narrator, toolbar, F1 glossary, 11 Attack Lab demos). In the new window F1 opens the command palette and the Lab has ten attacks plus the R versus RE comparison.
 - **Your brief:** It mentions 'the seven checks'. The app has eight (pqsse/receiver/receiver.py CHECKS).
 - **copy.py journeyMore:** An unused string still says the polished Journey 'arrives in milestone 5'. Not shown anywhere; can be deleted.
+- **pqsse/bench.py, Revoke R and Revoke RE rows:** The labels say 30 documents, but the benchmark adds one document per repeat before revoking, so with 3 repeats the group holds 33. The site quotes the timing without a document count.

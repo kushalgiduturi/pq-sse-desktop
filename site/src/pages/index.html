@@ -1,32 +1,48 @@
-<!-- page: key=home; title=home.title; description=site.description -->
-<section class="sp-hero" aria-labelledby="hero-title">
-  <h1 id="hero-title">{{ home.hero }}</h1>
-  <p>{{ home.hero_text }}</p>
-  <div class="sp-actions">
-    <a class="sp-btn sp-btn--primary sp-btn--lg" href="download.html">{{{ icon.download }}}{{ home.primary }}</a>
-    <a class="sp-btn sp-btn--ghost sp-btn--lg" href="how-it-works.html">{{ home.secondary }}</a>
+<!-- page: key=home; title=home.title; description=home.description -->
+<section class="sp-hero sp-hero--split" aria-labelledby="hero-title">
+  <div class="sp-hero-text">
+    <h1 id="hero-title">{{ home.hero }}</h1>
+    <p class="sp-hero-lede">{{ home.lede }}</p>
+    <p class="sp-hero-who">{{ home.audience }}</p>
+    <div class="sp-actions">
+      <a class="sp-btn sp-btn--primary sp-btn--lg" href="download.html">{{{ icon.download }}}{{ home.primary }}</a>
+      <a class="sp-btn sp-btn--ghost sp-btn--lg" href="features.html">{{ home.secondary }}</a>
+    </div>
+    <p class="sp-hero-meta">{{{ home.meta_html }}}</p>
   </div>
-  <p class="sp-hero-meta">{{{ home.meta_html }}}</p>
+  {{{ hero_figure }}}
 </section>
 
 <div class="sp-panel sp-glass">
-  <section class="sp-section" aria-labelledby="cast-title">
-    <div class="sp-section-head"><h2 class="sp-section-title" id="cast-title">{{ home.cast_title }}</h2></div>
-    <ul class="sp-cast">{{{ cast_items }}}</ul>
+  <section class="sp-section" aria-labelledby="can-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="can-title">{{ home.can_title }}</h2><a href="features.html">{{ home.can_more }}</a></div>
+    <ul class="sp-list">{{{ can_items }}}</ul>
   </section>
 
-  <section class="sp-section" aria-labelledby="shots-title">
-    <div class="sp-section-head"><h2 class="sp-section-title" id="shots-title">{{ home.shots_title }}</h2></div>
-    <div class="sp-shots">{{{ shot_items }}}</div>
+  <section class="sp-section" aria-labelledby="flow-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="flow-title">{{ home.flow_title }}</h2><a href="how-it-works.html">{{ home.flow_more }}</a></div>
+    <ol class="sp-flow">{{{ flow_items }}}</ol>
   </section>
 
-  <section class="sp-section" aria-labelledby="facts-title">
-    <div class="sp-section-head"><h2 class="sp-section-title" id="facts-title">{{ home.facts_title }}</h2></div>
-    <ul class="sp-list">{{{ fact_items }}}</ul>
+  <section class="sp-section" aria-labelledby="screens-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="screens-title">{{ home.screens_title }}</h2><a href="features.html">{{ home.screens_more }}</a></div>
+    <ul class="sp-list">{{{ screen_items }}}</ul>
   </section>
 
-  <section class="sp-section" aria-labelledby="next-title">
-    <div class="sp-section-head"><h2 class="sp-section-title" id="next-title">{{ home.next_title }}</h2></div>
-    <ul class="sp-list">{{{ next_items }}}</ul>
+  <section class="sp-section" aria-labelledby="proof-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="proof-title">{{ home.proof_title }}</h2></div>
+    <div class="sp-metrics sp-metrics--links">{{{ proof_items }}}</div>
+    <p class="sp-muted sp-small">{{ proof_note }}</p>
+  </section>
+
+  <section class="sp-section" aria-labelledby="limits-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="limits-title">{{ home.limits_title }}</h2><a href="security.html">{{ home.limits_more }}</a></div>
+    <ul class="sp-list">{{{ limit_items }}}</ul>
+  </section>
+
+  <section class="sp-section" aria-labelledby="lesson-title">
+    <div class="sp-section-head"><h2 class="sp-section-title" id="lesson-title">{{ home.lesson_title }}</h2><a href="features.html#journey">{{ home.lesson_more }}</a></div>
+    <p class="sp-prose">{{ home.lesson_text }}</p>
+    <ul class="sp-cast sp-mt-5">{{{ cast_items }}}</ul>
   </section>
 </div>

@@ -158,23 +158,162 @@ def footer_links(content: dict) -> str:
     return "".join(f'<a href="{esc(href)}">{esc(label)}</a>' for href, label in content["footer"]["links"])
 
 
-def home_blocks(content: dict, shots: dict, flat: dict) -> dict:
+FACTS = SITE / "data" / "facts.json"
+FEATURES = SITE / "data" / "features.json"
+TOKEN = re.compile(r"\{([a-z_]+(?:\.[a-z_]+)*)\}")
+
+
+def load_facts(flat: dict) -> dict:
+    """Measured facts (site/data/facts.json, from scripts/make_facts.py) plus the release file list."""
+    if not FACTS.is_file():
+        raise SystemExit(f"FAILED: {FACTS} is missing: run scripts/make_facts.py")
+    facts = json.loads(FACTS.read_text(encoding="utf-8"))
+    facts.update({"version": flat["version"], "released": flat["released"], "web_size": flat["web_size"] or "-",
+                  "standard_size": flat["standard_size"]})
+    return facts
+
+
+def fill(text: str, facts: dict) -> str:
+    """Replace {path.to.value} with the value from the facts. An unknown name stops the build."""
+    def value(match: re.Match) -> str:
+        try:
+            return str(lookup(facts, match.group(1)))
+        except KeyError:
+            raise SystemExit(f"FAILED: no fact named {match.group(1)} (in: {text[:60]}...)") from None
+    return TOKEN.sub(value, text)
+
+
+def app_screens() -> list[dict]:
+    """The five screens with the app's own names (app/spatial/copy.py)."""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from app.spatial.copy import DESTINATIONS
+    return DESTINATIONS
+
+
+def theme_figure(light: str, dark: str, alt: str, caption: str, shots: dict, cls: str = "sp-shot", eager: bool = False) -> str:
+    """One screenshot in the theme of the page: the light picture by day, the dark one by night."""
+    load = 'fetchpriority="high"' if eager else 'loading="lazy"'
+    imgs = []
+    for name, which in ((light, "sp-on-light"), (dark, "sp-on-dark")):
+        w, h = shots[name]
+        imgs.append(f'<img class="{which}" src="img/{name}.webp" width="{w}" height="{h}" alt="{esc(alt)}" {load} decoding="async">')
+    return f'<figure class="{cls}">{"".join(imgs)}<figcaption>{esc(caption)}</figcaption></figure>'
+
+
+def home_blocks(content: dict, shots: dict, flat: dict, facts: dict) -> dict:
     h = content["home"]
+    arrow = f'<span class="sp-muted">{ICON_HTML["arrow"]}</span>'
+    can = "".join(f'<li class="sp-list-row"><span class="sp-grow"><a href="features.html#{esc(anchor)}"><b>{esc(title)}</b></a>'
+                  f'<span class="sp-sub">{esc(fill(text, facts))}</span></span>{arrow}</li>' for title, text, anchor in h["can"])
+    flow = "".join(f'<li><span class="sp-flow-num sp-mono">{i}</span><b>{esc(title)}</b><span>{esc(fill(text, facts))}</span></li>'
+                   for i, (title, text) in enumerate(h["flow"], 1))
+    screens = "".join(f'<li class="sp-list-row"><span class="sp-grow"><a href="features.html#{esc(d["key"])}"><b>{esc(d["label"])}</b></a>'
+                      f'<span class="sp-sub">{esc(fill(h["screens"][d["key"]], facts))}</span></span>{arrow}</li>' for d in app_screens())
+    proof = "".join(f'<a class="sp-metric" href="{esc(href)}"><span class="sp-metric-value sp-mono">{esc(fill(value, facts))}</span>'
+                    f'<span class="sp-metric-label">{esc(label)}</span></a>' for value, label, href in h["proof"])
+    limits = "".join(f'<li class="sp-list-row"><span class="sp-glyph">{ICON_HTML["alert"]}</span><span class="sp-grow">{esc(t)}</span></li>'
+                     for t in h["limits"])
     cast = "".join(f'<li><span class="sp-glyph">{ICON_HTML[icon]}</span><div><b>{esc(name)}</b><span>{esc(text)}</span></div></li>'
                    for icon, name, text in h["cast"])
-    items = []
-    for name, alt in h["shots"]:
-        w, ht = shots[name]
-        items.append(f'<figure class="sp-shot"><img src="img/{name}.webp" width="{w}" height="{ht}" alt="{esc(alt)}" loading="lazy" decoding="async">'
-                     f"<figcaption>{esc(alt)}</figcaption></figure>")
-    facts = "".join(f'<li class="sp-list-row"><span class="sp-glyph">{ICON_HTML["check"]}</span><span class="sp-grow">{esc(f)}</span></li>' for f in h["facts"])
-    nxt = "".join(f'<li class="sp-list-row"><span class="sp-grow"><a href="{esc(href)}"><b>{esc(title)}</b></a>'
-                  f'<span class="sp-sub">{esc(text)}</span></span><span class="sp-muted">{ICON_HTML["arrow"]}</span></li>'
-                  for href, title, text in h["next"])
+    light, dark, alt, caption = h["hero_shot"]
     mono = lambda v: f'<span class="sp-mono sp-nowrap">{esc(v)}</span>'  # noqa: E731
     meta = esc(h["meta"]).replace("{version}", mono(flat["version"])).replace("{released}", mono(flat["released"]))
-    return {"cast_items": cast, "shot_items": "".join(items), "fact_items": facts, "next_items": nxt,
-            "home": {**h, "meta_html": meta}}
+    return {"hero_figure": theme_figure(light, dark, alt, caption, shots, "sp-shot sp-hero-shot", eager=True),
+            "can_items": can, "flow_items": flow, "screen_items": screens, "proof_items": proof, "limit_items": limits,
+            "cast_items": cast, "proof_note": fill(h["proof_note"], facts), "home": {**h, "meta_html": meta}}
+
+
+def _feature_html(item: dict, f: dict, facts: dict) -> str:
+    status_note = {"tested": f["status_tested"], "partial": f["status_partial"]}
+    rows = [(f["where"], esc(item["where"]["screen"]))]
+    if item["where"]["labels"]:
+        rows.append((f["labels"], ", ".join(f"<q>{esc(label)}</q>" for label in item["where"]["labels"])))
+    rows.append((f["produces"], esc(item["produces"])))
+    if item["cloud_sees"]:
+        rows.append((f["cloud_sees"], esc(item["cloud_sees"])))
+    if item["limits"]:
+        rows.append((f["limits"], " ".join(esc(x) for x in item["limits"])))
+    tests = []
+    for t in item["tests"]:
+        names = ", ".join(f"<code>{esc(n)}</code>" for n in t["names"]) or "all tests in the file"
+        tests.append(f'<a href="{esc(f["source_base"] + t["file"])}">{esc(t["file"].split("/")[-1])}</a>: {names}')
+    if tests:
+        rows.append((f["tested"], "; ".join(tests)))
+    pill = ""
+    if item["status"] in status_note:
+        tone = "warn" if item["status"] == "partial" else "info"
+        pill = f' <span class="sp-pill sp-pill--{tone}">{esc(status_note[item["status"]])}</span>'
+    dl = "".join(f"<dt>{esc(k)}</dt><dd>{v}</dd>" for k, v in rows)
+    return (f'<article class="sp-feature" id="{esc(item["id"])}"><h3>{esc(item["name"])}{pill}</h3>'
+            f'<p>{esc(fill(item["sentence"], facts))}</p><dl class="sp-dl">{dl}</dl></article>')
+
+
+def _lab_html(f: dict, facts: dict) -> str:
+    lab = facts["security_lab"]
+    rows = "".join(f"<tr><td><b>{esc(r['title'])}</b></td><td>{esc(r['line'])}</td><td>{esc(r['caught_by'] or r['check'])}</td></tr>"
+                   for r in lab["rows"] if r["key"] != "collusion")
+    head = "".join(f'<th scope="col">{esc(x)}</th>' for x in f["lab_head"])
+    compare = f["compare_ok"] if lab["comparison_ran"] else f["compare_failed"]
+    return (f'<div class="sp-sub-section" id="security-lab-run"><h3>{esc(f["lab_title"])}</h3>'
+            f'<p>{esc(fill(f["lab_intro"], facts))}</p><div class="sp-table-wrap"><table class="sp-table"><thead><tr>{head}</tr></thead>'
+            f'<tbody>{rows}</tbody></table></div><p>{esc(fill(f["lab_compare"], {**facts, "compare_result": compare}))}</p></div>')
+
+
+def _measured_html(f: dict, facts: dict) -> str:
+    b = facts["bench"]
+    sets = sorted({(r["kem"], r["sig"]) for r in b["operations"]})
+    ops = list(dict.fromkeys(r["operation"] for r in b["operations"]))
+    cell = {(r["operation"], r["kem"], r["sig"]): r["milliseconds"] for r in b["operations"]}
+    ops_head = '<th scope="col">Operation</th>' + "".join(
+        f'<th scope="col" class="sp-num">{esc(k)}<span class="sp-sub">{esc(s)}</span></th>' for k, s in sets)
+    ops_rows = "".join(f"<tr><td>{esc(op)}</td>" + "".join(
+        f'<td class="sp-num sp-mono">{cell[(op, k, s)]:.1f}</td>' if (op, k, s) in cell else '<td class="sp-num">-</td>' for k, s in sets)
+        + "</tr>" for op in ops)
+    build_head = "".join(f'<th scope="col"{"" if i == 1 else " class=" + chr(34) + "sp-num" + chr(34)}>{esc(x)}</th>'
+                         for i, x in enumerate(f["measured_build_head"]))
+    build_rows = "".join(f'<tr><td class="sp-num sp-mono">{r["occurrences"]:,}</td><td>{esc(r["engine"])}</td>'
+                         f'<td class="sp-num sp-mono">{r["prf_s"]:.3f}</td><td class="sp-num sp-mono">{r["prf_s"] + r["chain_s"]:.3f}</td>'
+                         f'<td class="sp-num sp-mono">{r["total_s"]:.3f}</td></tr>' for r in b["build"])
+    csv = ", ".join(f'<a href="{esc(path)}">{esc(path.split("/")[-1])}</a>' for path in b["csv"])
+    return (f'<div class="sp-sub-section" id="measured"><h3>{esc(f["measured_title"])}</h3>'
+            f'<p>{esc(fill(f["measured_intro"], facts))} {esc(fill(f["measured_machine"], facts))}</p>'
+            f'<p class="sp-muted">{esc(f["measured_ops"])}</p>'
+            f'<div class="sp-table-wrap"><table class="sp-table"><thead><tr>{ops_head}</tr></thead><tbody>{ops_rows}</tbody></table></div>'
+            f'<p class="sp-muted">{esc(fill(f["measured_build"], facts))}</p>'
+            f'<div class="sp-table-wrap"><table class="sp-table"><thead><tr>{build_head}</tr></thead><tbody>{build_rows}</tbody></table></div>'
+            f'<p>{esc(f["measured_honest"])}</p><p>{esc(f["measured_csv"])} {csv}</p></div>')
+
+
+# where each of the five screens is described on the Features page (Home links to features.html#<screen>)
+SCREEN_ANCHORS = {"journey": "journey", "stage": "lens", "workspace": "roles", "lab": "security-lab", "insights": "benchmarks"}
+
+
+def features_blocks(content: dict, facts: dict) -> dict:
+    f = content["features"]
+    data = json.loads(FEATURES.read_text(encoding="utf-8"))
+    toc = "".join(f'<a href="#group-{esc(g["id"])}">{esc(g["title"])}</a>' for g in data["groups"])
+    extra = {"attack": _lab_html(f, facts), "measure": _measured_html(f, facts)}
+    sections = []
+    for g in data["groups"]:
+        items = "".join(_feature_html(x, f, facts) for x in data["features"] if x["group"] == g["id"])
+        sections.append(f'<section class="sp-section" id="group-{esc(g["id"])}" aria-labelledby="g-{esc(g["id"])}">'
+                        f'<div class="sp-section-head"><h2 class="sp-section-title" id="g-{esc(g["id"])}">{esc(g["title"])}</h2></div>'
+                        f'{items}{extra.get(g["id"], "")}</section>')
+    html_sections = "".join(sections)
+    for screen, target in SCREEN_ANCHORS.items():
+        if screen != target:
+            marker = f'<article class="sp-feature" id="{target}">'
+            if marker not in html_sections:
+                raise SystemExit(f"FAILED: the Features page has no feature {target} for the screen {screen}")
+            html_sections = html_sections.replace(marker, f'<span class="sp-anchor" id="{screen}"></span>' + marker, 1)
+    cs = data["cloud_sees_summary"]
+    cloud = (f'<dl class="sp-dl"><dt>{esc(f["cloud_sees_label"])}</dt><dd>{esc("; ".join(cs["sees"]))}.</dd>'
+             f'<dt>{esc(f["cloud_never_label"])}</dt><dd>{esc("; ".join(cs["never_sees"]))}.</dd></dl>')
+    nots = "".join(f'<li class="sp-list-row"><span class="sp-grow">{esc(n["claim"])}<span class="sp-sub">{esc(n["evidence"])}</span></span></li>'
+                   for n in data["not_included"])
+    return {"toc_links": toc, "feature_sections": html_sections, "cloud_block": cloud, "not_items": nots,
+            "evidence_text": fill(f["evidence_text"], facts), "features": f}
 
 
 def styleguide_blocks(content: dict, manifest: dict) -> dict:
@@ -410,9 +549,15 @@ def build(manifest: dict, out: Path = OUT, manifest_file: Path | None = None) ->
     with open(ROOT / "packaging" / "release.toml", "rb") as handle:
         config = tomllib.load(handle)
     site_root = "/" + config["project"]["site_url"].split("://", 1)[1].split("/", 1)[1]
-    shot_names = sorted({name for name, _ in content["home"]["shots"]} | {name for name, _ in content["how"]["shots"]})
+    shot_names = sorted(set(content["home"]["hero_shot"][:2]) | {name for name, _ in content["how"]["shots"]})
     shots = convert_shots(shot_names, out / "img")
     flat = flat_manifest(manifest)
+    facts = load_facts(flat)
+    # the measured facts and the raw benchmark files are published next to the pages
+    (out / "data" / "bench").mkdir(parents=True)
+    shutil.copy2(FACTS, out / "data" / "facts.json")
+    for csv_file in sorted((SITE / "data" / "bench").glob("*.csv")):
+        shutil.copy2(csv_file, out / "data" / "bench" / csv_file.name)
     stage_svg = (SRC / "stage.svg").read_text(encoding="utf-8")
     stage_svg = re.sub(r"<!--.*?-->", "", stage_svg, flags=re.S).strip()
     base = (SRC / "base.html").read_text(encoding="utf-8")
@@ -430,7 +575,9 @@ def build(manifest: dict, out: Path = OUT, manifest_file: Path | None = None) ->
         body_template = text[header.end():]
         ctx = dict(common)
         if meta["key"] == "home":
-            ctx.update(home_blocks(content, shots, flat))
+            ctx.update(home_blocks(content, shots, flat, facts))
+        if meta["key"] == "features":
+            ctx.update(features_blocks(content, facts))
         if meta["key"] == "styleguide":
             ctx.update(styleguide_blocks(content, manifest))
         if meta["key"] == "download":

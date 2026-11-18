@@ -238,6 +238,16 @@ AUDIT_JS = r"""
     }
     if (!name) problems.push('no accessible name: <' + el.tagName.toLowerCase() + ' class="' + el.className + '">');
   });
+  // theme twins: of each light/dark picture pair exactly one is shown, the one for the current theme
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+             (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelectorAll('figure').forEach(function (fig) {
+    var light = fig.querySelector('img.sp-on-light'), darkImg = fig.querySelector('img.sp-on-dark');
+    if (!light || !darkImg) return;
+    var shown = [light, darkImg].filter(function (i) { return getComputedStyle(i).display !== 'none'; });
+    if (shown.length !== 1 || shown[0] !== (dark ? darkImg : light))
+      problems.push('theme picture pair shows ' + shown.map(function (i) { return i.className; }).join(' and ') + ' in the ' + (dark ? 'dark' : 'light') + ' theme');
+  });
   return JSON.stringify({ problems: problems, checked: checked,
     exes: document.querySelectorAll('a[href$=".exe"]').length,
     themeButtonHidden: !!(document.querySelector('[data-theme-toggle]') || {}).hidden });
@@ -304,7 +314,7 @@ def browser_checks() -> tuple[list[str], list[str]]:
                 if js_on:
                     run_js(f"document.documentElement.setAttribute('data-theme','{theme}')")
                     loop = QEventLoop()
-                    QTimer.singleShot(250, loop.quit)
+                    QTimer.singleShot(600, loop.quit)   # past the longest colour transition (350 ms)
                     loop.exec()
                     page.settings().setAttribute(QWebEngineSettings.JavascriptEnabled, True)
                     raw = run_js(AUDIT_JS)
