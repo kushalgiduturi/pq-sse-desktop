@@ -13,6 +13,7 @@ may hold other copies of key bytes, which it frees but does not overwrite.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 import sqlite3
 import threading
@@ -128,7 +129,7 @@ class Vault:
 
     def check_passphrase(self, passphrase: str) -> bool:
         salt, n = self._kdf_params()
-        return derive_master_key(passphrase, salt, n) == bytes(self._master)
+        return hmac.compare_digest(derive_master_key(passphrase, salt, n), bytes(self._master))
 
     def change_passphrase(self, old: str, new: str, scrypt_n: int | None = None) -> None:
         """Re-encrypt every record under a key from the new passphrase and a new salt, all or nothing."""

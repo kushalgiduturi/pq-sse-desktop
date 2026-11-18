@@ -137,7 +137,8 @@ class CloudCore:
                     raise Rejected("unknown_endpoint", endpoint)
                 try:
                     reply = wire.enc(handler(wire.dec(body)))
-                except (WireError, KeyError, TypeError, IndexError, ValueError) as exc:
+                except (WireError, KeyError, TypeError, IndexError, ValueError, OverflowError,
+                        sqlite3.InterfaceError, sqlite3.ProgrammingError) as exc:   # a value of the wrong type (fuzzing, M7)
                     raise Rejected("malformed", type(exc).__name__) from exc
             except Rejected as exc:
                 self.db.rollback()

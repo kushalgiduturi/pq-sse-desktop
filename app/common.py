@@ -174,17 +174,7 @@ class TabBase(QWidget):
         QTimer.singleShot(int(seconds * 1000), lambda: widget.setStyleSheet(previous))
 
 
-def read_document_file(path: str | Path) -> tuple[str, str]:
-    """Import a .txt, .md or .pdf file as (title, text). PDF text comes from pypdf."""
-    path = Path(path)
-    if path.suffix.lower() == ".pdf":
-        from pypdf import PdfReader
-
-        reader = PdfReader(str(path))
-        text = "\n".join((page.extract_text() or "") for page in reader.pages)
-    else:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    return path.stem, text.strip()
+from pqsse.docimport import read_document_file  # noqa: E402,F401 (limits before parsing: pqsse/docimport.py)
 
 
 class DocumentDialog(QDialog):

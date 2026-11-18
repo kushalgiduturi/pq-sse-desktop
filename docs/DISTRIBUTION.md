@@ -29,6 +29,8 @@ no SmartScreen box, because the file has no "downloaded from the internet" mark.
 
 ### What real code signing would need
 
+The prices and rules below were last checked in January 2026. A refresh during milestone 7 (2026-11-18) could not be done (web search was unavailable); check them again before buying anything.
+
 | Option | What it is | Rough cost | Effect on SmartScreen |
 | --- | --- | --- | --- |
 | OV code signing certificate | A certificate issued to a verified person or company. The key must live on a hardware token or in a cloud key store. | A few hundred US dollars per year, depending on the seller | The publisher name is shown instead of "Unknown publisher". The warning can still appear until the signed file has built up reputation. |

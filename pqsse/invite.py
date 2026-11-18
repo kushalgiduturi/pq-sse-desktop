@@ -112,6 +112,11 @@ def parse(text: str) -> Invite:
             invite = Invite(**{k: data[k] for k in Invite.__dataclass_fields__ if k in data})
     except (KeyError, ValueError, TypeError) as exc:
         raise InviteError("this is not a PQ-SSE invite") from exc
+    text_fields = (invite.host, invite.tls, invite.server_fp, invite.owner_fp, invite.id, invite.name, invite.code)
+    if (not all(isinstance(f, str) for f in text_fields) or type(invite.v) is not int or type(invite.port) is not int
+            or isinstance(invite.expires, bool) or not isinstance(invite.expires, (int, float))
+            or not 0 < invite.port < 65536 or invite.expires != invite.expires):   # found by fuzzing (milestone 7)
+        raise InviteError("this is not a PQ-SSE invite")
     if invite.v != VERSION:
         raise InviteError(f"invite version {invite.v} is not supported by this app")
     if len(invite.tls) != 64 or len(invite.id) != 32 or not invite.host:

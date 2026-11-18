@@ -23,6 +23,8 @@ packaging==26.3
 pluggy==1.7.0
 Pygments==2.21.0
 colorama==0.4.6
+hypothesis==6.170.15
+sortedcontainers==2.4.0
 
 # packaging
 pyinstaller==6.22.3

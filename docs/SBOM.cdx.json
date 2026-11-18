@@ -1,0 +1,623 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "PQ-SSE Desktop and PQ-SSE server",
+      "version": "0.1.1"
+    },
+    "properties": [
+      {
+        "name": "pqsse:source",
+        "value": "requirements-lock.txt, requirements-lock-gpu.txt, requirements-server.txt"
+      },
+      {
+        "name": "pqsse:python",
+        "value": "3.11"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "altgraph",
+      "version": "0.17.5",
+      "purl": "pkg:pypi/altgraph@0.17.5",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "277b98fd806a82b97f49c1297f58a8764580ad6d8854ac1ab2dbb93e0a5a9b0c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cffi",
+      "version": "2.1.1",
+      "purl": "pkg:pypi/cffi@2.1.1",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app, server and Docker image"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "b13a69416836643bb4057bf9b70f8cdcc1fae92bdd3437aceb1559f21e26fdce"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT-0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "colorama",
+      "version": "0.4.6",
+      "purl": "pkg:pypi/colorama@0.4.6",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "2ae3762039c35c23e4829bab30f8e768eced773ecac67d026223caabfbd493f4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD License"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cryptography",
+      "version": "50.0.2",
+      "purl": "pkg:pypi/cryptography@50.0.2",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app, server and Docker image"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "dd564ac04ed36b3cf8877d20b262198fba1dd0b8a27eb982fc955eabb3dd73f2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0 OR BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cuda-pathfinder",
+      "version": "1.9.0",
+      "purl": "pkg:pypi/cuda-pathfinder@1.9.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app (GPU build)"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "20e76efabed28fca0b7f629f527c16bd9fd07e562844579cea4222d245021372"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cupy-cuda12x",
+      "version": "14.2.0",
+      "purl": "pkg:pypi/cupy-cuda12x@14.2.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app (GPU build)"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "41b493db7986e215c99af7d7808c6383dd3dc5478985e7d32fad4d1cfe21d48e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "dilithium-py",
+      "version": "1.5.1",
+      "purl": "pkg:pypi/dilithium-py@1.5.1",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app, server and Docker image"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "9f115869e1b39442b27b109cc1b43461b992bc67e6b8f66ac3995f887c1aeb22"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hypothesis",
+      "version": "6.170.15",
+      "purl": "pkg:pypi/hypothesis@6.170.15",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "5dbf64fce624e9572d2dbdcd660ce29bb977de1c803445c2842faac830f9d3a9"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "iniconfig",
+      "version": "2.3.1",
+      "purl": "pkg:pypi/iniconfig@2.3.1",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "a0d284b060e810c6e4f68f04865689580e435a8f2d6d1bf77ce7658114132804"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "kyber-py",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/kyber-py@1.2.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app, server and Docker image"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "f28633ba4ceaaf8df95390dc4ab95539f759f05583cb66d67b52fcfc1f007e48"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT OR Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "numpy",
+      "version": "2.4.6",
+      "purl": "pkg:pypi/numpy@2.4.6",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app, server and Docker image"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "59ee8653bcfdb0d05296f6c7746b12b897a4a06057881b5e70a00e44e055a488"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "nvidia-cuda-nvrtc-cu12",
+      "version": "12.0.140",
+      "purl": "pkg:pypi/nvidia-cuda-nvrtc-cu12@12.0.140",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app (GPU build)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "nvidia-cuda-runtime-cu12",
+      "version": "12.0.146",
+      "purl": "pkg:pypi/nvidia-cuda-runtime-cu12@12.0.146",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app (GPU build)"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "packaging",
+      "version": "26.3",
+      "purl": "pkg:pypi/packaging@26.3",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "194236f63fa503ef6bc832807d7f1a28f6b8c645a208880d557244ef4941adbc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache-2.0 OR BSD-2-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pefile",
+      "version": "2024.8.26",
+      "purl": "pkg:pypi/pefile@2024.8.26",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "3df06615a6c45dc685bf8e496e974ef74b8c575c1ab024401d17925e6bac77c8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pluggy",
+      "version": "1.7.0",
+      "purl": "pkg:pypi/pluggy@1.7.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "6fa99462fc03bd91c87be073e808fec816f4d3c1fcbb979c8e260a35ef708ac4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT License"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pycparser",
+      "version": "3.12",
+      "purl": "pkg:pypi/pycparser@3.12",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app, server and Docker image"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "7ee71a4435152db95848ccb7b6f3f8e9c7fb45246487ed3e7b7b8a697184df4b"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Pygments",
+      "version": "2.21.0",
+      "purl": "pkg:pypi/pygments@2.21.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "0ef5029b3d3fe2598a4461a4bc517ffb41efb5b6c0cde0add712d457d52a0d8f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-2-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pyinstaller",
+      "version": "6.22.3",
+      "purl": "pkg:pypi/pyinstaller@6.22.3",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "29e31a5ae79674dfc6d3a8ab6994984296cbda676d551f22ed6d8b9fdf36a1e3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU General Public License v2 (GPLv2)"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pyinstaller-hooks-contrib",
+      "version": "2026.10",
+      "purl": "pkg:pypi/pyinstaller-hooks-contrib@2026.10",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "2cf25ff350bee5b8ed20ab13c25a40e9b94286f92cbabba8d39a51a79d6117f2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache Software License; GNU General Public License v2 (GPLv2)"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "version": "7.1.0",
+      "purl": "pkg:pypi/pypdf@7.1.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "12ee644838cfdcee7187345a2770b409e75307bb4e0891a1e42c4e749468cda5"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "PySide6_Addons",
+      "version": "6.12.0",
+      "purl": "pkg:pypi/pyside6-addons@6.12.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "61714fd28bc37956c3d91d8dd85d5e7c06d26eae2ff6d9f838b8d7dbce803e20"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "PySide6_Essentials",
+      "version": "6.12.0",
+      "purl": "pkg:pypi/pyside6-essentials@6.12.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "bb64fc507d19cd296cd082b37dacd54830626674dd4ba153ae412ac6bbd8b566"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pytest",
+      "version": "9.2.0",
+      "purl": "pkg:pypi/pytest@9.2.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "1a6ec2c4bc0314fb0375383d75d06e976a09725e78d7cf3e24853b217f6bb1dd"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pywin32-ctypes",
+      "version": "0.2.3",
+      "purl": "pkg:pypi/pywin32-ctypes@0.2.3",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "a6a7583f1f9ec2e814bceecf14fbae7072d92e6ad171dac1f16e3e0ba432ada7"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shiboken6",
+      "version": "6.12.0",
+      "purl": "pkg:pypi/shiboken6@6.12.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "desktop app"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "0b15fb4cb1d42f1916265966a944890f4d9e658820bbb995db9f3e74ddcc9795"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sortedcontainers",
+      "version": "2.4.0",
+      "purl": "pkg:pypi/sortedcontainers@2.4.0",
+      "properties": [
+        {
+          "name": "pqsse:used-by",
+          "value": "tests and building only"
+        },
+        {
+          "name": "pqsse:installed-record-sha256",
+          "value": "9de83e191620db171e8696bacb5a285803924e03ab48deb79c65a45e5ec2de82"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache Software License"
+          }
+        }
+      ]
+    }
+  ]
+}

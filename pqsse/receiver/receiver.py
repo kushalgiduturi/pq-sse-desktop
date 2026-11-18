@@ -24,6 +24,7 @@ from ..gpu.batchprf import BatchPRF, CpuPRF
 from ..pqbackend import DEFAULT_PARAMS, Params
 from ..transport import CloudAPI, OwnerTagged
 
+MAX_DOCUMENT = 256 * 1024 * 1024     # bytes: far above the server's 16 MiB document limit
 DOWNLOAD_PART = 4 * 1024 * 1024        # bytes per part of a document download (design note 002 D)
 
 CHECKS = (
@@ -515,7 +516,10 @@ class Receiver:
             raise
         k_doc = group_subkeys(keys[epoch], g, epoch)[1]
         handle = doc_handle(k_doc, doc_id)
-        return self.decrypt_document(g, doc_id, epoch, self._fetch_parts(g, epoch, handle))
+        try:
+            return self.decrypt_document(g, doc_id, epoch, self._fetch_parts(g, epoch, handle))
+        except (KeyError, TypeError, ValueError, IndexError) as exc:   # found by fuzzing (milestone 7)
+            raise VerifyError("document signature", "the cloud's reply is malformed") from exc
 
     def _fetch_parts(self, g: str, epoch: int, handle: bytes) -> dict:
         """Design note 002 D: fetch the ciphertext in parts. What arrived is kept in the encrypted store, so a
@@ -531,6 +535,9 @@ class Receiver:
             if reply["offset"] != len(saved["data"]) or (saved["total"] not in (None, reply["total"])):
                 self.vault.delete(key)
                 raise VerifyError("document signature", "the parts of the document do not fit together")
+            if not reply["part"] and len(saved["data"]) < reply["total"] or reply["total"] > MAX_DOCUMENT:
+                self.vault.delete(key)                # review (milestone 7): no endless or oversized download
+                raise VerifyError("document signature", "the cloud sends no progress or too large a document")
             saved = {"data": saved["data"] + reply["part"], "total": reply["total"], "sig": reply["sig"]}
             if len(saved["data"]) < saved["total"]:
                 self.vault.put(key, saved)

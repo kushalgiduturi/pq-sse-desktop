@@ -94,6 +94,13 @@ class ServerBusy(CloudUnavailable):
         self.retry_after = retry_after
 
 
+MAX_REPLY = 128 * 1024 * 1024    # bytes; the server's largest replies (a state, a document part) are far smaller
+
+
+class ReplyTooLarge(PQSSEError):
+    """The server sent more than any honest reply can be."""
+
+
 class HttpsCloud:
     """Client of the networked server (pqsse.server): HTTPS, the server certificate pinned by fingerprint.
 
@@ -124,7 +131,9 @@ class HttpsCloud:
         try:
             conn.request("POST", "/v1/" + endpoint, body=body, headers={"Content-Type": "application/octet-stream"})
             response = conn.getresponse()
-            data = response.read()
+            data = response.read(MAX_REPLY + 1)   # review (milestone 7): a server cannot make the client hold any amount
+            if len(data) > MAX_REPLY:
+                raise ReplyTooLarge(f"the reply from {self.host}:{self.port} is larger than {MAX_REPLY // (1024 * 1024)} MB")
         except PinMismatch as exc:
             raise PinRefused(f"refused the server at {self.host}:{self.port}: {exc}") from exc
         except (OSError, http.client.HTTPException) as exc:
@@ -155,7 +164,7 @@ class HttpsCloud:
                 reply = self._once(endpoint, body)
                 self.online = True
                 return reply
-            except (PinRefused, RequestTooLarge):
+            except (PinRefused, RequestTooLarge, ReplyTooLarge):
                 raise
             except ServerBusy as exc:
                 self.online = True

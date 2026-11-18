@@ -16,6 +16,10 @@ $Out = Join-Path $BuildRoot "server"
 if (Test-Path $Out) { Remove-Item $Out -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
+$env:PYTHONHASHSEED = "0"          # the same file order in every build (milestone 7: reproducible build check)
+# the commit's time instead of the clock in the program's header time stamps (PyInstaller honours SOURCE_DATE_EPOCH)
+$env:SOURCE_DATE_EPOCH = (& git -C $Root log -1 --format=%ct 2>$null)
+if (-not $env:SOURCE_DATE_EPOCH) { $env:SOURCE_DATE_EPOCH = "0" }
 & $Python -m PyInstaller --noconfirm --clean --console --onedir --name pqsse-server `
     --distpath (Join-Path $Out "dist") --workpath (Join-Path $Out "work") --specpath $Out `
     --paths $Root --add-data "$Root\pyproject.toml;." `
