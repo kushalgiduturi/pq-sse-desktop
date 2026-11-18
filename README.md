@@ -8,6 +8,20 @@ It is a Windows desktop application with three real parties (data owner, receive
 cloud server), real post-quantum cryptography (ML-KEM, ML-DSA), and a GPU batch engine
 for the heavy symmetric work.
 
+On this branch (`reallife`, not released yet) it also runs across computers: a separate server program
+(`python -m pqsse.server`, a Windows console program, or Docker) with TLS and a pinned certificate,
+the app in Data owner or Receiver mode, invites with a one-time code, and the key handling a real
+deployment needs. Start with these:
+
+| Read | For |
+| --- | --- |
+| [docs/SERVER.md](docs/SERVER.md) | running the server: configuration, keys, limits, backups, several owners |
+| [docs/MULTI_MACHINE_TEST.md](docs/MULTI_MACHINE_TEST.md) | trying it on two or three PCs |
+| [docs/KEYS.md](docs/KEYS.md) | passphrases, key backups, auto-lock |
+| [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md) | what it protects against, and the author's own review (not an audit) |
+| [docs/PAPER_CONFORMANCE.md](docs/PAPER_CONFORMANCE.md), [docs/design-notes/](docs/design-notes/) | how the code follows the paper, and every protocol change with its reason |
+| [REALLIFE_PLAN.md](REALLIFE_PLAN.md) | the plan and every decision made on the way |
+
 ## Install (no Python needed)
 
 For people who just want to use the app on Windows 10 or 11 (64-bit):
@@ -239,29 +253,33 @@ text does not fix are listed in [PLAN.md](PLAN.md) under "Decisions".
   old segment is still stored under the old key). Policy **RE** re-encrypts the group
   and drops the old segments, so it does not have this limit. The Attack Lab and
   `tests/test_m2_revocation.py` show both sides.
-- **Built from the specification, not from the paper file.** The paper was not in the
-  project folder. Check the items in PLAN.md "Decisions" against the paper, in particular
-  D6 (the capability carries the keys of all live segments), D7 (the state header has an
-  extra `base` field) and D9 (documents are stored under a PRF handle).
+- **Checked against the paper, item by item.** `docs/PAPER_CONFORMANCE.md` lists every definition,
+  algorithm and theorem with the code and the tests; the deviations that mattered were decided and fixed
+  (design note 001), and the paper text changes suggested to the authors are in `docs/PAPER_CHANGES.md`.
 - **Freshness** relies on loosely synchronized clocks and a window delta (default 24
   hours, Settings tab). Within the window a cloud can serve the latest state the receiver
   has not yet seen superseded. The owner must republish before expiry.
 - **Leakage** is the usual one for this class of schemes: the cloud sees which addresses
   are queried together (search pattern, result size), batch sizes and timing. The state
   is padded to `N_max` (grows by doubling); tokens and batches are not padded.
-- **Pure Python PQ backend** is slow (ML-DSA signing about 35 to 90 ms) and not constant
-  time. It is also not thread-safe on its own; the backend serializes calls with a lock.
-  Use `liboqs` for anything beyond a research demo.
-- **Local demo deployment.** The cloud listens on 127.0.0.1 only, without TLS. Operator
-  endpoints (log, statistics) need a token that the app passes to its child process.
-  `a_u` is stored at the cloud wrapped under the cloud passphrase key.
-- **Single owner, no capability update.** A receiver's group list is fixed at approval;
-  to change it, revoke and approve a new join request.
-- **Not audited.** This is research software. Do not use it to protect real data.
+- **Post-quantum code.** OpenSSL's ML-KEM and ML-DSA (native, through `cryptography`) by default;
+  ML-KEM-512 and keys made by version 0.1 use the pure Python code, which is slow and **not constant
+  time**. Constant-time behaviour of the native code is OpenSSL's claim, not checked here.
+- **The local demo** keeps its cloud on 127.0.0.1 without TLS. The networked server uses TLS 1.2 or 1.3,
+  but its key exchange is classical: the data inside is protected by ML-KEM and ML-DSA, the traffic
+  metadata only by classical TLS.
+- **Small groups.** The server is the Python standard library's HTTP server with limits; put a reverse
+  proxy in front of it if it faces the internet.
+- **Not tested across separate computers yet** by the author (`docs/MULTI_MACHINE_TEST.md` is the test
+  to run). The desktop and server builds are bit-for-bit reproducible on one PC; across PCs is
+  not tested (`docs/measurements/`).
+- **Not audited.** This is research software, reviewed only by its author (`docs/SECURITY_REVIEW.md`).
+  Do not use it to protect real data.
 
 ## Not verified by the author of this build
 
-- `liboqs-python` backend (not installed on the development machine).
+- `liboqs-python` backend (not installed on the development machine; the native default is OpenSSL).
+- Separate computers on a real network (only loopback, separate processes and Docker on one PC).
 - The packaged builds are now tested by the build itself (smoke test, GPU self-test,
   installer test). What is still unverified for them is listed in
   [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) under "Not verified": a clean PC without

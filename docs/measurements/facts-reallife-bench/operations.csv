@@ -1,0 +1,31 @@
+operation,kem,sig,backend,milliseconds
+Setup,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),3.130400
+Join,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),31.262983
+"Update (add, 20 keywords)",ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),3.876300
+Publish,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),3.493033
+TokenGen,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),0.193633
+Search,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),0.749000
+Verify,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),1.689067
+Decrypt,ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),0.406833
+"Revoke R (30 docs, remaining users rekeyed)",ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),47.209900
+Revoke RE (30 docs re-encrypted),ML-KEM-512,ML-DSA-44,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),82.464300
+Setup,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),8.842600
+Join,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),27.253733
+"Update (add, 20 keywords)",ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),14.353967
+Publish,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),10.876467
+TokenGen,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),0.718467
+Search,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),3.043367
+Verify,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),4.491600
+Decrypt,ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),1.062033
+"Revoke R (30 docs, remaining users rekeyed)",ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),58.223400
+Revoke RE (30 docs re-encrypted),ML-KEM-768,ML-DSA-65,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),171.539600
+Setup,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),4.106900
+Join,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),38.739100
+"Update (add, 20 keywords)",ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),17.107233
+Publish,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),11.241900
+TokenGen,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),0.540900
+Search,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),4.196967
+Verify,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),4.821300
+Decrypt,ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),1.484767
+"Revoke R (30 docs, remaining users rekeyed)",ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),67.909400
+Revoke RE (30 docs re-encrypted),ML-KEM-1024,ML-DSA-87,OpenSSL 4.0.3 29 Sep 2026 via cryptography 50.0.2 (native),234.320500

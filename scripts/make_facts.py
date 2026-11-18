@@ -108,7 +108,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-tests", action="store_true")
     parser.add_argument("--skip-bench", action="store_true")
+    parser.add_argument("--out", type=Path, default=None,
+                        help="write here instead of site/data/facts.json (numbers of a branch that is not released)")
     args = parser.parse_args()
+    global OUT, BENCH_DIR
+    if args.out is not None:                     # a branch's numbers stay away from the public site's data
+        OUT = args.out.resolve()
+        BENCH_DIR = OUT.parent / (OUT.stem + "-bench")
     old = json.loads(OUT.read_text(encoding="utf-8")) if OUT.is_file() else {}
     facts = {"schema": 1, "measured": dt.date.today().isoformat(), "machine": machine(), "counts": counts()}
     facts["tests"] = old["tests"] if args.skip_tests and "tests" in old else run_tests()

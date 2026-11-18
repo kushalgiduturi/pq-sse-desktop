@@ -51,7 +51,7 @@ Severity is the author's estimate for this application's use (small groups, a se
 | SR-05 | Low | invites | An invite file with fields of the wrong type (for example `null`) escaped as `TypeError` | **Fixed**: every field's type is checked (found by fuzzing) |
 | SR-06 | Low | server core | A request with an identifier of the wrong type (for example a list as `uid`) became a database error and HTTP 500 instead of `malformed`; nothing was applied | **Fixed**: mapped to `malformed` (found by fuzzing) |
 | SR-07 | Low | key store | The vault's passphrase check compared keys with `==` | **Fixed**: `hmac.compare_digest`. It only runs on the user's own computer |
-| SR-08 | Low | builds | Two builds of the same commit differed: file order (Python's hash seed) and the build time in the program header | **Fixed for the server build**: `PYTHONHASHSEED=0` and `SOURCE_DATE_EPOCH` (the commit's time). Two server builds are now identical in all 123 files (`docs/measurements/reproducible-server.md`). The desktop build: section 5 |
+| SR-08 | Low | builds | Two builds of the same commit differed: file order (Python's hash seed) and the build time in the program header | **Fixed**: `PYTHONHASHSEED=0` and `SOURCE_DATE_EPOCH` (the commit's time) in both build scripts. Two server builds are identical in all 123 files, two desktop builds in all 2,127 (`docs/measurements/`) |
 | SR-09 | Info | local demo | The desktop app starts its local demo cloud with the cloud passphrase in the child process's environment, which other programs of the same account can read | Accepted: the local demo is for learning, on one PC, under one account. The networked server reads its passphrase from a file |
 | SR-10 | Info | documents | Since design note 006 C the keywords travel inside each document's encryption, so a receiver who can open a document sees the owner's explicit keywords for it | Accepted (decision M6-9) |
 | SR-11 | Info | TLS | TLS key exchange is classical | Accepted and documented (threat 13): the data inside is protected by ML-KEM and ML-DSA |
@@ -77,7 +77,7 @@ an interrupted RE rebuild (M4-3), a stuck batch blocking a revocation (M6-4).
 | Build | Result | Notes |
 | --- | --- | --- |
 | Server (`build_server.ps1`) | identical, 123 of 123 files | same PC and build environment, two output folders |
-| Desktop (`build_windows.ps1`) | 2,126 of 2,127 files identical; the launcher differs in its embedded code archive | open: `docs/measurements/reproducible-desktop.md` |
+| Desktop (`build_windows.ps1`) | identical, 2,127 of 2,127 files | same PC and build environment (`docs/measurements/reproducible-desktop.md`). A first comparison differed in two modules only because two review fixes landed between the builds |
 
 Bit-for-bit identity was shown on one PC with one Python environment. Identity across PCs needs the same
 Python build, the same pinned packages and the same path layout; that was not tested.
