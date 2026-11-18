@@ -1,0 +1,48 @@
+family,algorithm,operation,backend,median_us,runs
+KEM,ML-KEM-512,keygen,pure,1814.4,15
+KEM,ML-KEM-512,encapsulate,pure,2706.0,15
+KEM,ML-KEM-512,decapsulate,pure,3820.4,15
+KEM,ML-KEM-768,keygen,pure,3270.1,15
+KEM,ML-KEM-768,encapsulate,pure,4093.2,15
+KEM,ML-KEM-768,decapsulate,pure,6896.0,15
+KEM,ML-KEM-1024,keygen,pure,4759.3,15
+KEM,ML-KEM-1024,encapsulate,pure,5781.7,15
+KEM,ML-KEM-1024,decapsulate,pure,8234.8,15
+SIG,ML-DSA-44,keygen,pure,6324.7,15
+SIG,ML-DSA-44,sign,pure,27700.7,15
+SIG,ML-DSA-44,verify,pure,7087.4,15
+SIG,ML-DSA-65,keygen,pure,9622.6,15
+SIG,ML-DSA-65,sign,pure,44079.7,15
+SIG,ML-DSA-65,verify,pure,13299.6,15
+SIG,ML-DSA-87,keygen,pure,14894.3,15
+SIG,ML-DSA-87,sign,pure,69478.8,15
+SIG,ML-DSA-87,verify,pure,16679.0,15
+KEM,ML-KEM-768,keygen,native,186.5,500
+KEM,ML-KEM-768,encapsulate,native,60.5,500
+KEM,ML-KEM-768,decapsulate,native,220.1,500
+KEM,ML-KEM-1024,keygen,native,261.9,500
+KEM,ML-KEM-1024,encapsulate,native,83.6,500
+KEM,ML-KEM-1024,decapsulate,native,293.8,500
+SIG,ML-DSA-44,keygen,native,109.9,500
+SIG,ML-DSA-44,sign,native,603.4,500
+SIG,ML-DSA-44,verify,native,114.9,500
+SIG,ML-DSA-65,keygen,native,191.3,500
+SIG,ML-DSA-65,sign,native,900.9,500
+SIG,ML-DSA-65,verify,native,174.0,500
+SIG,ML-DSA-87,keygen,native,265.9,500
+SIG,ML-DSA-87,sign,native,1118.0,500
+SIG,ML-DSA-87,verify,native,299.6,500
+KEM,X25519,keygen,classical,50.2,500
+KEM,X25519,exchange,classical,44.9,500
+KEM,ECDH P-256,keygen,classical,30.0,500
+KEM,ECDH P-256,exchange,classical,70.7,500
+KEM,RSA-2048 OAEP,keygen,classical,52193.1,25
+KEM,RSA-2048 OAEP,encrypt,classical,42.7,500
+KEM,RSA-2048 OAEP,decrypt,classical,746.1,500
+SIG,Ed25519,keygen,classical,34.7,500
+SIG,Ed25519,sign,classical,34.8,500
+SIG,Ed25519,verify,classical,100.4,500
+SIG,ECDSA P-256,sign,classical,27.3,500
+SIG,ECDSA P-256,verify,classical,80.7,500
+SIG,RSA-2048 PSS,sign,classical,750.3,500
+SIG,RSA-2048 PSS,verify,classical,42.8,500

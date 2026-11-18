@@ -167,6 +167,42 @@ Item {
                     extra: [ Lbl { width: parent.width; text: app.logTail.length > 0 ? app.logTail : T.logShow; font.family: Theme.monoFamily; size: Theme.caption * 0.95; tone: "secondary"; wrapMode: Text.WrapAnywhere } ]
                 }
 
+                // ------------------------------------------------------ keys and passphrases (milestone 5)
+                TaskCard {
+                    id: keysCard
+                    width: cards.cardWidth
+                    title: T.keysTitle
+                    summary: T.keysSummary
+                    hasMore: true
+                    readonly property var k: app.keys
+                    Txt { width: parent.width; wrapMode: Text.WordWrap; kind: "sm"
+                          tone: keysCard.k.fallback ? "warn" : "secondary"
+                          text: keysCard.k.fallback ? T.keysFallback : T.keysBackend.replace("{backend}", keysCard.k.backend).replace("{coverage}", keysCard.k.coverage) }
+                    Lbl { width: parent.width; wrapMode: Text.WordWrap; size: Theme.caption; tone: "secondary"
+                          text: keysCard.k.open.length > 0 ? T.keysOpen.replace("{list}", keysCard.k.open.map(n => app.displayName(n)).join(", ")) : T.keysNoneOpen }
+                    Lbl { visible: keysCard.k.note.length > 0; width: parent.width; wrapMode: Text.WordWrap; text: keysCard.k.note }
+                    Flow { width: parent.width; spacing: Theme.sp2
+                        PButton { text: T.keysLockBtn; enabled: !app.busy && keysCard.k.open.length > 0; onClicked: app.lockKeys() }
+                        Field { id: autolockField; width: 120; text: String(keysCard.k.autolock); hint: T.keysAutolock
+                                onAccepted: app.setAutolock(parseInt(text) || 0) } }
+                    extra: [
+                        Column { width: parent.width; spacing: Theme.sp2
+                            Field { id: keysRole; width: parent.width; hint: T.keysRole; text: keysCard.k.open.length > 0 ? keysCard.k.open[0] : "" }
+                            Field { id: keysOld; width: parent.width; secret: true; hint: T.keysOld }
+                            Field { id: keysNew; width: parent.width; secret: true; hint: T.keysNew }
+                            PButton { text: T.keysChangeBtn; enabled: !app.busy && keysRole.text.length > 0 && keysOld.text.length > 0 && keysNew.text.length >= 8
+                                      onClicked: { app.changePassphrase(keysRole.text.trim(), keysOld.text, keysNew.text); keysOld.clear(); keysNew.clear() } }
+                            Field { id: backupPass; width: parent.width; secret: true; hint: T.keysBackupPass }
+                            PButton { text: T.keysBackupBtn; enabled: !app.busy && keysRole.text.length > 0 && backupPass.text.length >= 12
+                                      onClicked: { app.backupKeys(keysRole.text.trim(), backupPass.text); backupPass.clear() } }
+                            Field { id: importFile; width: parent.width; hint: T.keysImportFile }
+                            Field { id: importPass; width: parent.width; secret: true; hint: T.keysImportPass }
+                            Field { id: importNew; width: parent.width; secret: true; hint: T.keysImportNew }
+                            PButton { text: T.keysImportBtn; enabled: !app.busy && importFile.text.length > 0 && importPass.text.length > 0 && importNew.text.length >= 8
+                                      onClicked: { app.importKeys(importFile.text, importPass.text, importNew.text); importPass.clear(); importNew.clear() } }
+                        } ]
+                }
+
                 // ------------------------------------------------------ about
                 TaskCard {
                     width: parent.width

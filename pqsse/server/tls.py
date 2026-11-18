@@ -56,10 +56,12 @@ def make_self_signed(cert_path: Path, key_path: Path, names: list[str], years: i
 
 
 def _write_private(path: Path, data: bytes) -> None:
-    """Create the file readable by this account only (POSIX mode 600; on Windows the user profile ACL applies)."""
+    """Create the file readable by this account only (POSIX mode 600; on Windows an ACL for this user alone)."""
+    from ..core import fileperm
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "wb") as handle:
         handle.write(data)
+    fileperm.restrict(path)
 
 
 def fingerprint_of_der(der: bytes) -> str:

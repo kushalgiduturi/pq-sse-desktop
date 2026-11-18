@@ -3,6 +3,12 @@
 The master key is derived from the user's passphrase with scrypt. Every record is
 ``AES-256-GCM(master, enc(value), aad = record name)``. Secret keys are only ever
 written through this class and are never logged.
+
+Key lifecycle (milestone 5): ``change_passphrase`` re-encrypts every record under a new key in one
+transaction; ``export_backup`` writes one file, encrypted under a separate backup passphrase, that
+``import_backup`` turns back into a vault; a new vault file is made readable by this account only
+(``fileperm``); ``close`` overwrites the master key in memory. That last step is best effort: Python
+may hold other copies of key bytes, which it frees but does not overwrite.
 """
 from __future__ import annotations
 
@@ -13,14 +19,16 @@ import threading
 from pathlib import Path
 from typing import Any, Iterator
 
-from . import wire
-from .errors import BadPassphrase, VerifyError
+from . import fileperm, wire
+from .errors import BadPassphrase, PQSSEError, VerifyError
 from .prims import aead_decrypt, aead_encrypt
 
 SCRYPT_N = 2**15
 _SCRYPT_R = 8
 _SCRYPT_P = 1
 _CHECK_NAME = "__vault_check__"
+BACKUP_MAGIC = b"PQSSE-KEY-BACKUP-1\n"
+BACKUP_SCRYPT_N = 2**17          # a backup leaves this computer: a higher cost for guessing its passphrase
 
 
 def derive_master_key(passphrase: str, salt: bytes, n: int = SCRYPT_N) -> bytes:
@@ -37,6 +45,7 @@ class Vault:
     def __init__(self, path: str | Path, passphrase: str, scrypt_n: int = SCRYPT_N) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        new_file = not self.path.exists()
         self._lock = threading.RLock()
         self._db = sqlite3.connect(str(self.path), check_same_thread=False)
         self._db.execute("CREATE TABLE IF NOT EXISTS vault_meta (k TEXT PRIMARY KEY, v BLOB)")
@@ -46,17 +55,20 @@ class Vault:
             salt = os.urandom(16)
             self._db.execute("INSERT INTO vault_meta VALUES ('salt', ?)", (salt,))
             self._db.execute("INSERT INTO vault_meta VALUES ('n', ?)", (str(scrypt_n).encode(),))
-            self._master = derive_master_key(passphrase, salt, scrypt_n)
+            self._master = bytearray(derive_master_key(passphrase, salt, scrypt_n))
             self.put(_CHECK_NAME, "ok")
         else:
             n_row = self._db.execute("SELECT v FROM vault_meta WHERE k='n'").fetchone()
-            self._master = derive_master_key(passphrase, row[0], int(n_row[0]))
+            self._master = bytearray(derive_master_key(passphrase, row[0], int(n_row[0])))
             try:
                 self.get(_CHECK_NAME)
             except VerifyError as exc:
                 self._db.close()
+                self._wipe()
                 raise BadPassphrase("wrong passphrase for " + self.path.name) from exc
         self._db.commit()
+        if new_file:
+            fileperm.restrict(self.path)
 
     @property
     def db(self) -> sqlite3.Connection:
@@ -102,6 +114,91 @@ class Vault:
     def close(self) -> None:
         with self._lock:
             self._db.close()
+            self._wipe()
+
+    def _wipe(self) -> None:
+        for i in range(len(self._master)):
+            self._master[i] = 0
+
+    # ------------------------------------------------------------------ key lifecycle
+    def _kdf_params(self) -> tuple[bytes, int]:
+        salt = self._db.execute("SELECT v FROM vault_meta WHERE k='salt'").fetchone()[0]
+        n = int(self._db.execute("SELECT v FROM vault_meta WHERE k='n'").fetchone()[0])
+        return salt, n
+
+    def check_passphrase(self, passphrase: str) -> bool:
+        salt, n = self._kdf_params()
+        return derive_master_key(passphrase, salt, n) == bytes(self._master)
+
+    def change_passphrase(self, old: str, new: str, scrypt_n: int | None = None) -> None:
+        """Re-encrypt every record under a key from the new passphrase and a new salt, all or nothing."""
+        if not self.check_passphrase(old):
+            raise BadPassphrase("the current passphrase is wrong")
+        if not new:
+            raise PQSSEError("the new passphrase is empty")
+        with self._lock:
+            _, n = self._kdf_params()
+            n = scrypt_n or n
+            salt = os.urandom(16)
+            master = bytearray(derive_master_key(new, salt, n))
+            rows = self._db.execute("SELECT name, blob FROM vault").fetchall()
+            try:
+                for name, blob in rows:
+                    fresh = aead_encrypt(bytes(master), wire.enc(self.decrypt(name, blob)), name.encode("utf-8"))
+                    self._db.execute("UPDATE vault SET blob=? WHERE name=?", (fresh, name))
+                self._db.execute("UPDATE vault_meta SET v=? WHERE k='salt'", (salt,))
+                self._db.execute("UPDATE vault_meta SET v=? WHERE k='n'", (str(n).encode(),))
+                self._db.commit()
+            except BaseException:
+                self._db.rollback()
+                for i in range(len(master)):
+                    master[i] = 0
+                raise
+            self._wipe()
+            self._master = master
+
+    def export_backup(self, dest: str | Path, backup_passphrase: str, scrypt_n: int = BACKUP_SCRYPT_N) -> Path:
+        """Write every record to one file encrypted under the backup passphrase (scrypt, AES-256-GCM)."""
+        if len(backup_passphrase) < 12:
+            raise PQSSEError("use a backup passphrase of at least 12 characters")
+        dest = Path(dest)
+        if dest.exists():
+            raise PQSSEError(f"{dest.name} already exists; choose a new file name")
+        records = {name: self.get(name) for name in self.names()}
+        salt = os.urandom(16)
+        key = bytearray(derive_master_key(backup_passphrase, salt, scrypt_n))
+        try:
+            sealed = aead_encrypt(bytes(key), wire.enc(records), BACKUP_MAGIC)
+        finally:
+            for i in range(len(key)):
+                key[i] = 0
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(BACKUP_MAGIC + wire.enc({"salt": salt, "n": scrypt_n, "data": sealed}))
+        fileperm.restrict(dest)
+        return dest
+
+
+def import_backup(source: str | Path, backup_passphrase: str, dest: str | Path, new_passphrase: str,
+                  scrypt_n: int = SCRYPT_N) -> Vault:
+    """Make a new vault at ``dest`` from a backup file. Never overwrites an existing vault."""
+    source, dest = Path(source), Path(dest)
+    raw = source.read_bytes()
+    if not raw.startswith(BACKUP_MAGIC):
+        raise PQSSEError(f"{source.name} is not a PQ-SSE key backup")
+    if dest.exists():
+        raise PQSSEError(f"{dest.name} already exists; a backup is never imported over existing keys")
+    try:
+        meta = wire.dec(raw[len(BACKUP_MAGIC):])
+        key = derive_master_key(backup_passphrase, meta["salt"], int(meta["n"]))
+        records = wire.dec(aead_decrypt(key, meta["data"], BACKUP_MAGIC, what="key backup"))
+    except VerifyError as exc:
+        raise BadPassphrase("wrong backup passphrase, or the backup file is damaged") from exc
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PQSSEError(f"{source.name} is not a readable PQ-SSE key backup") from exc
+    vault = Vault(dest, new_passphrase, scrypt_n)
+    for name, value in records.items():
+        vault.put(name, value)
+    return vault
 
 
 class MemoryVault:

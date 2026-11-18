@@ -71,6 +71,30 @@ One TOML file; every setting can also be given as `PQSSE_SERVER_<NAME>` (environ
 - **Storage**: SQLite in WAL mode with full sync; documents as files named by their SHA-256, written
   atomically; a quick integrity check at every start; the store refuses to start when damaged.
 
+## The server's keys
+
+| What | Where | Protected by |
+| --- | --- | --- |
+| ML-KEM and ML-DSA key pair (the server key fingerprint) | `data_dir/cloud.sqlite`, record `identity` | AES-256-GCM under a key from the passphrase (scrypt) |
+| TLS private key | `data_dir/server.key` (PEM, not encrypted, so the server starts unattended) | file permissions: this account only |
+| Admin token | `data_dir/admin.token` | file permissions: this account only; rotate with `admin rotate-token` |
+| The passphrase | the file named by `passphrase_file`, or the Docker secret | you: keep it readable by the server's account only, and outside `data_dir` |
+
+- A new data folder is made readable by the server's account only: on Windows an access list for that
+  user alone (no administrator rights needed), elsewhere mode 0700, files 0600. The tests check this for
+  the store, `server.key` and `admin.token`. Administrators and the operating system can still read them.
+- New private keys are stored as their FIPS 203 / 204 seeds; stores made before version 0.2 keep their
+  expanded keys and still work.
+- The passphrase is never a command-line argument and never printed or logged. Without it the store
+  cannot be opened: there is no recovery. Keep it, and backups, apart from each other.
+- **If `server.key` leaks**: stop the server, delete `server.crt` and `server.key`, start again (a new
+  certificate is made) and give the clients the new TLS fingerprint. The protocol's own keys are not affected.
+- **If the passphrase or the store leaks together**: the server key must be replaced. That needs every
+  data owner to pair again and every receiver to receive the new server key, which is a protocol step
+  this version does not automate (a future design note).
+- The server cannot read documents or keywords with any of these keys: they authenticate it and open
+  the control messages sent to it.
+
 ## Operating it
 
 ```powershell

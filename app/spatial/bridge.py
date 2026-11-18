@@ -15,7 +15,7 @@ import logging
 import time
 from typing import Any, Callable
 
-from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
+from PySide6.QtCore import Property, QObject, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 
 from pqsse import applog, attacklab, narrator, paths, pqbackend, roles
@@ -85,6 +85,13 @@ class AppBridge(QObject):
         self._role = ROLE_ALICE
         self._server_note: dict = {}
         self._last_invite: dict = {}
+        self._keys_note = ""
+        self._last_action = time.monotonic()
+        self._autolock = QTimer(self)
+        self._autolock.setInterval(30_000)
+        self._autolock.timeout.connect(self.autolockTick)
+        if not sync:
+            self._autolock.start()
         self._ctx = lesson.Ctx(self.session)
         self._lesson_html = ""
         self.last_error: dict | None = None
@@ -124,6 +131,7 @@ class AppBridge(QObject):
 
     def _run(self, name: str, label: str, fn: Callable[[], Any], after: Callable[[Any], None] | None = None) -> None:
         """Run an action on a worker thread, then publish a fresh snapshot or a friendly error."""
+        self._last_action = time.monotonic()
         first = self.events.count
         started = time.perf_counter()
 
@@ -1026,6 +1034,60 @@ class AppBridge(QObject):
         if self._bench_raw_ops:
             bench.write_csv(folder / "operations.csv", self._bench_raw_ops, bench.OPS_COLUMNS)
         return str(folder)
+
+    # ------------------------------------------------------------------ keys: passphrase, backup, auto-lock (M5)
+    @Property("QVariantMap", notify=stateChanged)
+    def keys(self) -> dict:
+        return {"open": self.session.keys_open(), "autolock": int(self.session.settings.get("autolock_minutes", 15)),
+                "note": self._keys_note, "backend": pqbackend.backend_name(), "coverage": pqbackend.coverage(),
+                "fallback": pqbackend.is_fallback()}
+
+    def _keys_done(self, note: str) -> Callable[[Any], None]:
+        def after(result: Any) -> None:
+            self._keys_note = note.format(result=result)
+        return after
+
+    @Slot(str, str, str)
+    def changePassphrase(self, role: str, old: str, new: str) -> None:
+        self._run("changePassphrase", "Changing the passphrase", lambda: self.session.change_passphrase(role, old, new),
+                  after=self._keys_done(T["keysChanged"].format(role=roles.display(role))))
+
+    @Slot(str, str)
+    def backupKeys(self, role: str, backup_passphrase: str) -> None:
+        self._run("backupKeys", "Writing the key backup", lambda: self.session.backup_keys(role, backup_passphrase),
+                  after=self._keys_done(T["keysBackedUp"]))
+
+    @Slot(str, str, str)
+    def importKeys(self, source: str, backup_passphrase: str, new_passphrase: str) -> None:
+        source = QUrl(source).toLocalFile() if source.startswith("file:") else source
+        self._run("importKeys", "Restoring keys from a backup",
+                  lambda: self.session.import_keys(source.strip().strip('"'), backup_passphrase, new_passphrase),
+                  after=self._keys_done(T["keysImported"]))
+
+    @Slot()
+    def lockKeys(self) -> None:
+        self._run("lockKeys", "Locking the keys", lambda: ", ".join(map(roles.display, self.session.lock_keys())) or "none", after=self._keys_done(T["keysLocked"]))
+
+    @Slot(int)
+    def setAutolock(self, minutes: int) -> None:
+        self.session.settings["autolock_minutes"] = max(0, min(int(minutes), 24 * 60))
+        self.session.save_settings()
+        self.stateChanged.emit()
+
+    @Slot()
+    def autolockTick(self) -> None:
+        """Lock every open key store after the chosen number of minutes without an action (0 turns it off)."""
+        minutes = int(self.session.settings.get("autolock_minutes", 15))
+        if minutes <= 0 or self.runner_busy() or not self.session.keys_open():
+            return
+        if time.monotonic() - self._last_action >= minutes * 60:
+            self.session.lock_keys()
+            self._keys_note = T["keysAutoLocked"].format(minutes=minutes)
+            self._state = self._snapshot()
+            self.stateChanged.emit()
+
+    def runner_busy(self) -> bool:
+        return self._busy[0] > 0
 
     @Property("QVariantMap", notify=settingsChanged)
     def advanced(self) -> dict:

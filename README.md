@@ -134,12 +134,15 @@ OneDrive, which would otherwise sync thousands of package files. Any location wo
 To force the CPU: set `CUDA_VISIBLE_DEVICES=-1` or `PQSSE_FORCE_CPU=1`, or choose
 "CPU only" on the Settings tab.
 
-### Faster PQ backend (optional)
+### Post-quantum backend
 
-If `liboqs-python` (`oqs`) is importable and passes a round trip it is used automatically;
-otherwise the pure Python `kyber-py` and `dilithium-py` are used. The app header shows the
-active backend. `liboqs` was not available on the development machine, so that path is
-implemented but untested here.
+ML-KEM and ML-DSA run in OpenSSL through the `cryptography` package, which the app already needs (its
+wheels bundle OpenSSL). OpenSSL has no ML-KEM-512, so that parameter set runs in the pure Python
+`kyber-py`, as do private keys made by version 0.1 (stored in the expanded form; new keys are stored as
+their FIPS seed). If OpenSSL lacks ML-KEM and ML-DSA, `liboqs-python` is used when installed, otherwise the
+pure Python code for everything, with a warning: it is slow and not constant time. Set
+`PQSSE_PQ_BACKEND=native|oqs|pure` to choose. Insights, About and the server's start line show the
+backend in use. Timings: `docs/measurements/primitives.md` (`python -m pqsse.bench_primitives`).
 
 ## Run
 

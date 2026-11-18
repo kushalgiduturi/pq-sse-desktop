@@ -185,8 +185,11 @@ def test_narration_is_complete_text_and_names_the_actor(events):
 
 def test_events_never_contain_key_material(events):
     world, bob, carol = run_story(events)
-    secrets = [world.owner._sk[32:64], world.cloud._sk[32:64], world.cloud._dk[:32], bob._dk[:32], bob._sk[32:64],
-               carol._dk[-32:]]
+    # private parts: a 32-byte ML-DSA seed whole (or bytes 32..64 of an older expanded key), ML-KEM d and z
+    sig_part = lambda k: k if len(k) == 32 else k[32:64]  # noqa: E731
+    secrets = [sig_part(world.owner._sk), sig_part(world.cloud._sk), world.cloud._dk[:32], bob._dk[:32],
+               sig_part(bob._sk), carol._dk[-32:]]
+    assert all(len(s) >= 16 for s in secrets)
     for g in ("Finance", "Legal"):
         secrets += list(world.owner._group(g)["keys"].values())
     for rec in world.owner.receivers.values():

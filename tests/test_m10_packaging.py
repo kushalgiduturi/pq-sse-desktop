@@ -143,7 +143,7 @@ def test_about_dialog_shows_version_data_folder_and_licenses(qapp):
         dialog = window.show_about(execute=False)
         assert dialog.values["Version"].text() == get_version()
         assert dialog.values["Data folder"].text() == str(paths.base_dir())
-        assert "pure Python" in dialog.values["Post-quantum backend"].text() or "liboqs" in dialog.values["Post-quantum backend"].text()
+        assert any(k in dialog.values["Post-quantum backend"].text() for k in ("(native)", "pure Python", "liboqs"))
         assert dialog.values["GPU"].text()
         assert "MIT License" in dialog.licenses.toPlainText()
         assert dialog.data_button.text() == "Open data folder"

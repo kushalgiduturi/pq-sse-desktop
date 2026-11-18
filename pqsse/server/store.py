@@ -16,6 +16,7 @@ from pathlib import Path
 
 from ..cloud.blobs import BlobStore, is_ref
 from ..cloud.core import CloudCore
+from ..core import fileperm
 from ..core.keystore import Vault
 from ..pqbackend import Params
 from .config import Config
@@ -29,7 +30,9 @@ class StoreError(Exception):
 
 def open_core(config: Config, passphrase: str) -> CloudCore:
     """Open (or create) the store for serving: WAL journal, quick check, blobs and limits wired in."""
-    config.data_dir.mkdir(parents=True, exist_ok=True)
+    if not config.data_dir.exists():
+        config.data_dir.mkdir(parents=True)
+        fileperm.restrict(config.data_dir)        # new files inside inherit "this account only"
     vault = Vault(config.store_path, passphrase)
     db = vault.db
     try:

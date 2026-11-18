@@ -166,10 +166,12 @@ def test_full_scenario_over_http_with_encrypted_stores(tmp_path):
         cloud_vault.close()
         probes = list(owner._group("alpha")["keys"].values()) + list(owner._group("beta")["keys"].values())
         probes += [r["a"] for r in owner.receivers.values()] + [r["m"] for r in owner.receivers.values()]
+        # Since milestone 5 new private keys are stored as their FIPS seed: ML-DSA xi (32 bytes), ML-KEM d || z (64).
         for sig_key in (owner._sk, bob._sk, alice._sk, ident["sk"]):
-            probes += [sig_key, sig_key[32:64]]
+            probes += [sig_key] if len(sig_key) == 32 else [sig_key, sig_key[32:64]]
         for kem_key in (bob._dk, alice._dk, ident["dk"]):
             probes += [kem_key, kem_key[:32], kem_key[-32:]]
+        assert all(len(probe) >= 16 for probe in probes)
         for probe in probes:
             assert probe not in blob
 

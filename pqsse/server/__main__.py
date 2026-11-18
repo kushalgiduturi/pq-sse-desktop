@@ -89,8 +89,10 @@ def cmd_run(args) -> int:
     threads = [threading.Thread(target=s.serve_forever, daemon=True, name=n) for s, n in ((public, "api"), (admin, "admin"))]
     for t in threads:
         t.start()
-    if pqbackend.backend_name().startswith("kyber-py"):
+    if pqbackend.is_fallback():
         print("WARNING: post-quantum code is the pure-Python fallback: slow, not constant time, for teaching only.", flush=True)
+    else:
+        print(f"Post-quantum code: {pqbackend.backend_name()}. {pqbackend.coverage()}.", flush=True)
     print(f"PQSSE-SERVER READY version={get_version()} api=https://{config.host}:{config.port}/v1/ "
           f"admin=http://{config.admin_host}:{config.admin_port}/admin/ tls={tls.fingerprint(cert)} "
           f"key={core.public_identity().fingerprint()}", flush=True)

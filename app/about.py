@@ -38,11 +38,10 @@ def gpu_line(session: Session) -> str:
 def info_rows(session: Session) -> list[tuple[str, str]]:
     """The facts shown in the dialog, as (label, value)."""
     backend = pqbackend.backend_name()
-    kind = "liboqs" if "oqs" in backend.lower() else "pure Python (slow, for teaching)"
     return [
         ("Version", get_version()),
         ("Build", "Installed or portable program" if paths.frozen() else "Running from source"),
-        ("Post-quantum backend", f"{backend}: {kind}"),
+        ("Post-quantum backend", f"{backend}. {pqbackend.coverage()}"),
         ("GPU", gpu_line(session)),
         ("Python / Qt binding", f"{platform.python_version()} / PySide6 {PYSIDE_VERSION}"),
         ("Windows", platform.platform()),

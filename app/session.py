@@ -20,7 +20,8 @@ from typing import Any
 
 from pqsse import narrator, paths, pqbackend
 from pqsse.core.errors import AccessDenied, BadPassphrase, PQSSEError, Rejected, VerifyError
-from pqsse.core.keystore import Vault
+from pqsse.core import fileperm
+from pqsse.core.keystore import Vault, import_backup
 from pqsse.core.pairing import PublicIdentity, export_pub, import_pub
 from pqsse.gpu import get_prf, status
 from pqsse.gpu.batchprf import BatchPRF, CpuPRF
@@ -36,7 +37,8 @@ log = logging.getLogger("pqsse.app")
 
 DEFAULTS = {"kem": "ML-KEM-768", "sig": "ML-DSA-65", "port": 8765, "engine": "auto", "state_ttl_hours": 24,
             "mode": "expert", "show_welcome": True, "font_size": "normal", "reduce_motion": False,
-            "narrator": True, "lesson_step": 0, "lesson_done": [], "challenges_done": []}
+            "narrator": True, "lesson_step": 0, "lesson_done": [], "challenges_done": [],
+            "autolock_minutes": 15}
 LESSON_PROFILE = "lesson"
 NETWORK_PROFILE = "network"           # data folder of the Data owner and Receiver modes
 USES = ("demo", "owner", "receiver")
@@ -499,6 +501,70 @@ class Session:
         self.settings.update(lesson_step=0, lesson_done=[])
         self.save_settings()
         paths.set_profile(LESSON_PROFILE if was_lesson else self.own_profile)
+
+    # ------------------------------------------------------------------ key lifecycle (milestone 5)
+    def _role_vault(self, role: str):
+        if role == "owner":
+            if self.owner is None:
+                raise PQSSEError("Unlock the data owner's keys first.")
+            return self.owner.vault
+        rec = self.receivers.get(role)
+        if rec is None:
+            raise PQSSEError(f"Unlock {role}'s keys first.")
+        return rec.vault
+
+    def keys_open(self) -> list[str]:
+        return (["owner"] if self.owner is not None else []) + sorted(self.receivers)
+
+    def change_passphrase(self, role: str, old: str, new: str) -> None:
+        """Re-encrypt one role's keys under a new passphrase. The old passphrase is checked first."""
+        if len(new) < 8:
+            raise PQSSEError("Use a new passphrase of at least 8 characters.")
+        self._role_vault(role).change_passphrase(old, new)
+
+    def backup_keys(self, role: str, backup_passphrase: str) -> str:
+        """Write an encrypted copy of one role's keys and state to the backups folder; returns the file."""
+        folder = paths.data_dir() / "backups"
+        if not folder.exists():
+            folder.mkdir(parents=True)
+            fileperm.restrict(folder)
+        safe = "".join(ch for ch in role if ch.isalnum() or ch in "-_") or "keys"
+        dest = folder / f"{safe}-{time.strftime('%Y%m%d-%H%M%S')}.pqkeys"
+        return str(self._role_vault(role).export_backup(dest, backup_passphrase))
+
+    def import_keys(self, source: str, backup_passphrase: str, new_passphrase: str) -> str:
+        """Restore a role from a backup file into this data folder. Never replaces existing keys. Returns the role."""
+        if len(new_passphrase) < 8:
+            raise PQSSEError("Use a passphrase of at least 8 characters for the restored keys.")
+        tmp = paths.data_dir() / f"import-{os.urandom(4).hex()}.sqlite"
+        vault = import_backup(source, backup_passphrase, tmp, new_passphrase)
+        try:
+            if vault.get("owner") is not None:
+                role, dest = "owner", paths.owner_db()
+            elif vault.get("receiver") is not None:
+                role = vault.get("receiver")["name"]
+                dest = paths.receiver_db(role)
+            else:
+                raise PQSSEError("This backup holds no data owner or receiver keys.")
+        finally:
+            vault.close()
+        if dest.exists():
+            tmp.unlink(missing_ok=True)
+            raise PQSSEError(f"Keys for {role} already exist on this computer; nothing was replaced.")
+        tmp.replace(dest)
+        return role
+
+    def lock_keys(self) -> list[str]:
+        """Close every open vault (auto-lock or the Lock button). The keys need the passphrase again."""
+        locked = self.keys_open()
+        for role in [self.owner, *self.receivers.values()]:
+            if role is not None:
+                try:
+                    role.vault.close()
+                except Exception:
+                    pass
+        self.owner, self.receivers = None, {}
+        return locked
 
     def header_text(self) -> str:
         return f"PQ backend: {pqbackend.backend_name()} | New identities: {self.params.label()}"

@@ -111,6 +111,7 @@ def main() -> int:
         status = json.loads(run(COMPOSE + ["exec", "-T", "server", "python", "-m", "pqsse.server", "admin", "status"]))
         storage = json.loads(run(COMPOSE + ["exec", "-T", "server", "python", "-m", "pqsse.server", "admin", "storage"]))
         check(status.get("paired") is True and storage.get("docs") == 2, "admin status and storage from inside the container")
+        check("(native)" in str(status.get("backend")), f"the container uses the native post-quantum code ({status.get('backend')})")
         dump = json.dumps([status, storage])
         check(not any(w in dump for w in ("invoice", "hardware", "budget")), "the operator's view holds no document words")
         check_out = run(COMPOSE + ["exec", "-T", "server", "python", "-m", "pqsse.server", "check"], check=False)
