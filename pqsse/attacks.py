@@ -102,11 +102,12 @@ class TamperCloud:
         reply = self.inner.call("search", obj)
         if self.mode == "unsigned":
             self.applied = True
-            return {"body": reply["body"], "sig": b""}
+            return {"ct": reply["ct"], "sig": b""}
         if self.mode == "badsig":
             self.applied = True
-            return {"body": reply["body"], "sig": _flip(reply["sig"], self.rng)}
-        body = wire.dec(reply["body"])
+            return {"ct": reply["ct"], "sig": _flip(reply["sig"], self.rng)}
+        # the cloud holds a_u, so a cheating cloud can open and rewrite its own response
+        body = wire.dec(self.core.open_response(obj["uid"], reply["ct"]))
         segs = [[e, _split(a, v)] for e, a, v in body["segs"]]
         changed = getattr(self, "_m_" + str(self.mode))(body["g"], segs)
         if not changed:
@@ -114,9 +115,10 @@ class TamperCloud:
         self.applied = True
         body["segs"] = [[e, *_join(pairs)] for e, pairs in segs]
         new_body = wire.enc(body)
+        resealed = self.core.sign_response(obj["uid"], obj["ct"], new_body)
         if self.resign:
-            return self.core.sign_response(obj["ct"], new_body)
-        return {"body": new_body, "sig": reply["sig"]}
+            return resealed
+        return {"ct": resealed["ct"], "sig": reply["sig"]}
 
     def _pick(self, segs: list, minimum: int) -> list | None:
         choices = [pairs for _, pairs in segs if len(pairs) >= minimum]

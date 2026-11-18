@@ -121,10 +121,9 @@ def test_receivers_search_results_survive_add_delete_add_across_epochs():
     assert {i for i, _ in result.hits} == world.owner.plaintext_search("g", "alpha") and len(result.hits) == 1
 
 
-# ------------------------------------------------------------------ known deviations (waiting for a decision)
-@pytest.mark.xfail(strict=True, reason="P-01 in docs/PAPER_CONFORMANCE.md: the search response is signed but not "
-                                       "encrypted under a_u (paper Algorithm 7, step 5)")
+# ------------------------------------------------------------------ decided deviations (design note 001, P-03)
 def test_search_response_hides_the_searched_addresses_from_the_network():
+    """P-01, fixed: the response is encrypted under the receiver's credential (paper Algorithm 7, step 5)."""
     world, tap = tapped_world()
     world.owner.create_group("g")
     world.owner.build_index("g", [doc("a", ["alpha"])])
@@ -136,20 +135,41 @@ def test_search_response_hides_the_searched_addresses_from_the_network():
     assert address not in tap.replies("search")[-1]
 
 
-@pytest.mark.xfail(strict=True, reason="P-02 in docs/PAPER_CONFORMANCE.md: control messages are signed but not "
-                                       "sealed to the cloud (paper Section II-A, Ctl)")
 def test_control_messages_are_confidential_on_the_network():
+    """P-02, fixed: control messages are sealed to the cloud's ML-KEM key (paper Section II-A, Ctl)."""
     world, tap = tapped_world()
     world.owner.create_group("quarterly-reports")
     assert b"quarterly-reports" not in tap.sent("ctl")[-1]
+    bob = world.join("receiver-a", ["quarterly-reports"])
+    world.owner.revoke(bob.uid, "R")
+    assert all(bob.uid.encode() not in body for body in tap.sent("ctl"))
 
 
-@pytest.mark.xfail(strict=True, reason="P-03 in docs/PAPER_CONFORMANCE.md: the state capacity N_max doubles when "
-                                       "a group outgrows it, so the state size leaks the keyword count range")
-def test_state_size_does_not_depend_on_the_number_of_keywords():
+def test_revoked_credential_is_erased_at_the_server():
+    """P-06, fixed: Revoke deletes a_u at the server and keeps only a revoked marker."""
+    world, _ = tapped_world()
+    world.owner.create_group("g")
+    world.owner.publish("g")
+    bob = world.join("receiver-a", ["g"])
+    world.owner.revoke(bob.uid, "R")
+    enc_a, revoked = world.cloud.db.execute("SELECT enc_a, revoked FROM creds WHERE uid=?", (bob.uid,)).fetchone()
+    assert revoked == 1 and enc_a == b""
+    from pqsse.core.errors import Rejected
+    with pytest.raises(Rejected) as info:
+        bob.search("g", "alpha")
+    assert info.value.reason == "revoked"
+
+
+def test_state_size_is_fixed_up_to_the_capacity_and_doubles_beyond_it():
+    """P-03, accepted: the padded state hides the keyword count up to N_max (4096 records by default); a group
+    that outgrows it gets a doubled capacity, so the server learns the power-of-two range. Stated in the docs."""
+    from pqsse.core.state import DEFAULT_NMAX, RECORD_LEN
     world, tap = tapped_world()
     world.owner.create_group("g")
-    small = len(wire.dec(tap.sent("state_put")[-1])["ct"])
+    empty = len(wire.dec(tap.sent("state_put")[-1])["ct"])
     world.owner.build_index("g", [doc(f"d{i}", [f"word{i}x{j}" for j in range(30)]) for i in range(50)])
     world.owner.publish("g")
-    assert len(wire.dec(tap.sent("state_put")[-1])["ct"]) == small
+    assert len(wire.dec(tap.sent("state_put")[-1])["ct"]) == empty            # 1500 keywords: same size
+    world.owner.build_index("g", [doc(f"e{i}", [f"more{i}x{j}" for j in range(30)]) for i in range(100)])
+    world.owner.publish("g")
+    assert len(wire.dec(tap.sent("state_put")[-1])["ct"]) == empty + DEFAULT_NMAX * RECORD_LEN   # 4500: doubled

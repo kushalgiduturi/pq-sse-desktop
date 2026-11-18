@@ -14,7 +14,7 @@ from typing import Any, Callable
 from .. import narrator, pqbackend
 from ..core import index, seal, signing, wire
 from ..core.chain import CHAIN_START, chain_fold
-from ..core.index import doc_aad, doc_handle, token_aad, token_key
+from ..core.index import RESPONSE_LABEL, doc_aad, doc_handle, token_aad, token_key
 from ..core.errors import AccessDenied, PQSSEError, Rejected, VerifyError, WireError
 from ..core.pairing import PublicIdentity
 from ..core.prims import H, aead_decrypt, aead_encrypt, group_subkeys
@@ -388,12 +388,16 @@ class Receiver:
         t0 = time.perf_counter()
 
         try:
-            body_raw, sig = reply["body"], reply["sig"]
+            resp_ct, sig = reply["ct"], reply["sig"]
         except (KeyError, TypeError) as exc:
             raise report.fail("response signature", "malformed response") from exc
-        if not signing.check_bytes(self.params, self._cloud_vk(), "resp", H(token_ct) + body_raw, sig):
+        if not signing.check_bytes(self.params, self._cloud_vk(), "resp", H(token_ct) + H(resp_ct), sig):
             raise report.fail("response signature", "the cloud's ML-DSA signature is invalid")
-        report.ok("response signature", "signed by the cloud, bound to this token")
+        try:
+            body_raw = aead_decrypt(token_key(self._cap()["a"]), resp_ct, token_aad(self.uid, RESPONSE_LABEL))
+        except VerifyError as exc:
+            raise report.fail("response signature", "the response does not decrypt under this receiver's credential") from exc
+        report.ok("response signature", "signed by the cloud, bound to this token, encrypted for this receiver")
         try:
             body = wire.dec(body_raw)
             got = {seg[0]: (seg[1], seg[2]) for seg in body["segs"]}
@@ -401,7 +405,7 @@ class Receiver:
                 raise KeyError("group")
         except (WireError, KeyError, TypeError, IndexError) as exc:
             raise report.fail("completeness", "malformed response body") from exc
-        narrator.emit("search", self.name, g=g, bytes=len(body_raw), sig_bytes=len(sig),
+        narrator.emit("search", self.name, g=g, bytes=len(resp_ct), sig_bytes=len(sig),
                       entries=sum(len(pair[0]) // index.ADDR_LEN for pair in got.values()))
         total = 0
         for e in epochs:

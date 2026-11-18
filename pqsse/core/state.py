@@ -17,7 +17,7 @@ from .prims import H, aead_decrypt, aead_encrypt
 from .wire import u32
 
 RECORD_LEN = TAG_LEN + 4 + 32
-DEFAULT_NMAX = 1024
+DEFAULT_NMAX = 4096          # records; the capacity doubles when a group outgrows it (PAPER_CONFORMANCE P-03)
 
 
 @dataclass(frozen=True)

@@ -34,6 +34,21 @@ Rule 2 of the brief: nothing below was changed. Each item waits for your decisio
 
 Everything else is a match or an extension listed below; none of those needs a decision.
 
+### Decisions (2026-11-18: all recommendations accepted)
+
+| # | Decision | Done |
+| --- | --- | --- |
+| P-01 | Code changed to the paper: the search response is encrypted under the receiver's token key | design note 001; `test_m15_paper.py::test_search_response_hides_the_searched_addresses_from_the_network` passes |
+| P-02 | Code changed to the paper: control messages are sealed to the cloud's ML-KEM key | design note 001; `test_control_messages_are_confidential_on_the_network` passes |
+| P-03 | Doubling kept; default capacity raised to 4,096 records; the paper text changes | `docs/PAPER_CHANGES.md`; `test_state_size_is_fixed_up_to_the_capacity_and_doubles_beyond_it` |
+| P-04 | Paper text changes to the receiver-nonce variant | `docs/PAPER_CHANGES.md` |
+| P-05 | Rekey signature kept; paper cost formula changes | `docs/PAPER_CHANGES.md` |
+| P-06 | Code changed: the server erases a revoked receiver's wrapped `a_u` | design note 001; `test_revoked_credential_is_erased_at_the_server` |
+| P-07 | Milestone 5 adds liboqs and a classical-baseline benchmark harness; the paper names its artifact | `docs/PAPER_CHANGES.md`, `REALLIFE_PLAN.md` |
+| P-08 | Test counts aligned with Table I after P-07 | milestone 5 |
+
+The verdict tables below show the state at the time of the review (before these changes).
+
 ## Primitives and building blocks (Section II-A)
 
 | Paper item | Requires | Code | Tests | Verdict |

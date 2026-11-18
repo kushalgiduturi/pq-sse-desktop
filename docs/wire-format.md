@@ -45,15 +45,15 @@ Helpers used inside PRF inputs: `u32(i)` = 4 bytes big endian, `sstr(w)` = `u32(
 | Setup (pair) | `admin_pair_owner` | `{ident, replace}` | `{ok}` |
 | Join | `join_post` | `{req: enc({name, kem, sig, ek, vk, nonce, ts}), sig: Sig_u("join", req)}` | `{uid}` |
 | Join | `join_list` | none | list of `{uid, req, sig}` |
-| Join | `ctl` op `cred` | `{msg: enc({seq, op, uid, box, cap, cap_sig}), sig: Sig_O("ctl", msg)}` where `box = Seal(ek_C, {a, groups})`, `cap = Seal(ek_u, {uid, a, m, groups: {g: {base, keys}}})`, `cap_sig = Sig_O("cap", [uid, cap])` | `{ok}` |
+| Join | `ctl` op `cred` | `{msg: Seal(ek_C, enc({seq, op, uid, box, cap, cap_sig}), aad = "ctl"), sig: Sig_O("ctl", msg)}` where `box = Seal(ek_C, {a, groups})`, `cap = Seal(ek_u, {uid, a, m, groups: {g: {base, keys}}})`, `cap_sig = Sig_O("cap", [uid, cap])` | `{ok}` |
 | Join, Revoke | `mail_get` | `{uid}` | list of `{id, kind: cap or rekey, body, sig}` |
-| group setup | `ctl` op `group` | `{seq, op, g}` signed as above | `{ok}` |
+| group setup | `ctl` op `group` | `{seq, op, g}` sealed and signed as above | `{ok}` |
 | BuildIndex, Update | `update` | `{msg: enc({g, e, seq, addrs: n*32 bytes, vals: n*5 bytes, docs: [[handle, blob, Sig_O("doc", [g, e, handle, H(blob)])]], del: [[e, handle]], reset}), sig: Sig_O("batch", msg)}` | `{ok, seq}` |
 | Publish | `state_put` | `{hdr: enc({g, e, ver, exp, final, base}), ct, sig: Sig_O("state", hdr || H(ct))}` | `{ok}` |
 | TokenGen | `states_get` | `{uid, ct: E_a({g, ts, nonce})}` | `{cur, base, states: [{hdr, ct, sig}]}` |
-| TokenGen, Search | `search` | `{uid, ct: E_a({g, cur, segs: [[e, addresses]], ts, nonce})}` | `{body: enc({g, segs: [[e, addresses, values]]}), sig: Sig_C("resp", H(ct) || body)}` |
+| TokenGen, Search | `search` | `{uid, ct: E_a({g, cur, segs: [[e, addresses]], ts, nonce})}` | `{ct: rho, sig: Sig_C("resp", H(request ct) || H(rho))}` with `rho = AES-GCM(token key of a_u, enc({g, segs: [[e, addresses, values]]}), aad = uid || "/search-response")` |
 | Decrypt | `doc_get` | `{uid, ct: E_a({g, e, handle, ts, nonce})}` | `{blob, sig}` |
-| Revoke | `ctl` op `deauth` | `{seq, op, uid}` signed | `{ok}` |
+| Revoke | `ctl` op `deauth` | `{seq, op, uid}` sealed and signed; the cloud erases the wrapped `a_u` | `{ok}` |
 | Revoke | `ctl` op `epoch` | `{seq, op, g, e, reset, boxes: {uid: [box, Sig_O("rekey", [uid, box])]}}` with `box = Seal(ek_v, {g, e, key, base, reset}, psk = m_v)` | `{ok}` |
 
 ## Rejection reasons of the cloud
@@ -63,6 +63,7 @@ HTTP 403 with `enc({reason, detail})`.
 | Reason | Meaning |
 | --- | --- |
 | `bad_signature` | owner signature on a batch, state or control message is invalid |
+| `bad_control` | a control message does not open under the cloud's ML-KEM key |
 | `bad_sequence` | batch or control message is replayed or out of order |
 | `bad_epoch`, `bad_reset`, `not_final` | wrong epoch, reset flag mismatch, epoch change without a final state |
 | `stale_state` | state version not newer, or the segment is already final |

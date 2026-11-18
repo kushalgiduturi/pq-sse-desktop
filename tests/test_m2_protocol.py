@@ -338,7 +338,7 @@ def test_forward_privacy_new_updates_share_no_address_with_old_tokens():
 
     # replaying every old token returns exactly the old entries, never a new one
     for token in old_tokens:
-        body = wire.dec(world.api.call("search", token)["body"])
+        body = wire.dec(world.cloud.open_response(token["uid"], world.api.call("search", token)["ct"]))
         for _, addrs, _ in body["segs"]:
             returned = {addrs[i:i + 32] for i in range(0, len(addrs), 32)}
             assert returned <= before and returned.isdisjoint(new_addresses)

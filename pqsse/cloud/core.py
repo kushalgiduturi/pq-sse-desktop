@@ -20,9 +20,9 @@ from typing import Any, Callable
 from .. import pqbackend
 from ..core import seal, signing, wire
 from ..core.errors import Rejected, VerifyError, WireError
-from ..core.index import ADDR_LEN, VAL_LEN, token_aad, token_key
+from ..core.index import ADDR_LEN, RESPONSE_LABEL, VAL_LEN, token_aad, token_key
 from ..core.pairing import PublicIdentity
-from ..core.prims import H, aead_decrypt
+from ..core.prims import H, aead_decrypt, aead_encrypt
 from ..pqbackend import DEFAULT_PARAMS, Params
 
 TOKEN_WINDOW = 300.0
@@ -173,7 +173,13 @@ class CloudCore:
     # ------------------------------------------------------------------ owner control
     def _h_ctl(self, obj: dict) -> dict:
         """Owner signed, sequence numbered control messages (Join, Revoke, group setup)."""
-        msg = self._owner_signed(obj, "ctl")
+        box, sig = obj["msg"], obj["sig"]
+        if not signing.check_bytes(self.params, self._owner_vk(), "ctl", box, sig):
+            raise Rejected("bad_signature", "owner ctl signature invalid")
+        try:
+            msg = wire.dec(seal.unseal(self.params, self._dk, box, b"ctl"))
+        except VerifyError as exc:
+            raise Rejected("bad_control", "control message does not open under the cloud's key") from exc
         last = int(self._meta_get("ctl_seq") or b"0")
         if msg["seq"] != last + 1:
             raise Rejected("bad_sequence", f"expected control seq {last + 1}")
@@ -212,7 +218,7 @@ class CloudCore:
 
     def _ctl_deauth(self, msg: dict) -> None:
         """Revoke: deauthorize a receiver. Its credential stops working at once."""
-        self.db.execute("UPDATE creds SET revoked=1 WHERE uid=?", (msg["uid"],))
+        self.db.execute("UPDATE creds SET revoked=1, enc_a=X'' WHERE uid=?", (msg["uid"],))
         self.db.execute("DELETE FROM mail WHERE uid=?", (msg["uid"],))
         self.db.execute("DELETE FROM joins WHERE uid=?", (msg["uid"],))
 
@@ -339,12 +345,23 @@ class CloudCore:
                     found_v += row[0]
             segs.append([epoch, bytes(found_a), bytes(found_v)])
         body = wire.enc({"g": g, "segs": segs})
-        return self.sign_response(obj["ct"], body)
+        return self.sign_response(_uid, obj["ct"], body)
 
-    def sign_response(self, request_ct: bytes, body: bytes) -> dict:
-        """ML-DSA signature of the cloud over (H(token), response body)."""
-        sig = signing.sign_bytes(self.params, self._sk, "resp", H(request_ct) + body)
-        return {"body": body, "sig": sig}
+    def _token_key(self, uid: str) -> bytes:
+        row = self.db.execute("SELECT enc_a FROM creds WHERE uid=? AND revoked=0", (uid,)).fetchone()
+        if row is None:
+            raise Rejected("unknown_user", "no credential for this receiver")
+        return token_key(self.vault.decrypt("cred:" + uid, row[0]))
+
+    def sign_response(self, uid: str, request_ct: bytes, body: bytes) -> dict:
+        """Algorithm 7: rho = AE(K_tok(a_u), body), sigma_R = Sig_C("resp", H(token) || H(rho))."""
+        ct = aead_encrypt(self._token_key(uid), body, token_aad(uid, RESPONSE_LABEL))
+        sig = signing.sign_bytes(self.params, self._sk, "resp", H(request_ct) + H(ct))
+        return {"ct": ct, "sig": sig}
+
+    def open_response(self, uid: str, ct: bytes) -> bytes:
+        """The server can read its own responses (it holds a_u); used by the Security Lab's cheating server."""
+        return aead_decrypt(self._token_key(uid), ct, token_aad(uid, RESPONSE_LABEL))
 
     def _h_doc_get(self, obj: dict) -> dict:
         """Return one encrypted document with the owner's signature."""

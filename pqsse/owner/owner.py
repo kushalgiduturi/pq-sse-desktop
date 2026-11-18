@@ -136,11 +136,15 @@ class Owner:
             self.timings[name] = self.timings.get(name, 0.0) + time.perf_counter() - start
 
     def _ctl(self, op: str, **fields: Any) -> None:
-        """Send one signed, sequence numbered control message to the cloud."""
+        """Send one control message: sealed to the cloud's ML-KEM key, signed, sequence numbered (paper Ctl)."""
+        cloud_pub = self.cloud_pub
+        if cloud_pub is None:
+            self._cloud().call("info", None)   # an unreachable cloud is the first thing to report
+            raise PQSSEError("pair with the cloud before sending control messages")
         seq = self._meta["ctl_seq"] + 1
-        msg = wire.enc({"seq": seq, "op": op, **fields})
-        sig = signing.sign_bytes(self.params, self._sk, "ctl", msg)
-        self._cloud().call("ctl", {"msg": msg, "sig": sig})
+        box = seal.seal(self.params, cloud_pub.ek, wire.enc({"seq": seq, "op": op, **fields}), b"ctl")
+        sig = signing.sign_bytes(self.params, self._sk, "ctl", box)
+        self._cloud().call("ctl", {"msg": box, "sig": sig})
         self._meta["ctl_seq"] = seq
         self._save_meta()
 

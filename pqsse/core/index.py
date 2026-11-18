@@ -103,3 +103,7 @@ def token_key(a_u: bytes) -> bytes:
 
 def token_aad(uid: str, endpoint: str) -> bytes:
     return uid.encode("ascii") + b"/" + endpoint.encode("ascii")
+
+
+# AAD label of the encrypted search response (design note 001, paper Algorithm 7 step 5)
+RESPONSE_LABEL = "search-response"
