@@ -66,6 +66,7 @@ Helpers used inside PRF inputs: `u32(i)` = 4 bytes big endian, `sstr(w)` = `u32(
 | --- | --- |
 | every request | optional top-level `owner`: the owner id (design note 004 A); untagged requests go to the first owner |
 | `owner_pub` | optional `{fp}`: the owner whose key has this fingerprint |
+| `mail_get` | also carries the receiver's public keys `ek`, `vk`; a server with no stored key for an approved receiver (joined before 0.2) accepts them only if `H(ek, vk)[0:16]` is that receiver's id, then checks the signature with `vk` |
 | `Ctl(scope, uid, groups, grant?)` | design note 003: replace a receiver's scope; `grant = [box, sig]` is queued as mail kind `grant` (`seal(ek_u, {groups: {g: {base, keys}}}, "grant" || uid, psk = m_u)`, signed over `("grant", uid, box)`) |
 | `Ctl(escrow, okeys, orecs)` and the fields `okeys`, `orecs` on `group`, `epoch`, `cred`, `scope` | design note 006 C: boxes under the owner's recovery key, stored and never opened by the server |
 | `owner_sync` | `{ts, sig}` signed by the owner over `("owner_sync", {ts})`; reply `{ctl_seq, groups: [{g, epoch, base, seq, reset_pending, states, okeys, handles}], receivers: [[uid, box, revoked]]}` |

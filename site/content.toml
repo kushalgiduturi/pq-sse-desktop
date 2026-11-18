@@ -113,8 +113,8 @@ limits_title = "Read this before you rely on it"
 limits_more = "Security and privacy in full"
 limits = [
   "Research and teaching software. It has not been audited. Do not use it to protect real records.",
-  "The default post-quantum code is pure Python: slow, and not constant time.",
-  "The server runs on the same PC (127.0.0.1, no TLS). There is no setup across several machines.",
+  "The post-quantum code is OpenSSL's ML-KEM and ML-DSA. That it runs in constant time is OpenSSL's claim, not checked here. The pure Python fallback is slow and not constant time.",
+  "Across computers the server uses TLS with a classical key exchange: documents and keys are protected by ML-KEM and ML-DSA, but the traffic metadata only by classical TLS. The author has not yet tested it on separate computers.",
   "The server still learns sizes, counts, timing and when a search is repeated. It never sees words, text or keys.",
   "Policy R leaves older documents readable to a revoked person who teams up with the server. Policy RE closes that gap at a higher cost.",
   "The GPU only speeds up building large indexes. For small ones it is slower than the processor.",
@@ -160,7 +160,7 @@ measured_ops = "Time per operation, in milliseconds, for each parameter set (mea
 measured_build = "Building an index on the processor and on the GPU, in seconds ({bench.build_params})"
 measured_build_head = ["Index entries", "Engine", "Secret addresses", "Addresses and hash chain", "Whole step"]
 measured_csv = "The raw numbers as CSV files:"
-measured_honest = "Read the GPU rows honestly: the GPU computes the secret addresses much faster on large batches, but the whole step barely changes, because signing with the pure-Python ML-DSA and encrypting the documents stay on the processor. For small indexes the GPU is slower."
+measured_honest = "Read the GPU rows honestly: the GPU computes the secret addresses much faster on large batches, but the whole step barely changes, because signing and encrypting each document stay on the processor. For small indexes the GPU is slower."
 
 cloud_title = "What the server sees, in one place"
 cloud_sees_label = "It sees"
@@ -223,6 +223,7 @@ standard = ["Full installer, Standard", "Works offline after download. Runs on t
 gpu = ["Full installer, GPU", "For PCs with an NVIDIA graphics chip. Works offline after download."]
 zip_standard = ["Portable zip, Standard", "No installation: unzip and run. Your own folder, your own updates."]
 zip_gpu = ["Portable zip, GPU", "The GPU build as a folder."]
+server = ["Server program", "The cloud server for use across computers: a Windows console program with its guide (SERVER.md). Not needed for the local demo."]
 
 [download]
 version_label = "Version"
@@ -287,7 +288,7 @@ steps = [
     "The installer asks no admin password: it installs for your Windows account only, into your user folder. Read the welcome page, then choose Install. The web installer shows what it downloads and checks each file before running it.",
   ]],
   ["first-run", "First run", [
-    "PQ-SSE Desktop opens on the Journey: a guided lesson in thirteen short steps on a practice copy, so your own data is never touched. The cloud part starts as a second program on the same PC and listens on 127.0.0.1 only, so Windows does not ask for a firewall permission.",
+    "PQ-SSE Desktop first asks how you will use it. Local demo runs everything on this PC: the cloud part starts as a second program and listens on 127.0.0.1 only, so Windows does not ask for a firewall permission. Data owner and Receiver connect to a cloud server on another computer (the server program is a separate download). The guided lesson, Journey, always runs on a practice copy on this PC, so your own data is never touched.",
   ]],
   ["data", "Where your data is", [
     "Your keys, settings and documents are stored in %LOCALAPPDATA%\\PQ-SSE-Desktop, separate from the program. Keys are kept encrypted with your passphrase. Installing, updating and uninstalling do not delete this folder.",
@@ -334,7 +335,7 @@ limits = [
   ["Policy R or policy RE", "Revoking with policy R is quick: everything written after the change uses the new key. Documents from before it stay locked with the old key, which the revoked receiver still has; if the receiver teams up with the cloud server, the receiver can read those. Policy RE also locks every old document again with the new key and makes the cloud server delete the old copies. It closes that gap and takes longer. The Security Lab runs both and shows the difference."],
   ["What the GPU does", "The graphics chip only speeds up the symmetric batch work (computing many addresses and masks with SHA3) when a large index is built. ML-KEM and ML-DSA always run on the normal processor. At small sizes the GPU is not faster, and the app says so with measured numbers."],
   ["What the Cloud still learns", "Like every practical searchable encryption scheme, the Cloud sees which stored entries a search touches and when, and how many there are. It does not learn the word, the documents or the keys. The app shows exactly what the Cloud holds in its Cloud sees lens."],
-  ["Not audited", "The post-quantum code is a pure Python implementation of the NIST standards: slow and not constant time. This is teaching and research software."],
+  ["Not audited", "The code was reviewed only by its author; the review and the threat model are in the repository. The post-quantum code is OpenSSL's implementation of the NIST standards; the pure Python fallback is slow and not constant time. This is teaching and research software."],
 ]
 paper = "The protocol and its terms are summarised in the project's concepts document."
 paper_link = ["https://github.com/kushalgiduturi/pq-sse-desktop/blob/master/docs/concepts.md", "Read the concepts document"]
@@ -347,11 +348,13 @@ stores_title = "What the app stores, and where"
 stores = [
   "Everything is in %LOCALAPPDATA%\\PQ-SSE-Desktop on your PC: settings, logs, the practice data and your own data.",
   "Private keys are stored encrypted with your passphrase. They are never written to a log and never shown.",
-  "The cloud part is a second program on the same PC. Its database holds only locked documents and index entries; the smoke test scans it for plaintext on every build.",
+  "In Local demo mode the cloud part is a second program on the same PC. In Data owner and Receiver modes it is the server program on another computer. Either way its database holds only locked documents and index entries; the tests scan it for plaintext.",
+  "Key files are readable by your Windows account only. Keys lock after 15 idle minutes, and can be backed up to a file encrypted under its own passphrase.",
 ]
 leaves_title = "What leaves your PC"
 leaves = [
   "Nothing, by itself. The app does not phone home, has no telemetry and sends no crash reports.",
+  "In Data owner and Receiver modes: encrypted requests and locked documents, to the cloud server you connected to, over TLS with its certificate pinned, and nowhere else.",
   "Only what you start: a download from this site, or Check for updates in About, which reads the signed file list from this site once. You can hide that menu item in the settings.",
   "This website sets no cookies, runs no analytics and loads nothing from other sites. Fonts and pictures are served from here.",
 ]

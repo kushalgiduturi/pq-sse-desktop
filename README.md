@@ -8,8 +8,8 @@ It is a Windows desktop application with three real parties (data owner, receive
 cloud server), real post-quantum cryptography (ML-KEM, ML-DSA), and a GPU batch engine
 for the heavy symmetric work.
 
-On this branch (`reallife`, not released yet) it also runs across computers: a separate server program
-(`python -m pqsse.server`, a Windows console program, or Docker) with TLS and a pinned certificate,
+Since version 0.2 it also runs across computers: a separate server program
+(`python -m pqsse.server`, `PQ-SSE-Server-<version>-windows.zip` from the release, or Docker) with TLS and a pinned certificate,
 the app in Data owner or Receiver mode, invites with a one-time code, and the key handling a real
 deployment needs. Start with these:
 

@@ -28,3 +28,5 @@ standard_setup = "PQ-SSE-Desktop-Setup-{version}.exe"
 gpu_setup = "PQ-SSE-Desktop-Setup-{version}-GPU.exe"
 standard_zip = "PQ-SSE-Desktop-{version}-portable-standard.zip"
 gpu_zip = "PQ-SSE-Desktop-{version}-portable-gpu.zip"
+# since 0.2.0: the cloud server as a Windows console program (no installer; Docker users build the image)
+server_zip = "PQ-SSE-Server-{version}-windows.zip"

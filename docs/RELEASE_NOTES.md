@@ -1,92 +1,89 @@
-# Release notes: PQ-SSE Desktop 0.1.1
+# Release notes: PQ-SSE Desktop 0.2.0
 
-A distribution release: a small web installer, a signed file list, an update check you start
-yourself, a website, and a GPU build that holds only NVIDIA files that may be passed on.
-No protocol, wire format or cryptography change. Notes of earlier releases:
-`docs/release-notes/`.
+The networked release: a separate server program, the app as a data owner or a receiver on
+different computers, invites, native post-quantum code, and the key handling that real use needs.
+This release **changes the protocol** (design notes 001 to 006 in `docs/design-notes/`): a 0.2 app
+and a 0.1 app cannot talk to each other. Data made by 0.1.x opens and keeps working in 0.2.0 (see
+"Upgrading"). Notes of earlier releases: `docs/release-notes/`.
 
 ## What is included
 
-| File | What it is | Size |
-| --- | --- | --- |
-| `PQ-SSE-Web-Setup.exe` | Web installer: downloads the right package for this PC and checks it | about 2 MB |
-| `PQ-SSE-Desktop-Setup-0.1.1.exe` | Installer, Standard build (CPU) | about 54 MB |
-| `PQ-SSE-Desktop-0.1.1-portable-standard.zip` | Portable folder, Standard build | about 82 MB |
-| `PQ-SSE-Desktop-Setup-0.1.1-GPU.exe` | Installer, GPU build (added after its self-test, see below) | about 123 MB |
-| `PQ-SSE-Desktop-0.1.1-portable-gpu.zip` | Portable folder, GPU build (added with the GPU installer) | about 198 MB |
-| `latest.json` | The file list: version, and the address, size and SHA-256 of every file | |
-| `*.issig` | Signatures of `latest.json` and of every package | |
-| `SHA256SUMS.txt` | Checksums of all files | |
+| File | What it is |
+| --- | --- |
+| `PQ-SSE-Web-Setup.exe` | Web installer: downloads the right package for this PC and checks it |
+| `PQ-SSE-Desktop-Setup-0.2.0.exe` | Installer, Standard build (CPU) |
+| `PQ-SSE-Desktop-0.2.0-portable-standard.zip` | Portable folder, Standard build |
+| `PQ-SSE-Desktop-Setup-0.2.0-GPU.exe`, `PQ-SSE-Desktop-0.2.0-portable-gpu.zip` | GPU build (added after its self-test on a PC with an NVIDIA GPU) |
+| `PQ-SSE-Server-0.2.0-windows.zip` | **New**: the cloud server as a Windows console program, with `SERVER.md` |
+| `latest.json`, `*.issig`, `SHA256SUMS.txt` | Signed file list, signatures (ECDSA P-256, not Windows code signing) and checksums |
+
+The server also runs from source (`python -m pqsse.server`) or in Docker
+(`docker compose -f docker/docker-compose.yml up`, built from the repository; no image is published).
 
 ## New
 
-- **Web installer** (`PQ-SSE-Web-Setup.exe`). It reads the signed file list from the website,
-  checks its signature against the public key built into it, finds out whether this PC has a
-  usable NVIDIA driver, downloads the Standard or the GPU installer, checks its size, SHA-256
-  and signature, then installs and starts the app. It follows redirects itself and refuses any
-  host that is not on its list. It refuses an unsigned or wrongly signed list and any file that
-  does not match. Silent install: `/VERYSILENT`, with `/CHANNEL=standard` or `gpu` and `/DIR=`.
-- **Signed file list.** Every release carries `latest.json` and Inno Setup signatures
-  (`.issig`, ECDSA P-256) for it and for every package. This is not Windows code signing:
-  Windows still shows "Unknown publisher". What it proves and what it does not is on the
-  website's Security page and in `docs/DISTRIBUTION.md`.
-- **Check for updates**, in Insights > About and in the classic window's About dialog. It goes
-  online only when you click it: it reads the signed file list over HTTPS, checks the
-  signature, compares versions, and offers the Download page or the web installer. A setting
-  hides the button. The app still never goes online on its own.
-- **Website**: https://kushalgiduturi.github.io/pq-sse-desktop/ with download, install guide,
-  how it works, security and privacy, release notes and a page that checks a download's
-  SHA-256 in your browser. No cookies, no analytics, nothing loaded from other sites.
+- **Across computers.** A server program with TLS 1.2 or 1.3 and a pinned certificate, an operator
+  interface on the server's own machine, limits on size, rate and connections, backup and restore. The app
+  has three modes: Local demo (as before), Data owner and Receiver. See `docs/SERVER.md` and
+  `docs/MULTI_MACHINE_TEST.md`.
+- **Invites.** The data owner makes an invite for one person. The `.pqinvite` file or link carries the
+  server's address and fingerprints, and a one-time code goes by a second channel. Both sides compare six
+  fingerprint words before approval. Join requests, the list of requests and each receiver's mail are now
+  closed to everyone else.
+- **Native post-quantum code.** ML-KEM and ML-DSA run in OpenSSL (through `cryptography`) by default:
+  17 to 76 times faster than the pure Python code. A search with all checks takes about 8 ms instead of
+  about 70 ms on the test laptop. ML-KEM-512 and keys made by 0.1.x still use the pure Python code.
+- **Keys and passphrases** (Insights): change a passphrase, back up keys to an encrypted file, restore
+  them on another computer, lock them now. The keys also lock after 15 idle minutes. Key files are
+  readable by your Windows account only.
+- **Change a person's groups** without revoking them. Groups that are taken away get new keys.
+- **Activity log** of every data owner action, with the server's answer. Hash-chained and kept in the
+  encrypted key file, with CSV export.
+- **Export and import a group** as one encrypted `.pqgroup` file.
+- **Recovery.** The data owner's app finishes interrupted work after a crash. "Recover after restoring a
+  backup" rebuilds the owner's state from the server after an older key backup is restored.
+- **Large collections.** Large imports are sent in batches. A receiver downloads a group's state again
+  only when it changed (2.9 MB instead of 8.7 MB for three searches at 50,000 keywords).
+- **Several data owners on one server** (`pqsse-server pair-owner FILE --add`), each in its own store.
 
 ## Changed
 
-- **GPU build: only redistributable NVIDIA files.** The 0.1.0 GPU build carried 888 CUDA header
-  files that NVIDIA's license does not let others pass on. This build ships only the files the
-  CUDA 12.0 license lists as redistributable (the CUDA runtime and NVRTC DLLs and four headers)
-  plus an empty marker file of its own. The build fails if any other NVIDIA file is found.
-  The GPU self-test still passes with this set.
-- The GPU build is made and self-tested on a PC with an NVIDIA GPU and added to the release
-  after the Standard build; GitHub's build machines have no GPU.
+- **Closer to the paper** (`docs/PAPER_CONFORMANCE.md`): search answers are encrypted to the receiver;
+  control messages are sealed to the server; a revoked credential is erased at the server.
+- New private keys are stored as their FIPS seeds. Document keywords now travel inside each document's
+  encryption, so a receiver who can open a document sees its keywords.
+- Document and PDF import refuses files over 50 MB and PDFs over 2,000 pages, and turns a damaged file into
+  a plain message.
+- The builds are reproducible: two builds of the same commit on one PC give identical files.
+
+## Upgrading
+
+Installing 0.2.0 over 0.1.x keeps your data, and the local demo's data opens as before. Tested by making
+data with the 0.1.1 code and opening it with 0.2.0. Search, open, add, publish, groups, grants, the log and
+revocation all worked. The first time the data owner's keys are opened, the app stores recovery copies of
+its existing group keys at the cloud, once.
 
 ## Tested on
 
-The Standard installer, the portable zip and the web installer in this release are built by
-GitHub Actions (`windows-latest`), which runs the full test suite, the smoke test of the built
-program, the installer test (install, run, uninstall) and a real web-installer install against
-a local server before anything is published.
-
-The same steps were run on the development PC (Windows 11 Insider 10.0.26300, RTX 4060 Laptop
-GPU, driver 610.62) on 2026-11-18, with the GPU build and a throwaway signing key:
-
-- pytest: 190 passed, 1 skipped (the site's browser check, which needs Qt WebEngine and runs in
-  the development environment, where it passes).
-- Both builds: smoke test (14 steps); GPU self-test with the CUDA Toolkit hidden.
-- Standard installer: silent install, smoke test from the installed place, window opens,
-  uninstall leaves the user data.
-- Web installer: real install of the Standard package from a local server; WMI reported the
-  driver as 610.62. Fake-server tests: wrong hash, swapped file, unsigned list, truncated
-  download, redirect to another host, offline, GPU detection.
-- The signatures of the file list and all packages were checked a second time by the app's own
-  Python code.
-
-## Known limits found by the tests
-
-- **GPU build, Windows user name or folder with non-ASCII characters.** The NVIDIA run-time
-  compiler cannot open its work files there; the app then runs on the CPU and says so.
-- **The About dialog shows the CUDA version the driver reports** (12.9 on the test PC), not
-  the version of the bundled compiler (12.0).
+The development PC (Windows 11 Insider 10.0.26300, Intel Core i7-13620H, RTX 4060 Laptop GPU), 2026-11-19:
+336 tests; the server smoke test; three-process network test with the server killed and restarted; the
+server in Docker; fault and abuse tests; fuzzing (Hypothesis); TLS configuration probes; `pip-audit` (no
+known vulnerabilities); portable test; installer test with upgrade and uninstall; web installer real run.
+GitHub Actions repeats the build, the tests and the installer tests before publishing.
 
 ## Not verified
 
-- **This release's own files on a real PC.** They are built on GitHub's machine; the tests
-  there run before publishing, but nobody has installed the published files by hand yet.
-- **The web installer on a clean PC, behind a proxy, and through a browser download**
-  (SmartScreen). Its first real download from GitHub happens with this release.
-- **The update check against the live website.** Tested against a local server only.
-- **A clean PC without Python, a PC without an NVIDIA GPU or driver, older NVIDIA drivers,
-  other GPUs, Windows 10, ARM64.** Unchanged from 0.1.0.
-- **The installer's pages clicked by hand, install for all users, the uninstaller's "delete
-  your data too?" answer.** Only silent installs are tested automatically.
-- **Code signing.** The files are not code signed. No certificate exists.
-- **The spatial window used by hand, with a keyboard only or a screen reader.**
-- **Reproducible bytes.** Two builds do not give identical files.
+- **Separate computers on a real network.** Everything ran on one PC (`docs/MULTI_MACHINE_TEST.md` is the
+  test to run).
+- **A clean PC** without Python, Windows 10, ARM64, other GPUs, older drivers.
+- **Independent review.** `docs/SECURITY_REVIEW.md` is the author's own review, not an audit.
+  `docs/THREAT_MODEL.md` says what is protected and what is not.
+- **Constant-time behaviour** of the native code (OpenSSL's claim). The pure Python fallback is not
+  constant time.
+- **Post-quantum TLS.** TLS key exchange is classical. The data inside is protected by ML-KEM and ML-DSA,
+  but traffic metadata only by classical TLS.
+- **Code signing.** The files are not code signed.
+- **The server under real load.** It is meant for small groups; put a reverse proxy in front of it if it
+  faces the internet.
+- **This release's own files on a real PC.** They are built by GitHub Actions. Nobody has installed the
+  published files by hand yet.

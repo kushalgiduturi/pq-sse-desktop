@@ -180,3 +180,23 @@ def test_session_invite_flow(net):
     owner_session.owner = None
     owner_session.close()
     recv_session.close()
+
+
+def test_a_receiver_that_joined_before_0_2_can_still_fetch_its_mail():
+    """0.1.x stored no receiver key at join time; the receiver proves its keys hash to its id instead."""
+    world = World()
+    world.owner.create_group("g")
+    world.owner.publish("g")
+    bob = world.join("receiver-a", ["g"])
+    world.cloud.db.execute("DELETE FROM joinkeys")                    # as in a store made by 0.1.1
+    world.cloud.db.commit()
+    world.owner.revoke(world.join("receiver-b", ["g"]).uid, "R")     # bob now has a rekey box waiting
+    assert any("new key" in line for line in bob.fetch_mail())
+    assert world.cloud.db.execute("SELECT COUNT(*) FROM joinkeys WHERE uid=?", (bob.uid,)).fetchone()[0] == 1
+    mallory = world.new_receiver("mallory")                           # other keys cannot claim bob's id
+    mallory.uid = bob.uid
+    world.cloud.db.execute("DELETE FROM joinkeys WHERE uid=?", (bob.uid,))
+    world.cloud.db.commit()
+    with pytest.raises(Rejected) as info:
+        mallory.mail_items()
+    assert info.value.reason == "bad_signature"

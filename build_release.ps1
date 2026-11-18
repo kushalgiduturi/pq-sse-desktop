@@ -246,6 +246,17 @@ if (Test-Path $PublicKey) {
     Write-Host "Web installer: SKIPPED (no installer\issig-public-key.txt yet; run scripts\new_signing_key.ps1 once)."
 }
 
+# The cloud server as a Windows console program (since 0.2.0). build_server.ps1 builds it, scans it for
+# keys and databases, and runs its smoke test; the zip also carries the server guide.
+& (Join-Path $Root "build_server.ps1") -BuildRoot $BuildRoot -Python $VenvPython | Out-Host
+if ($LASTEXITCODE -ne 0) { Fail "the server program did not build or did not pass its smoke test." }
+$ServerDist = Join-Path $BuildRoot "server\dist\pqsse-server"
+Sign-File (Join-Path $ServerDist "pqsse-server.exe")
+Copy-Item (Join-Path $Root "docs\SERVER.md") (Join-Path $ServerDist "SERVER.md") -Force
+$ServerZip = Join-Path $ReleaseDir "PQ-SSE-Server-$Version-windows.zip"
+Compress-Archive -Path $ServerDist -DestinationPath $ServerZip -Force
+Write-Host ("Server zip: {0} ({1:N1} MB)" -f $ServerZip, ((Get-Item $ServerZip).Length / 1MB))
+
 # ---------------------------------------------------------------------------------------
 Step "5. Tests of the release files"
 foreach ($Build in $Builds) {

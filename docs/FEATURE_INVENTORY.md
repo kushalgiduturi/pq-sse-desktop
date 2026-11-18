@@ -10,7 +10,7 @@ screenshots of every screen).
 
 Status: **verified**; **tested**; **partial**; **not-verified**.
 
-31 features: 26 verified, 4 tested, 1 partial.
+38 features: 26 verified, 11 tested, 1 partial.
 
 ## Protect and share
 
@@ -58,7 +58,7 @@ A receiver sends a signed join request; the data owner sees it with the key fing
 - **What it produces:** An access pass (capability) with the keys of the chosen groups, sealed for that receiver with ML-KEM and AES-256-GCM and signed by the data owner.
 - **What the Cloud sees:** That a request and a sealed pass passed through, their sizes, and which groups the receiver may ask about. Not the group keys.
 - **Tests:** `tests/test_m2_protocol.py`: `test_join_with_wrong_proof_of_ownership_is_rejected`, `test_unapproved_key_is_rejected`, `test_a_capability_only_opens_for_its_receiver` (12 tests in the file)
-- **Limits:** A receiver's groups are fixed at approval. To change them, revoke and approve a new request.
+- **Limits:** Across computers the receiver joins with an invite and a one-time code, and both sides compare six fingerprint words.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ### Build the index and publish the summary
@@ -72,6 +72,29 @@ Uploading documents builds an encrypted index (one masked entry per word, linked
 - **Tests:** `tests/test_m2_correctness.py`: `test_random_workload_matches_plaintext_reference`, `test_unpublished_updates_are_not_visible_until_publish` (7 tests in the file); `tests/test_m1_core.py`: `test_index_derive_matches_definition`, `test_hash_chain` (17 tests in the file)
 - **Limits:** A summary is valid for a set time (default 24 hours). Inside that time the cloud can still show the newest summary a receiver has already seen.
 - **Status:** Verified: seen in the running app and covered by tests
+
+### Invites
+
+The data owner makes an invite for one person: a file or link with the server's address and fingerprints, and a one-time code sent another way. The receiver's app checks both keys against it before sending anything.
+
+- **Who uses it:** data owner, receiver
+- **Where:** Workspace, Invite a person (Data owner) and Join with an invite (Receiver); labels: "Invite a person", "Make an invite", "Join with an invite", "One-time code", "Join"
+- **What it produces:** A .pqinvite file without the code; a join request that the server accepts once.
+- **What the Cloud sees:** The invite's id and expiry, and which invite a request used. Never the code.
+- **Tests:** `tests/test_m18_invites.py`: `test_join_with_an_invite_end_to_end`, `test_invites_are_single_use_checked_and_required`, `test_the_server_cannot_forge_the_owners_invite_proof` (9 tests in the file)
+- **Limits:** Whoever has the file and the code can join once; the data owner still approves after comparing the six words.
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
+
+### Keys and passphrases
+
+Change a passphrase, back up keys to an encrypted file, restore them on another computer, or lock them now. Keys also lock after 15 idle minutes.
+
+- **Who uses it:** data owner, receiver
+- **Where:** Insights, Keys and passphrases; labels: "Keys and passphrases", "Change passphrase", "Back up keys", "Restore keys", "Lock all keys now"
+- **What it produces:** A .pqkeys backup file encrypted under its own passphrase.
+- **Tests:** `tests/test_m21_keys.py`: `test_change_passphrase_re_encrypts_everything_and_keeps_the_keys`, `test_backup_round_trip_wrong_passphrase_tampering_and_no_overwrite`, `test_bridge_auto_lock` (8 tests in the file)
+- **Limits:** A forgotten passphrase cannot be recovered. Locking overwrites the key in memory as far as Python allows; it is not a guarantee.
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
 
 ## Search and verify
 
@@ -135,6 +158,18 @@ The data owner takes a person's access away; the cloud refuses their pass, each 
 - **Tests:** `tests/test_m2_revocation.py`: `test_revoke_policy_r`, `test_revoke_policy_re`, `test_r_then_re_then_new_member` (4 tests in the file)
 - **Limits:** Policy R: documents from before the change stay under the old key, so a revoked person who teams up with the cloud can still read them. Policy RE closes that gap but re-encrypts everything. Cannot be undone. Known display issue: after a revocation the Stage still lists the revoked receiver's old groups and last search result.
 - **Status:** Verified: seen in the running app and covered by tests
+
+### Change a person's groups
+
+Give an approved person more groups, or take some away without revoking them. Groups taken away get new keys, so new documents stay out of reach.
+
+- **Who uses it:** data owner
+- **Where:** Workspace, Change a person's groups; labels: "Change a person's groups", "Apply"
+- **What it produces:** A sealed grant for the person, or new keys for the groups taken away.
+- **What the Cloud sees:** The person's new list of groups.
+- **Tests:** `tests/test_m25_access_change.py`: `test_grant_a_group_then_search_it`, `test_take_a_group_away_policy_cut_first_then_keys` (6 tests in the file)
+- **Limits:** With R, a person keeps what they could read before the change.
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
 
 ## Learn and inspect
 
@@ -300,7 +335,7 @@ The cloud is a separate program on this computer that listens on 127.0.0.1 only;
 - **What it produces:** A cloud database with encrypted documents and index entries; a request log (who asked, which kind of request, how many bytes).
 - **What the Cloud sees:** Everything listed on this page under 'What the Cloud sees'. It is never given a group key.
 - **Tests:** `tests/test_m3_http.py`: `test_full_scenario_over_http_with_encrypted_stores`, `test_server_refuses_non_loopback_bind` (3 tests in the file); `tests/test_m10_packaging.py`: `test_cloud_server_binds_to_loopback_only`, `test_job_object_ends_the_child_when_the_handle_closes` (15 tests in the file)
-- **Limits:** Local demo only: no TLS, no other machine can reach it. It ends whenever the app ends.
+- **Limits:** Local demo only: no TLS, no other machine. For other computers use the separate server program (Server program, below). It ends whenever the app ends.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ### Settings: theme, motion, text size, mode
@@ -367,6 +402,51 @@ A small web installer picks the Standard or GPU build and checks it; full instal
 - **Tests:** `tests/test_m13_web_setup.py` (all 10 tests); `tests/test_m10_packaging.py`: `test_smoke_test_passes_and_leaves_no_data` (15 tests in the file)
 - **Limits:** Not code signed: Windows shows a SmartScreen warning. The GPU installer was not install-tested by the script that publishes it.
 - **Status:** Verified: seen in the running app and covered by tests
+
+### Three ways to use it
+
+On first start you choose Local demo (everything on this computer), Data owner or Receiver (the cloud server runs on another computer). Each mode keeps its own data.
+
+- **Who uses it:** data owner, receiver, learner
+- **Where:** Welcome sheet; Insights, Mode of use; labels: "How will you use this copy?", "Local demo", "Data owner", "Receiver", "Mode of use"
+- **What it produces:** A data folder per mode. The guided lesson always runs on this computer.
+- **Tests:** `tests/test_m17_client.py`: `test_modes_keep_their_own_data_and_the_lesson_stays_local`, `test_bridge_mode_of_use_and_connect` (9 tests in the file)
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
+
+### Server program
+
+A separate cloud server for other computers: HTTPS with a pinned certificate, an operator interface on its own machine, limits, backup and restore. As a Windows console program, from Python, or in Docker.
+
+- **Who uses it:** cloud operator, data owner, receiver
+- **Where:** Workspace, Cloud server card (Data owner and Receiver modes); pqsse-server on the server; labels: "Cloud server", "Connect", "Server online"
+- **What it produces:** A server data folder with the encrypted store, document files, the TLS certificate and the server's keys.
+- **What the Cloud sees:** The same as the local cloud. TLS hides the traffic from the network; its key exchange is classical.
+- **Tests:** `tests/test_m16_server.py`: `test_full_protocol_over_tls_with_a_pinned_certificate`, `test_wrong_pin_is_refused_before_any_request` (19 tests in the file); `tests/test_m29_tls_config.py`: `test_tls13_is_accepted_with_an_aead_cipher_and_no_compression` (6 tests in the file)
+- **Limits:** Meant for small groups: put a reverse proxy in front of it if it faces the internet. Not yet tested on separate computers by the author.
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
+
+### Activity log
+
+Every data owner action with the server's answer, newest first, checked as a chain so that a removed or changed entry shows.
+
+- **Who uses it:** data owner
+- **Where:** Workspace, Activity; labels: "Activity", "Export to CSV"
+- **What it produces:** A record kept in the encrypted key file; a CSV file on request (plain text).
+- **Tests:** `tests/test_m24_export_and_log.py`: `test_every_owner_action_writes_one_entry_with_the_servers_answer`, `test_the_chain_detects_a_deleted_an_edited_and_a_swapped_entry` (7 tests in the file)
+- **Limits:** A record for the data owner, not evidence for others: the owner holds the key.
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
+
+### Export, import and recovery
+
+Export a group's documents to one encrypted file and import it elsewhere. After a crash the app finishes what was sent; after restoring an older backup it rebuilds the data owner's state from the server.
+
+- **Who uses it:** data owner
+- **Where:** Workspace, Export or import a group; Recover after restoring a backup; labels: "Export or import a group", "Import", "Recover after restoring a backup", "Recover from the server"
+- **What it produces:** A .pqgroup file; a rebuilt group under new keys after recovery.
+- **What the Cloud sees:** Recovery copies of group keys and people's records, sealed under a key only the data owner has.
+- **Tests:** `tests/test_m24_export_and_log.py`: `test_export_and_import_a_group_into_another_installation` (7 tests in the file); `tests/test_m22_journal.py`: `test_an_approval_survives_a_crash_and_the_receiver_is_known_afterwards` (5 tests in the file); `tests/test_m26_recovery.py`: `test_an_old_backup_recovers_documents_keys_and_receivers_made_after_it` (5 tests in the file)
+- **Limits:** Invites made after a restored backup must be made again.
+- **Status:** Tested: covered by automated tests, not looked at by hand in this pass
 
 ## What the Cloud sees, in one place
 

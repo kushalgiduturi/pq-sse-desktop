@@ -230,6 +230,17 @@ class CloudCore:
         uid = obj["uid"]
         self._fresh(obj["ts"])
         row = self.db.execute("SELECT vk FROM joinkeys WHERE uid=?", (uid,)).fetchone()
+        if row is None and isinstance(obj.get("ek"), bytes) and isinstance(obj.get("vk"), bytes):
+            # A receiver that joined before version 0.2 has no stored key. It may present its public keys: they are
+            # accepted only if they hash to its id (which is made from exactly these keys) and the server knows
+            # that id from an approval or a join request. The signature below then proves the key is its own.
+            known = self.db.execute("SELECT 1 FROM creds WHERE uid=? UNION SELECT 1 FROM joins WHERE uid=?",
+                                    (uid, uid)).fetchone()
+            if known and H(obj["ek"], obj["vk"])[:16].hex() == uid:
+                row = (obj["vk"],)
+                if signing.check_bytes(self.params, row[0], "mail_get", wire.enc({"uid": uid, "ts": obj["ts"]}), obj["sig"]):
+                    self.db.execute("INSERT OR IGNORE INTO joinkeys VALUES (?, ?, ?)", (uid, obj["vk"], b""))
+                    self.db.commit()
         if row is None or not signing.check_bytes(self.params, row[0], "mail_get", wire.enc({"uid": uid, "ts": obj["ts"]}), obj["sig"]):
             raise Rejected("bad_signature", "mail is fetched only by the receiver it is for")
         rows = self.db.execute("SELECT id, kind, body, sig FROM mail WHERE uid=? ORDER BY id", (uid,)).fetchall()

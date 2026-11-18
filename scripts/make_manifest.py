@@ -74,6 +74,8 @@ def build_manifest(folder: Path, version: str, released: str, config: dict | Non
         },
         "web_setup": entry(folder, web_name, base),
     }
+    if "server_zip" in files:                       # since 0.2.0; readers that do not know it ignore it
+        manifest["server"] = entry(folder, files["server_zip"], base)
     if not manifest["channels"]["standard"]["available"]:
         raise SystemExit(f"FAILED: {files['standard_setup']} is not in {folder}")
     return manifest
@@ -148,7 +150,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.sign:
         packages = [folder / e["file"] for e in (manifest["channels"]["standard"], manifest["channels"]["gpu"],
                                                  manifest["portable"]["standard"], manifest["portable"]["gpu"],
-                                                 manifest["web_setup"]) if e.get("available")]
+                                                 manifest["web_setup"], manifest.get("server", {}))
+                    if e.get("available")]
         sign([out, *packages])
     write_sums(folder)
     print(f"latest.json and SHA256SUMS.txt written to {folder}" + (" (signed)" if args.sign else " (not signed)"))

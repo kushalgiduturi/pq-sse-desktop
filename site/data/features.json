@@ -243,7 +243,7 @@
         }
       ],
       "limits": [
-        "A receiver's groups are fixed at approval. To change them, revoke and approve a new request."
+        "Across computers the receiver joins with an invite and a one-time code, and both sides compare six fingerprint words."
       ],
       "status": "verified"
     },
@@ -504,7 +504,7 @@
         }
       ],
       "limits": [
-        "Local demo only: no TLS, no other machine can reach it.",
+        "Local demo only: no TLS, no other machine. For other computers use the separate server program (Server program, below).",
         "It ends whenever the app ends."
       ],
       "status": "verified"
@@ -1156,6 +1156,260 @@
         "The GPU installer was not install-tested by the script that publishes it."
       ],
       "status": "verified"
+    },
+    {
+      "id": "modes",
+      "group": "run",
+      "name": "Three ways to use it",
+      "sentence": "On first start you choose Local demo (everything on this computer), Data owner or Receiver (the cloud server runs on another computer). Each mode keeps its own data.",
+      "users": [
+        "data owner",
+        "receiver",
+        "learner"
+      ],
+      "where": {
+        "screen": "Welcome sheet; Insights, Mode of use",
+        "labels": [
+          "How will you use this copy?",
+          "Local demo",
+          "Data owner",
+          "Receiver",
+          "Mode of use"
+        ]
+      },
+      "produces": "A data folder per mode. The guided lesson always runs on this computer.",
+      "cloud_sees": null,
+      "tests": [
+        {
+          "file": "tests/test_m17_client.py",
+          "names": [
+            "test_modes_keep_their_own_data_and_the_lesson_stays_local",
+            "test_bridge_mode_of_use_and_connect"
+          ]
+        }
+      ],
+      "limits": [],
+      "status": "tested"
+    },
+    {
+      "id": "server-program",
+      "group": "run",
+      "name": "Server program",
+      "sentence": "A separate cloud server for other computers: HTTPS with a pinned certificate, an operator interface on its own machine, limits, backup and restore. As a Windows console program, from Python, or in Docker.",
+      "users": [
+        "cloud operator",
+        "data owner",
+        "receiver"
+      ],
+      "where": {
+        "screen": "Workspace, Cloud server card (Data owner and Receiver modes); pqsse-server on the server",
+        "labels": [
+          "Cloud server",
+          "Connect",
+          "Server online"
+        ]
+      },
+      "produces": "A server data folder with the encrypted store, document files, the TLS certificate and the server's keys.",
+      "cloud_sees": "The same as the local cloud. TLS hides the traffic from the network; its key exchange is classical.",
+      "tests": [
+        {
+          "file": "tests/test_m16_server.py",
+          "names": [
+            "test_full_protocol_over_tls_with_a_pinned_certificate",
+            "test_wrong_pin_is_refused_before_any_request"
+          ]
+        },
+        {
+          "file": "tests/test_m29_tls_config.py",
+          "names": [
+            "test_tls13_is_accepted_with_an_aead_cipher_and_no_compression"
+          ]
+        }
+      ],
+      "limits": [
+        "Meant for small groups: put a reverse proxy in front of it if it faces the internet.",
+        "Not yet tested on separate computers by the author."
+      ],
+      "status": "tested"
+    },
+    {
+      "id": "invites",
+      "group": "protect",
+      "name": "Invites",
+      "sentence": "The data owner makes an invite for one person: a file or link with the server's address and fingerprints, and a one-time code sent another way. The receiver's app checks both keys against it before sending anything.",
+      "users": [
+        "data owner",
+        "receiver"
+      ],
+      "where": {
+        "screen": "Workspace, Invite a person (Data owner) and Join with an invite (Receiver)",
+        "labels": [
+          "Invite a person",
+          "Make an invite",
+          "Join with an invite",
+          "One-time code",
+          "Join"
+        ]
+      },
+      "produces": "A .pqinvite file without the code; a join request that the server accepts once.",
+      "cloud_sees": "The invite's id and expiry, and which invite a request used. Never the code.",
+      "tests": [
+        {
+          "file": "tests/test_m18_invites.py",
+          "names": [
+            "test_join_with_an_invite_end_to_end",
+            "test_invites_are_single_use_checked_and_required",
+            "test_the_server_cannot_forge_the_owners_invite_proof"
+          ]
+        }
+      ],
+      "limits": [
+        "Whoever has the file and the code can join once; the data owner still approves after comparing the six words."
+      ],
+      "status": "tested"
+    },
+    {
+      "id": "key-care",
+      "group": "protect",
+      "name": "Keys and passphrases",
+      "sentence": "Change a passphrase, back up keys to an encrypted file, restore them on another computer, or lock them now. Keys also lock after 15 idle minutes.",
+      "users": [
+        "data owner",
+        "receiver"
+      ],
+      "where": {
+        "screen": "Insights, Keys and passphrases",
+        "labels": [
+          "Keys and passphrases",
+          "Change passphrase",
+          "Back up keys",
+          "Restore keys",
+          "Lock all keys now"
+        ]
+      },
+      "produces": "A .pqkeys backup file encrypted under its own passphrase.",
+      "cloud_sees": null,
+      "tests": [
+        {
+          "file": "tests/test_m21_keys.py",
+          "names": [
+            "test_change_passphrase_re_encrypts_everything_and_keeps_the_keys",
+            "test_backup_round_trip_wrong_passphrase_tampering_and_no_overwrite",
+            "test_bridge_auto_lock"
+          ]
+        }
+      ],
+      "limits": [
+        "A forgotten passphrase cannot be recovered.",
+        "Locking overwrites the key in memory as far as Python allows; it is not a guarantee."
+      ],
+      "status": "tested"
+    },
+    {
+      "id": "access-change",
+      "group": "change",
+      "name": "Change a person's groups",
+      "sentence": "Give an approved person more groups, or take some away without revoking them. Groups taken away get new keys, so new documents stay out of reach.",
+      "users": [
+        "data owner"
+      ],
+      "where": {
+        "screen": "Workspace, Change a person's groups",
+        "labels": [
+          "Change a person's groups",
+          "Apply"
+        ]
+      },
+      "produces": "A sealed grant for the person, or new keys for the groups taken away.",
+      "cloud_sees": "The person's new list of groups.",
+      "tests": [
+        {
+          "file": "tests/test_m25_access_change.py",
+          "names": [
+            "test_grant_a_group_then_search_it",
+            "test_take_a_group_away_policy_cut_first_then_keys"
+          ]
+        }
+      ],
+      "limits": [
+        "With R, a person keeps what they could read before the change."
+      ],
+      "status": "tested"
+    },
+    {
+      "id": "activity",
+      "group": "run",
+      "name": "Activity log",
+      "sentence": "Every data owner action with the server's answer, newest first, checked as a chain so that a removed or changed entry shows.",
+      "users": [
+        "data owner"
+      ],
+      "where": {
+        "screen": "Workspace, Activity",
+        "labels": [
+          "Activity",
+          "Export to CSV"
+        ]
+      },
+      "produces": "A record kept in the encrypted key file; a CSV file on request (plain text).",
+      "cloud_sees": null,
+      "tests": [
+        {
+          "file": "tests/test_m24_export_and_log.py",
+          "names": [
+            "test_every_owner_action_writes_one_entry_with_the_servers_answer",
+            "test_the_chain_detects_a_deleted_an_edited_and_a_swapped_entry"
+          ]
+        }
+      ],
+      "limits": [
+        "A record for the data owner, not evidence for others: the owner holds the key."
+      ],
+      "status": "tested"
+    },
+    {
+      "id": "export-recover",
+      "group": "run",
+      "name": "Export, import and recovery",
+      "sentence": "Export a group's documents to one encrypted file and import it elsewhere. After a crash the app finishes what was sent; after restoring an older backup it rebuilds the data owner's state from the server.",
+      "users": [
+        "data owner"
+      ],
+      "where": {
+        "screen": "Workspace, Export or import a group; Recover after restoring a backup",
+        "labels": [
+          "Export or import a group",
+          "Import",
+          "Recover after restoring a backup",
+          "Recover from the server"
+        ]
+      },
+      "produces": "A .pqgroup file; a rebuilt group under new keys after recovery.",
+      "cloud_sees": "Recovery copies of group keys and people's records, sealed under a key only the data owner has.",
+      "tests": [
+        {
+          "file": "tests/test_m24_export_and_log.py",
+          "names": [
+            "test_export_and_import_a_group_into_another_installation"
+          ]
+        },
+        {
+          "file": "tests/test_m22_journal.py",
+          "names": [
+            "test_an_approval_survives_a_crash_and_the_receiver_is_known_afterwards"
+          ]
+        },
+        {
+          "file": "tests/test_m26_recovery.py",
+          "names": [
+            "test_an_old_backup_recovers_documents_keys_and_receivers_made_after_it"
+          ]
+        }
+      ],
+      "limits": [
+        "Invites made after a restored backup must be made again."
+      ],
+      "status": "tested"
     }
   ],
   "cloud_sees_summary": {

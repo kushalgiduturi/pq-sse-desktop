@@ -201,7 +201,9 @@ class Receiver:
         """The raw sealed mailbox items for this receiver; the request is signed (design note 002 C)."""
         ts = int(self.clock() * 1000)
         sig = signing.sign_bytes(self.params, self._sk, "mail_get", wire.enc({"uid": self.uid, "ts": ts}))
-        return self._cloud().call("mail_get", {"uid": self.uid, "ts": ts, "sig": sig})
+        # The public keys travel along so that a server holding no key for a receiver that joined before 0.2 can
+        # check the signature (it accepts them only if they hash to this receiver's id).
+        return self._cloud().call("mail_get", {"uid": self.uid, "ts": ts, "sig": sig, "ek": self.ek, "vk": self.vk})
 
     def fetch_mail(self) -> list[str]:
         """Fetch and process mailbox items: the sealed capability and rekey boxes.

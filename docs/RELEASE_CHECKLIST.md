@@ -67,14 +67,17 @@ token or password (`gh auth login` keeps the GitHub sign-in in Windows' credenti
    It runs the tests, builds both variants and the web installer, runs the smoke tests, the installer
    tests and a real web-installer install against a local server, writes `latest.json`,
    `SHA256SUMS.txt` and the signatures, and prints the table of files.
-3. Commit, tag and push. The `release` workflow then builds and tests the Standard variant and the web
-   installer on GitHub, creates the release with every file and deploys the website:
+3. Commit and tag, then push **only the tag**. The `release` workflow builds and tests the Standard variant,
+   the server zip and the web installer on GitHub, creates the release with every file and deploys the
+   website from the release's own file list:
 
    ```powershell
-   git push origin master
-   git tag v0.1.1
-   git push origin v0.1.1
+   git tag v0.2.0
+   git push origin v0.2.0
    ```
+
+   Do not push `master` yet: the `pages` workflow deploys the committed `site\public`, whose `latest.json`
+   is still the previous release's, and it would replace the new site until step 4 is done.
 
 4. GPU build, from this PC (it asks before uploading):
 
@@ -82,8 +85,16 @@ token or password (`gh auth login` keeps the GitHub sign-in in Windows' credenti
    .\scripts\publish_gpu.ps1
    ```
 
-   Then review `site\public`, commit and push; the `pages` workflow deploys the site with the GPU
-   build listed.
+   Then rebuild the site from the published file list (now with the GPU build), review `site\public`,
+   commit and push `master`; the `pages` workflow deploys the site with the GPU build listed:
+
+   ```powershell
+   gh release download v0.2.0 --pattern "latest.json*" --dir $env:TEMP\pqsse-latest --clobber
+   python scriptsuild_site.py --manifest $env:TEMP\pqsse-latest\latest.json
+   python scripts\check_site.py --no-browser
+   git commit -am "Site: v0.2.0 from the Release's signed file list"
+   git push origin master
+   ```
 5. winget (optional). Writes and checks the manifests; submitting them is a pull request to
    `microsoft/winget-pkgs` that you open yourself:
 

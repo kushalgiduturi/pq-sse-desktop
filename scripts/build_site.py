@@ -101,6 +101,8 @@ def files_table(m: dict, content: dict) -> str:
     labels = content["files"]
     rows = [("web_setup", None, labels["web"]), ("channels", "standard", labels["standard"]), ("channels", "gpu", labels["gpu"]),
             ("portable", "standard", labels["zip_standard"]), ("portable", "gpu", labels["zip_gpu"])]
+    if "server" in m:                                   # since 0.2.0; older releases had no server program
+        rows.append(("server", None, labels["server"]))
     body = []
     for group, key, (name, note) in rows:
         e = m.get(group, {}) if key is None else m[group][key]
@@ -501,7 +503,7 @@ def notes_blocks(content: dict, manifest: dict, flat: dict) -> dict:
 def verify_blocks(content: dict, manifest: dict) -> dict:
     hashes = {}
     for e in [manifest["channels"]["standard"], manifest["channels"]["gpu"], manifest["portable"]["standard"],
-              manifest["portable"]["gpu"], manifest.get("web_setup", {})]:
+              manifest["portable"]["gpu"], manifest.get("web_setup", {}), manifest.get("server", {})]:
         if e.get("available"):
             hashes[e["sha256"]] = e["file"]
     return {"hash_list": json.dumps(hashes, separators=(",", ":")), "files_table": files_table(manifest, content)}
