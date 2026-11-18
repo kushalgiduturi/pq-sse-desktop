@@ -1,6 +1,6 @@
 # Design note 003: changing a receiver's groups without revoking them
 
-Status: **proposed, waiting for approval**. Milestone 6 of `REALLIFE_PLAN.md`. Not built in M6
+Status: **approved 2026-11-18 (recommended options)**. Milestone 6 of `REALLIFE_PLAN.md`. Not built in M6
 (the plan builds notes 005 to 007); built later only if approved.
 
 ## The problem

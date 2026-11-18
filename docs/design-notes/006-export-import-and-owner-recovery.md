@@ -1,6 +1,6 @@
 # Design note 006: export, import, and recovering the data owner's state
 
-Status: **proposed, waiting for approval**. Milestone 6 of `REALLIFE_PLAN.md`. Parts A and B are built in
+Status: **approved 2026-11-18 (recommended options)**. Milestone 6 of `REALLIFE_PLAN.md`. Parts A and B are built in
 M6 once approved. Part C is built later.
 
 ## The problems
@@ -71,7 +71,7 @@ implementation-level recovery procedure that `docs/PAPER_CHANGES.md` would descr
 
 A: export and import round trip, a wrong passphrase, a damaged file, an import split across batches.
 B: a crash after the server applied an update, a control message and a state, each recovered at
-restart; a crash before sending (dropped); the RE rebuild case. C: restore a backup from before two
+restart; a crash before the message reached the server (sent at restart, applied once); the RE rebuild case. C: restore a backup from before two
 updates and one epoch change, then recover everything; a server serving an older state; a batch
 applied but not published, resolved by the RE rebuild.
 
@@ -80,3 +80,22 @@ applied but not published, resolved by the RE rebuild.
 Approve A and B (recommended, built in M6), and C (recommended, built later; it changes the epoch control
 message and adds `owner_sync`). The alternative to C: document "back up after every revocation", with no
 recovery.
+
+## As built (milestone 6): A and B
+
+- A: `Owner.export_group` and `import_group`. The `.pqgroup` file uses the key backup's format (one sealed
+  file: scrypt N = 2^17, AES-256-GCM, a magic line as associated data, a passphrase of 12 or more characters,
+  never overwritten, private file permissions). The app has an "Export or import a group" card.
+- B: one change to the proposal, found while building it. The journal has **channels**: `ctl` for control
+  messages, and one `group:<g>` per group for update batches and states. Each channel has at most one
+  message in flight. A single journal would have let a batch stuck at the server (for example a full disk)
+  block a later revocation. Now the deauth goes through at once, and the rotation that must follow waits
+  in the owner record (`rotations`) until the group's channel is settled. A pending rotation also runs before
+  any new document goes into that group, so new content is never written under a key that the revoked
+  receiver holds. A channel is settled (the same bytes sent again) before any message that touches its
+  records. The app does this when the owner's keys are unlocked.
+- Tests: `tests/test_m22_journal.py` (crashes after the server applied an update, an approval and a
+  publish; a crash before the server; a refusal; no answer while a revocation goes through), and the
+  full-disk test in `tests/test_m19_network_faults.py`, now with the stronger expectation that the stuck
+  document is delivered later rather than lost.
+- C (owner recovery from an old backup) is approved and comes in a later milestone.

@@ -52,11 +52,13 @@ Helpers used inside PRF inputs: `u32(i)` = 4 bytes big endian, `sstr(w)` = `u32(
 | group setup | `ctl` op `group` | `{seq, op, g}` sealed and signed as above | `{ok}` |
 | BuildIndex, Update | `update` | `{msg: enc({g, e, seq, addrs: n*32 bytes, vals: n*5 bytes, docs: [[handle, blob, Sig_O("doc", [g, e, handle, H(blob)])]], del: [[e, handle]], reset}), sig: Sig_O("batch", msg)}` | `{ok, seq}` |
 | Publish | `state_put` | `{hdr: enc({g, e, ver, exp, final, base}), ct, sig: Sig_O("state", hdr || H(ct))}` | `{ok}` |
-| TokenGen | `states_get` | `{uid, ct: E_a({g, ts, nonce})}` | `{cur, base, states: [{hdr, ct, sig}]}` |
+| TokenGen | `states_get` | `{uid, ct: E_a({g, ts, nonce, have?})}` | `{cur, base, states: [{hdr, ct, sig} or {e, same: true}]}` |
 | TokenGen, Search | `search` | `{uid, ct: E_a({g, cur, segs: [[e, addresses]], ts, nonce})}` | `{ct: rho, sig: Sig_C("resp", H(request ct) || H(rho))}` with `rho = AES-GCM(token key of a_u, enc({g, segs: [[e, addresses, values]]}), aad = uid || "/search-response")` |
 | Decrypt | `doc_get` | `{uid, ct: E_a({g, e, handle, ts, nonce, offset?, length?})}` | `{blob, sig}`; with `offset` one part: `{part, offset, total, sig}` (design note 002 D) |
 | Revoke | `ctl` op `deauth` | `{seq, op, uid}` sealed and signed; the cloud erases the wrapped `a_u` | `{ok}` |
 | Revoke | `ctl` op `epoch` | `{seq, op, g, e, reset, boxes: {uid: [box, Sig_O("rekey", [uid, box])]}}` with `box = Seal(ek_v, {g, e, key, base, reset}, psk = m_v)` | `{ok}` |
+
+`have` (design note 005 B, optional): `[[epoch, version], ...]`, the verified states the receiver already holds. For each live segment whose stored version equals the one listed, the reply holds `{e, same: true}` instead of `{hdr, ct, sig}`; the receiver checks its cached copy exactly like a fresh one (freshness included). Requests without `have` get full states.
 
 ## Rejection reasons of the cloud
 

@@ -100,6 +100,7 @@ class Receiver:
         self.uid: str = H(self.ek, self.vk)[:16].hex()
         self.timings: dict[str, float] | None = None
         self._sig_cache: dict[bytes, StateHeader] = {}
+        self._state_cache: dict[str, dict[int, tuple[int, dict]]] = {}   # g -> epoch -> (version, state message)
         self._open_cache: dict[bytes, dict] = {}
 
     # ------------------------------------------------------------------ Setup
@@ -286,11 +287,19 @@ class Receiver:
     def _verified_states(self, g: str, report: Report, retry: bool = True) -> dict[int, dict]:
         """Verify checks on the published states. Returns epoch -> decrypted record table."""
         keys = self._group_keys(g)
-        _, reply = self._request("states_get", {"g": g})
+        cached = self._state_cache.get(g, {})
+        have = [[e, ver] for e, (ver, _msg) in sorted(cached.items())]
+        _, reply = self._request("states_get", {"g": g, "have": have} if have else {"g": g})
         headers: dict[int, StateHeader] = {}
         messages: dict[int, dict] = {}
         try:
             for msg in reply["states"]:
+                if msg.get("same"):
+                    # Design note 005 B: unchanged since the last fetch. The cached message goes through every
+                    # check below exactly like a fresh one (so an expired one is refused just the same).
+                    if int(msg["e"]) not in cached:
+                        raise VerifyError("state signature", "the cloud says unchanged for a state never received")
+                    msg = cached[int(msg["e"])][1]
                 cache_key = H(msg["hdr"], H(msg["ct"]), msg["sig"])
                 hdr = self._sig_cache.get(cache_key)
                 if hdr is None:
@@ -356,6 +365,7 @@ class Receiver:
                 self._open_cache[cache_key] = table
             tables[e] = table
         self._pending_seen = (g, {"top": top.ver, **{str(e): h.ver for e, h in headers.items()}})
+        self._state_cache[g] = {e: (headers[e].ver, messages[e]) for e in headers}   # verified states only
         return tables
 
     def _commit_seen(self) -> None:

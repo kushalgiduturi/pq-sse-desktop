@@ -210,23 +210,26 @@ def test_a_full_disk_in_the_middle_of_a_batch_changes_nothing(server, monkeypatc
     assert len(staying.search("g", "contract").hits) == 1    # the last good state is still served
 
     with pytest.raises(CloudUnavailable):
-        owner.revoke(leaving.uid, "RE")                       # access is withdrawn, but the RE rebuild fails
+        owner.revoke(leaving.uid, "RE")                       # access is withdrawn; the rotation waits for the batch
     with pytest.raises(Rejected) as info:
         leaving.search("g", "contract")
     assert info.value.reason == "revoked"
-    assert owner.groups["g"].get("reset_pending") is True
+    assert owner._meta["rotations"] == {"g": "RE"} and owner.has_pending
+    assert owner.groups["g"]["epoch"] == 1                    # nothing rotated yet
     assert sorted(p.name for p in server.config.blob_dir.rglob("*") if p.is_file()) == files_before
     assert store.check(server.config) == []                   # no file lost, no half-written file left
 
-    monkeypatch.setattr(server.core.blobs, "put", real_put)   # space again: the next change finishes the rebuild first
+    monkeypatch.setattr(server.core.blobs, "put", real_put)   # space again: the next change settles everything first
     owner.add_document("g", "Contract C", "a third penalty clause", ["contract"])
     owner.publish("g")
-    assert "reset_pending" not in owner.groups["g"]
+    assert not owner.has_pending and owner.groups["g"]["epoch"] == 2
     assert server.core.db.execute("SELECT seq FROM groups WHERE g='g'").fetchone()[0] == owner.groups["g"]["seq"]
     staying.fetch_mail()
     result = staying.search("g", "contract")
     assert result.report.all_ok
-    assert {staying.open_document("g", d, e).title for d, e in result.hits} == {"Contract A", "Contract C"}
+    # Contract B was sent before the revocation and is delivered by the journal; Contract C comes after the rotation
+    assert {staying.open_document("g", d, e).title for d, e in result.hits} == {"Contract A", "Contract B", "Contract C"}
+    assert {d["title"]: d["epoch"] for d in owner.documents("g")}["Contract C"] == 2
     assert store.check(server.config) == []
 
 
@@ -237,15 +240,15 @@ def test_resume_pending_finishes_an_interrupted_rebuild(server, monkeypatch):
     owner.publish("g")
     leaving = join(server, owner, "receiver-a")
     real_apply = Owner._apply
-    def lost_network(self, g, adds, dels, reset=False, kind="update"):
+    def lost_network(self, g, adds, dels, reset=False, **kwargs):
         if reset:
             raise CloudUnavailable("the network went away")
-        return real_apply(self, g, adds, dels, reset, kind)
+        return real_apply(self, g, adds, dels, reset, **kwargs)
     monkeypatch.setattr(Owner, "_apply", lost_network)
     with pytest.raises(CloudUnavailable):
         owner.revoke(leaving.uid, "RE")
     monkeypatch.setattr(Owner, "_apply", real_apply)
-    assert owner.resume_pending() == ["g"] and owner.resume_pending() == []
+    assert owner.resume_pending() == ["g: rebuild finished"] and owner.resume_pending() == []
     staying = join(server, owner, "receiver-b")
     assert len(staying.search("g", "contract").hits) == 1
 

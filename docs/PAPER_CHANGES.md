@@ -36,3 +36,13 @@ These add steps around the paper's Join; they change no theorem. For the paper's
 - Listing join requests needs the owner's ML-DSA signature, and fetching mail needs the receiver's, each over
   a fresh timestamp.
 - Documents can be fetched in parts; the owner's signature is still checked over the whole ciphertext.
+
+## Implementation notes from design notes 005 to 007 (milestone 6)
+
+These change no algorithm's security argument. For the paper's implementation section:
+
+- Large updates are sent as several signed batches and published once. Receivers search only up to the
+  counters of the published state, so a partly sent update is invisible to them.
+- A receiver may ask for the group's states "only if changed". A cached state goes through every check of
+  Algorithm 8, including freshness, so the server gains nothing it could not get by serving the old state.
+- The owner keeps a write-ahead journal and an encrypted, hash-chained activity log on its own computer.

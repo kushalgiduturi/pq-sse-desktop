@@ -370,6 +370,49 @@ Item {
                     PButton { visible: page.owner.people.length > 0; danger: true; primary: page.revokeUid !== ""; enabled: !app.busy && page.revokeUid !== ""; text: T.revokeBtn
                               onClicked: { app.revoke(page.revokeUid, page.policy); page.revokeUid = "" } }
                 }
+
+                TaskCard {
+                    width: scroller.cardWidth
+                    title: T.moveTitle
+                    summary: T.moveSummary
+                    hasMore: true
+                    Field { id: movePass; width: parent.width; secret: true; hint: T.movePass }
+                    PButton { visible: page.activeGroup !== ""; enabled: !app.busy && movePass.text.length >= 12
+                              text: T.moveExportBtn.replace("{g}", page.activeGroup)
+                              onClicked: { app.exportGroup(page.activeGroup, movePass.text); movePass.clear() } }
+                    Lbl { visible: app.activity.note.length > 0; width: parent.width; wrapMode: Text.WordWrap; text: app.activity.note }
+                    extra: [ Column { width: parent.width; spacing: Theme.sp2
+                        Field { id: moveFile; width: parent.width; hint: T.moveFile }
+                        Field { id: moveImportPass; width: parent.width; secret: true; hint: T.movePass }
+                        Field { id: moveGroup; width: parent.width; hint: T.moveGroup }
+                        PButton { enabled: !app.busy && moveFile.text.length > 0 && moveImportPass.text.length > 0; text: T.moveImportBtn
+                                  onClicked: { app.importGroup(moveFile.text, moveImportPass.text, moveGroup.text); moveImportPass.clear() } } } ]
+                }
+
+                TaskCard {
+                    width: Math.min(parent.width, 2 * scroller.cardWidth + Theme.sp10)
+                    title: T.activityTitle
+                    summary: T.activitySummary
+                    hasMore: true
+                    Txt { width: parent.width; kind: "sm"; tone: app.activity.ok ? "secondary" : "bad"; wrapMode: Text.WordWrap
+                          text: (app.activity.ok ? T.activityCheckOk : T.activityCheckBad).replace("{check}", app.activity.check) }
+                    Lbl { visible: app.activity.rows.length === 0; text: T.activityEmpty; tone: "secondary" }
+                    Repeater {
+                        model: app.activity.rows.slice(0, 5)
+                        Txt { required property var modelData; width: parent.width; kind: "sm"; wrapMode: Text.WordWrap
+                              tone: modelData.refused ? "bad" : "secondary"
+                              text: modelData.when + "  " + modelData.what + (modelData.detail ? ": " + modelData.detail : "") + (modelData.refused ? " (refused: " + modelData.server + ")" : "") }
+                    }
+                    extra: [ Column { width: parent.width; spacing: Theme.sp2
+                        Repeater {
+                            model: app.activity.rows.slice(5)
+                            Txt { required property var modelData; width: parent.width; kind: "sm"; wrapMode: Text.WordWrap
+                              tone: modelData.refused ? "bad" : "secondary"
+                              text: modelData.when + "  " + modelData.what + (modelData.detail ? ": " + modelData.detail : "") + (modelData.refused ? " (refused: " + modelData.server + ")" : "") }
+                        }
+                        Txt { width: parent.width; kind: "sm"; tone: "secondary"; wrapMode: Text.WordWrap; text: T.activityExportNote }
+                        PButton { enabled: !app.busy && app.activity.rows.length > 0; text: T.activityExportBtn; onClicked: app.exportActivity() } } ]
+                }
             }
 
             // ============================================================ a doctor

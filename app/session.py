@@ -179,6 +179,7 @@ class Session:
         self.settings = dict(DEFAULTS)
         self.settings.update(self._read_settings())
         self.owner: Owner | None = None
+        self.resumed: list[str] = []             # what opening the owner finished from last time
         self.receivers: dict[str, Receiver] = {}
         self.cloud_proc: subprocess.Popen | None = None
         self.cloud_line = ""
@@ -391,6 +392,12 @@ class Session:
         else:
             self.owner = Owner(vault, cloud=self.api(), prf=self.prf, state_ttl=ttl)
         export_pub(paths.pub_dir() / "owner.pqpub", self.owner.public_identity())
+        self.resumed = []
+        if self.owner.has_pending:              # a message or a revocation left unfinished last time (design note 006 B)
+            try:
+                self.resumed = self.owner.resume_pending()
+            except (CloudUnavailable, PQSSEError):
+                self.resumed = ["unfinished work kept; it is sent when the cloud answers"]
         return created
 
     def owner_pair_cloud(self, path: Path | None = None) -> str:
@@ -521,6 +528,8 @@ class Session:
         if len(new) < 8:
             raise PQSSEError("Use a new passphrase of at least 8 characters.")
         self._role_vault(role).change_passphrase(old, new)
+        if role == "owner":
+            self.owner.log_event("passphrase.change", {})
 
     def backup_keys(self, role: str, backup_passphrase: str) -> str:
         """Write an encrypted copy of one role's keys and state to the backups folder; returns the file."""
@@ -530,7 +539,10 @@ class Session:
             fileperm.restrict(folder)
         safe = "".join(ch for ch in role if ch.isalnum() or ch in "-_") or "keys"
         dest = folder / f"{safe}-{time.strftime('%Y%m%d-%H%M%S')}.pqkeys"
-        return str(self._role_vault(role).export_backup(dest, backup_passphrase))
+        path = str(self._role_vault(role).export_backup(dest, backup_passphrase))
+        if role == "owner":
+            self.owner.log_event("backup", {"file": path})
+        return path
 
     def import_keys(self, source: str, backup_passphrase: str, new_passphrase: str) -> str:
         """Restore a role from a backup file into this data folder. Never replaces existing keys. Returns the role."""
@@ -553,6 +565,35 @@ class Session:
             raise PQSSEError(f"Keys for {role} already exist on this computer; nothing was replaced.")
         tmp.replace(dest)
         return role
+
+    # ------------------------------------------------------------------ group export and import, activity (M6)
+    def _folder(self, name: str) -> Path:
+        folder = paths.data_dir() / name
+        if not folder.exists():
+            folder.mkdir(parents=True)
+            fileperm.restrict(folder)
+        return folder
+
+    def export_group(self, g: str, passphrase: str) -> str:
+        if self.owner is None:
+            raise PQSSEError("Unlock the data owner's keys first.")
+        safe = "".join(ch for ch in g if ch.isalnum() or ch in "-_") or "group"
+        dest = self._folder("exports") / f"{safe}-{time.strftime('%Y%m%d-%H%M%S')}.pqgroup"
+        return str(self.owner.export_group(g, dest, passphrase))
+
+    def import_group(self, source: str, passphrase: str, g: str = "") -> dict:
+        if self.owner is None:
+            raise PQSSEError("Unlock the data owner's keys first.")
+        group, ids = self.owner.import_group(source.strip().strip('"'), passphrase, g.strip() or None)
+        if ids:
+            self.owner.publish(group)
+        return {"group": group, "count": len(ids)}
+
+    def export_activity(self) -> str:
+        if self.owner is None:
+            raise PQSSEError("Unlock the data owner's keys first.")
+        dest = self._folder("exports") / f"activity-{time.strftime('%Y%m%d-%H%M%S')}.csv"
+        return str(self.owner.export_activity_csv(dest))
 
     def lock_keys(self) -> list[str]:
         """Close every open vault (auto-lock or the Lock button). The keys need the passphrase again."""

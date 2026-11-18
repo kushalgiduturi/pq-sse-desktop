@@ -159,42 +159,54 @@ class Vault:
 
     def export_backup(self, dest: str | Path, backup_passphrase: str, scrypt_n: int = BACKUP_SCRYPT_N) -> Path:
         """Write every record to one file encrypted under the backup passphrase (scrypt, AES-256-GCM)."""
-        if len(backup_passphrase) < 12:
-            raise PQSSEError("use a backup passphrase of at least 12 characters")
-        dest = Path(dest)
-        if dest.exists():
-            raise PQSSEError(f"{dest.name} already exists; choose a new file name")
-        records = {name: self.get(name) for name in self.names()}
-        salt = os.urandom(16)
-        key = bytearray(derive_master_key(backup_passphrase, salt, scrypt_n))
-        try:
-            sealed = aead_encrypt(bytes(key), wire.enc(records), BACKUP_MAGIC)
-        finally:
-            for i in range(len(key)):
-                key[i] = 0
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(BACKUP_MAGIC + wire.enc({"salt": salt, "n": scrypt_n, "data": sealed}))
-        fileperm.restrict(dest)
-        return dest
+        records = {name: self.get(name) for name in self.names() if not name.startswith("journal:")}
+        return seal_file(dest, BACKUP_MAGIC, records, backup_passphrase, scrypt_n)
+
+
+def seal_file(dest: str | Path, magic: bytes, value: Any, passphrase: str, scrypt_n: int = BACKUP_SCRYPT_N) -> Path:
+    """Write ``value`` to a new file, encrypted under a passphrase (scrypt, AES-256-GCM, the magic as aad).
+    Used by key backups and group exports. Never overwrites a file; the file is made private to this account."""
+    if len(passphrase) < 12:
+        raise PQSSEError("use a passphrase of at least 12 characters")
+    dest = Path(dest)
+    if dest.exists():
+        raise PQSSEError(f"{dest.name} already exists; choose a new file name")
+    salt = os.urandom(16)
+    key = bytearray(derive_master_key(passphrase, salt, scrypt_n))
+    try:
+        sealed = aead_encrypt(bytes(key), wire.enc(value), magic)
+    finally:
+        for i in range(len(key)):
+            key[i] = 0
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(magic + wire.enc({"salt": salt, "n": scrypt_n, "data": sealed}))
+    fileperm.restrict(dest)
+    return dest
+
+
+def open_file(source: str | Path, magic: bytes, passphrase: str, what: str) -> Any:
+    """Read a file written by ``seal_file``. Raises BadPassphrase for a wrong passphrase or a damaged file."""
+    source = Path(source)
+    raw = source.read_bytes()
+    if not raw.startswith(magic):
+        raise PQSSEError(f"{source.name} is not a PQ-SSE {what}")
+    try:
+        meta = wire.dec(raw[len(magic):])
+        key = derive_master_key(passphrase, meta["salt"], int(meta["n"]))
+        return wire.dec(aead_decrypt(key, meta["data"], magic, what=what))
+    except VerifyError as exc:
+        raise BadPassphrase(f"wrong passphrase, or the {what} file is damaged") from exc
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PQSSEError(f"{source.name} is not a readable PQ-SSE {what}") from exc
 
 
 def import_backup(source: str | Path, backup_passphrase: str, dest: str | Path, new_passphrase: str,
                   scrypt_n: int = SCRYPT_N) -> Vault:
     """Make a new vault at ``dest`` from a backup file. Never overwrites an existing vault."""
     source, dest = Path(source), Path(dest)
-    raw = source.read_bytes()
-    if not raw.startswith(BACKUP_MAGIC):
-        raise PQSSEError(f"{source.name} is not a PQ-SSE key backup")
     if dest.exists():
         raise PQSSEError(f"{dest.name} already exists; a backup is never imported over existing keys")
-    try:
-        meta = wire.dec(raw[len(BACKUP_MAGIC):])
-        key = derive_master_key(backup_passphrase, meta["salt"], int(meta["n"]))
-        records = wire.dec(aead_decrypt(key, meta["data"], BACKUP_MAGIC, what="key backup"))
-    except VerifyError as exc:
-        raise BadPassphrase("wrong backup passphrase, or the backup file is damaged") from exc
-    except (KeyError, TypeError, ValueError) as exc:
-        raise PQSSEError(f"{source.name} is not a readable PQ-SSE key backup") from exc
+    records = open_file(source, BACKUP_MAGIC, backup_passphrase, "key backup")
     vault = Vault(dest, new_passphrase, scrypt_n)
     for name, value in records.items():
         vault.put(name, value)

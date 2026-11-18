@@ -1,6 +1,6 @@
 # Design note 007: the data owner's activity log
 
-Status: **proposed, waiting for approval**. Milestone 6 of `REALLIFE_PLAN.md`. Built in M6 once approved.
+Status: **approved 2026-11-18 (recommended options)**. Milestone 6 of `REALLIFE_PLAN.md`. Built in M6 once approved.
 
 ## The problem
 
@@ -50,3 +50,15 @@ passphrase change and a backup round trip. The CSV export holds what the card sh
 ## Decision needed
 
 Approve (recommended), or keep only the support log file.
+
+## As built (milestone 6)
+
+- `Owner.log_event`, `activity`, `verify_activity` and `export_activity_csv`; vault records `log:<n>` and
+  `loghead`. Every owner action is logged once, as the outermost call, with the server's answer: accepted,
+  or the refusal reason. A revocation's own publishes are part of the revocation entry.
+- One change from the proposal: an entry is written right **after** its action commits, not in the same
+  database transaction. A crash in between loses that one entry, and the chain stays intact. Making them
+  one transaction would mean merging the vault's records into the journal's commit, which is more risk
+  than an occasional missing entry is worth.
+- One-time invite codes are never logged. Passphrase changes and key backups made in the app are logged.
+- Tests: `tests/test_m24_export_and_log.py`.

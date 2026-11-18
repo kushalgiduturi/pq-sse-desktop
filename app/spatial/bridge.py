@@ -86,6 +86,7 @@ class AppBridge(QObject):
         self._server_note: dict = {}
         self._last_invite: dict = {}
         self._keys_note = ""
+        self._activity_note = ""
         self._last_action = time.monotonic()
         self._autolock = QTimer(self)
         self._autolock.setInterval(30_000)
@@ -1034,6 +1035,47 @@ class AppBridge(QObject):
         if self._bench_raw_ops:
             bench.write_csv(folder / "operations.csv", self._bench_raw_ops, bench.OPS_COLUMNS)
         return str(folder)
+
+    # ------------------------------------------------------------------ export, import, activity (M6)
+    @Property("QVariantMap", notify=stateChanged)
+    def activity(self) -> dict:
+        owner = self.session.owner
+        if owner is None:
+            return {"open": False, "rows": [], "check": "", "ok": True, "note": self._activity_note}
+        rows = []
+        for e in owner.activity(limit=100):
+            parts = []
+            for k, v in sorted(e["detail"].items()):
+                if k in ("uid", "ids") or v in ("", [], None):
+                    continue
+                parts.append(f"{k} {', '.join(map(str, v)) if isinstance(v, list) else v}")
+            rows.append({"n": e["n"], "when": time.strftime("%Y-%m-%d %H:%M", time.localtime(e["t"] / 1000)),
+                         "what": T.get("act_" + e["what"].replace(".", "_"), e["what"]),
+                         "detail": roles.teach(", ".join(parts)),
+                         "refused": e["server"] not in ("accepted", "duplicate"), "server": e["server"]})
+        ok, check = owner.verify_activity()
+        return {"open": True, "rows": rows, "check": check, "ok": ok, "note": self._activity_note}
+
+    def _note_activity(self, template: str) -> Callable[[Any], None]:
+        def after(result: Any) -> None:
+            self._activity_note = template.format(**result) if isinstance(result, dict) else template.format(result=result)
+        return after
+
+    @Slot(str, str)
+    def exportGroup(self, group: str, passphrase: str) -> None:
+        self._run("exportGroup", "Exporting the group", lambda: self.session.export_group(group, passphrase),
+                  after=self._note_activity(T["exportDone"]))
+
+    @Slot(str, str, str)
+    def importGroup(self, source: str, passphrase: str, group: str) -> None:
+        source = QUrl(source).toLocalFile() if source.startswith("file:") else source
+        self._run("importGroup", "Importing documents", lambda: self.session.import_group(source, passphrase, group),
+                  after=self._note_activity(T["importDone"]))
+
+    @Slot()
+    def exportActivity(self) -> None:
+        self._run("exportActivity", "Writing the activity log", self.session.export_activity,
+                  after=self._note_activity(T["activityExported"]))
 
     # ------------------------------------------------------------------ keys: passphrase, backup, auto-lock (M5)
     @Property("QVariantMap", notify=stateChanged)

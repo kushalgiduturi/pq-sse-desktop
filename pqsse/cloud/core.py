@@ -397,11 +397,16 @@ class CloudCore:
         """Return the signed, encrypted states of all live segments of a group."""
         _uid, scope, req = self._open_request("states_get", obj)
         cur, base = self._scoped_group(scope, req["g"])
-        return self.read_states(req["g"], cur, base)
+        have = {int(e): int(v) for e, v in req.get("have", [])}     # design note 005 B: versions the receiver holds
+        return self.read_states(req["g"], cur, base, have)
 
-    def read_states(self, g: str, cur: int, base: int) -> dict:
-        rows = self.db.execute("SELECT hdr, ct, sig FROM states WHERE g=? AND e>=? AND e<=? ORDER BY e", (g, base, cur)).fetchall()
-        return {"cur": cur, "base": base, "states": [{"hdr": h, "ct": c, "sig": s} for h, c, s in rows]}
+    def read_states(self, g: str, cur: int, base: int, have: dict[int, int] | None = None) -> dict:
+        rows = self.db.execute("SELECT e, ver, hdr, ct, sig FROM states WHERE g=? AND e>=? AND e<=? ORDER BY e",
+                               (g, base, cur)).fetchall()
+        have = have or {}
+        return {"cur": cur, "base": base,
+                "states": [{"e": e, "same": True} if have.get(e) == ver else {"hdr": h, "ct": c, "sig": s}
+                           for e, ver, h, c, s in rows]}
 
     def _h_search(self, obj: dict) -> dict:
         """Algorithm 7 Search: check credential, scope and epoch, return entries, sign."""

@@ -1,6 +1,6 @@
 # Design note 005: large collections
 
-Status: **proposed, waiting for approval**. Milestone 6 of `REALLIFE_PLAN.md`. Parts A and B are built
+Status: **approved 2026-11-18 (recommended options)**. Milestone 6 of `REALLIFE_PLAN.md`. Parts A and B are built
 in M6 once approved.
 
 ## Measured now
@@ -84,3 +84,16 @@ old state; old clients without `have` still served.
 ## Decision needed
 
 Approve A and B (recommended). C stays future work. D is not needed.
+
+## As built (milestone 6)
+
+- A: `Owner.build_index` splits into batches of at most 5,000 documents and about 32 MiB
+  (`BATCH_DOCS`, `BATCH_BYTES`). The policy RE rebuild is split the same way. The first batch is the reset
+  batch, and it records the documents still to send in the group's record (`rebuild_rest`). An interrupted
+  rebuild continues before anything else touches the group, so no document is lost (test:
+  `test_a_split_re_rebuild_interrupted_half_way_finishes_without_losing_a_document`).
+- B: `states_get` takes `have: [[epoch, version], ...]` and answers `{e, same: true}` for those. The
+  receiver keeps only states that passed every check, in memory for the session.
+- Measured again, at 50,000 keywords: three searches download 2.9 MB of state in total, instead of 8.7 MB.
+  Searches after the first take 17 to 18 ms instead of 25 to 30 ms.
+- Tests: `tests/test_m23_large.py`.
