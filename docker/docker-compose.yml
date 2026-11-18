@@ -1,0 +1,40 @@
+# PQ-SSE cloud server with Docker Compose.
+#
+#   1. Put the passphrase that protects the server's keys in docker/secrets/pqsse_passphrase (one line).
+#      Keep that file out of git (docker/secrets/ is ignored) and readable by you only.
+#   2. Set PQSSE_SERVER_PUBLIC_NAMES to the name or address clients use to reach this machine.
+#   3. docker compose -f docker/docker-compose.yml up -d
+#   4. Fingerprints for the invite:  docker compose -f docker/docker-compose.yml exec server python -m pqsse.server fingerprint
+#      Operator commands:            docker compose -f docker/docker-compose.yml exec server python -m pqsse.server admin status
+#
+# The admin interface stays inside the container (127.0.0.1); only the HTTPS API port is published.
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: pqsse-server:local
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      PQSSE_SERVER_PUBLIC_NAMES: "localhost,127.0.0.1"
+      PQSSE_SERVER_REQUESTS_PER_MINUTE: "600"
+    volumes:
+      - pqsse-data:/data
+    secrets:
+      - pqsse_passphrase
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  pqsse-data:
+
+secrets:
+  pqsse_passphrase:
+    file: ./secrets/pqsse_passphrase

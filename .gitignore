@@ -18,3 +18,6 @@ bench_results/
 
 # the paper (unpublished; kept out of the public repository)
 docs/paper/*.pdf
+
+# Docker secrets for the server (passphrases)
+docker/secrets/

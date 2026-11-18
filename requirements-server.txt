@@ -1,0 +1,8 @@
+# The networked cloud server (python -m pqsse.server) and its Docker image: no Qt, no GPU, no PDF reader.
+# Versions match requirements-lock.txt.
+cryptography==50.0.2
+cffi==2.1.1
+pycparser==3.12
+kyber-py==1.2.0
+dilithium-py==1.5.1
+numpy==2.4.6

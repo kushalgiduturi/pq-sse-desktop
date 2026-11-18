@@ -1,0 +1,6 @@
+# Docker build context: only what the server image needs
+*
+!pqsse/
+!pyproject.toml
+!requirements-server.txt
+**/__pycache__

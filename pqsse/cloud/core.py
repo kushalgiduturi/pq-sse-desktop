@@ -24,6 +24,7 @@ from ..core.index import ADDR_LEN, RESPONSE_LABEL, VAL_LEN, token_aad, token_key
 from ..core.pairing import PublicIdentity
 from ..core.prims import H, aead_decrypt, aead_encrypt
 from ..pqbackend import DEFAULT_PARAMS, Params
+from .blobs import BlobError, BlobStore, is_ref
 
 TOKEN_WINDOW = 300.0
 
@@ -44,8 +45,11 @@ class CloudCore:
     """Server state and request handlers."""
 
     def __init__(self, vault: Any, params: Params = DEFAULT_PARAMS, name: str = "cloud",
-                 clock: Callable[[], float] = time.time, keep_log: bool = True) -> None:
+                 clock: Callable[[], float] = time.time, keep_log: bool = True,
+                 blobs: BlobStore | None = None, limits: dict | None = None) -> None:
         self.vault = vault
+        self.blobs = blobs              # networked server: document ciphertexts as files
+        self.limits = limits or {}      # networked server: max_docs_per_group, max_storage_bytes, max_doc_bytes
         self.clock = clock
         self.keep_log = keep_log
         self._lock = threading.RLock()
@@ -251,9 +255,11 @@ class CloudCore:
         n = len(addrs) // ADDR_LEN
         if len(addrs) != n * ADDR_LEN or len(vals) != n * VAL_LEN:
             raise Rejected("malformed", "entry arrays have inconsistent lengths")
+        self._check_limits(g, batch)
         if batch["reset"]:
             # Policy RE: drop every older segment and its documents.
             self.db.execute("DELETE FROM entries WHERE g=? AND e<?", (g, cur))
+            self._drop_blobs("SELECT blob FROM docs WHERE g=? AND e<?", (g, cur))
             self.db.execute("DELETE FROM docs WHERE g=? AND e<?", (g, cur))
             self.db.execute("DELETE FROM states WHERE g=? AND e<?", (g, cur))
             base = cur
@@ -263,8 +269,10 @@ class CloudCore:
         except sqlite3.IntegrityError as exc:
             raise Rejected("duplicate_address", "address already stored") from exc
         for handle, blob, sig in batch["docs"]:
-            self.db.execute("INSERT OR REPLACE INTO docs VALUES (?, ?, ?, ?, ?)", (g, cur, handle, blob, sig))
+            stored = self.blobs.put(blob) if self.blobs is not None else blob
+            self.db.execute("INSERT OR REPLACE INTO docs VALUES (?, ?, ?, ?, ?)", (g, cur, handle, stored, sig))
         for epoch, handle in batch["del"]:
+            self._drop_blobs("SELECT blob FROM docs WHERE g=? AND e=? AND handle=?", (g, epoch, handle))
             self.db.execute("DELETE FROM docs WHERE g=? AND e=? AND handle=?", (g, epoch, handle))
         self.db.execute("UPDATE groups SET seq=?, base=?, reset_pending=0 WHERE g=?", (batch["seq"], base, g))
         self.db.commit()
@@ -372,7 +380,63 @@ class CloudCore:
         row = self.db.execute("SELECT blob, sig FROM docs WHERE g=? AND e=? AND handle=?", (req["g"], req["e"], req["handle"])).fetchone()
         if row is None:
             raise Rejected("no_such_doc", "document not stored")
-        return {"blob": row[0], "sig": row[1]}
+        return {"blob": self._load_blob(row[0]), "sig": row[1]}
+
+    # ------------------------------------------------------------------ storage helpers (networked server)
+    def _load_blob(self, stored: bytes) -> bytes:
+        if self.blobs is not None and is_ref(stored):
+            try:
+                return self.blobs.get(stored)
+            except BlobError as exc:
+                raise Rejected("store_damaged", str(exc)) from exc
+        return stored
+
+    def _drop_blobs(self, sql: str, args: tuple) -> None:
+        """Delete the files of the document rows about to be deleted (files are shared only by equal bytes)."""
+        if self.blobs is None:
+            return
+        for (stored,) in self.db.execute(sql, args).fetchall():
+            if is_ref(stored):
+                others = self.db.execute("SELECT COUNT(*) FROM docs WHERE blob=?", (stored,)).fetchone()[0]
+                if others <= 1:
+                    self.blobs.delete(stored)
+
+    def storage_bytes(self) -> int:
+        """Database pages in use plus document files."""
+        pages = self.db.execute("PRAGMA page_count").fetchone()[0] * self.db.execute("PRAGMA page_size").fetchone()[0]
+        return pages + (self.blobs.total_bytes if self.blobs is not None else 0)
+
+    def _check_limits(self, g: str, batch: dict) -> None:
+        if not self.limits:
+            return
+        max_doc = self.limits.get("max_doc_bytes")
+        if max_doc and any(len(blob) > max_doc for _, blob, _ in batch["docs"]):
+            raise Rejected("too_large", f"a document is larger than {max_doc} bytes")
+        max_docs = self.limits.get("max_docs_per_group")
+        if max_docs:
+            have = self.db.execute("SELECT COUNT(*) FROM docs WHERE g=?", (g,)).fetchone()[0]
+            if (0 if batch["reset"] else have) + len(batch["docs"]) - len(batch["del"]) > max_docs:
+                raise Rejected("group_full", f"a group may hold at most {max_docs} documents")
+        max_storage = self.limits.get("max_storage_bytes")
+        if max_storage:
+            incoming = len(batch["addrs"]) + len(batch["vals"]) + sum(len(blob) for _, blob, _ in batch["docs"])
+            if self.storage_bytes() + incoming > max_storage:
+                raise Rejected("storage_full", "the server's storage limit is reached")
+
+    def delete_group(self, g: str) -> dict:
+        """Operator action: remove every stored item of a group (the data owner's keys are not involved)."""
+        with self._lock:
+            self._group(g)
+            counts = {t: self.db.execute(f"SELECT COUNT(*) FROM {t} WHERE g=?", (g,)).fetchone()[0]
+                      for t in ("entries", "docs", "states")}
+            self._drop_blobs("SELECT blob FROM docs WHERE g=?", (g,))
+            for table in ("entries", "docs", "states", "groups"):
+                self.db.execute(f"DELETE FROM {table} WHERE g=?", (g,))
+            self.db.commit()
+            return counts
+
+    def referenced_blobs(self) -> set[bytes]:
+        return {row[0] for row in self.db.execute("SELECT blob FROM docs") if is_ref(row[0])}
 
     # ------------------------------------------------------------------ operator view
     def _h_admin_log(self, obj: dict) -> list:
@@ -387,7 +451,7 @@ class CloudCore:
         return {
             "entries": one("SELECT COUNT(*) FROM entries"),
             "docs": one("SELECT COUNT(*) FROM docs"),
-            "doc_bytes": one("SELECT SUM(LENGTH(blob)) FROM docs"),
+            "doc_bytes": self.blobs.total_bytes if self.blobs is not None else one("SELECT SUM(LENGTH(blob)) FROM docs"),
             "states": one("SELECT COUNT(*) FROM states"),
             "state_bytes": one("SELECT SUM(LENGTH(ct)) FROM states"),
             "receivers": one("SELECT COUNT(*) FROM creds WHERE revoked=0"),
@@ -401,7 +465,7 @@ class CloudCore:
     def _h_admin_peek(self, obj: Any) -> dict:
         """What the server can see: raw samples of every table, hex encoded."""
         entries = self.db.execute("SELECT g, e, addr, val FROM entries LIMIT 12").fetchall()
-        docs = self.db.execute("SELECT g, e, handle, blob FROM docs LIMIT 6").fetchall()
+        docs = [(g, e, h, self._load_blob(b)) for g, e, h, b in self.db.execute("SELECT g, e, handle, blob FROM docs LIMIT 6").fetchall()]
         states = self.db.execute("SELECT g, e, ver, final, ct FROM states ORDER BY g, e LIMIT 6").fetchall()
         creds = self.db.execute("SELECT uid, scope, revoked, enc_a FROM creds LIMIT 6").fetchall()
         return {
