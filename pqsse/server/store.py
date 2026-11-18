@@ -42,7 +42,7 @@ def open_core(config: Config, passphrase: str) -> CloudCore:
     if result != "ok":
         vault.close()
         raise StoreError(f"the store failed its integrity check: {result}")
-    return CloudCore(vault, Params(config.kem, config.sig), "cloud", blobs=BlobStore(config.blob_dir),
+    return CloudCore(vault, Params(config.kem, config.sig), "cloud", blobs=BlobStore(config.blob_dir), require_invite=True,
                      limits=config.limits())
 
 

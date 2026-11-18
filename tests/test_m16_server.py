@@ -95,7 +95,8 @@ def owner_and_receiver(running: Running) -> tuple[Owner, Receiver]:
     owner.publish("Finance")
     bob = Receiver.create(MemoryVault(), FAST, "receiver-a", cloud=running.client())
     bob.pair(owner.public_identity(), running.core.public_identity())
-    uid = bob.send_join()
+    invite = owner.create_invite("127.0.0.1", running.config.port, running.pin, "receiver-a")   # the networked server requires one
+    uid = bob.send_join(invite.id, invite.code)
     owner.approve_join(next(i for i in owner.pending_joins() if i["uid"] == uid), ["Finance"])
     bob.fetch_mail()
     return owner, bob

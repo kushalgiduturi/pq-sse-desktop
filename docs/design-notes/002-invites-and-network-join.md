@@ -1,7 +1,16 @@
 # Design note 002: invites, joining over the network, and large downloads
 
-Status: **proposal, waiting for approval** (rule 2: protocol changes need a note, tests and your yes).
-Milestone 3 of `REALLIFE_PLAN.md`. Nothing in this note is implemented yet.
+Status: **approved 2026-11-18 (A to D) and implemented** on branch `reallife`; tests in
+`tests/test_m18_invites.py`. Two changes from the proposal below, both found while building it:
+
+- B uses **two keys** from the code, `k_server = HKDF(code, "pqsse/v3/invite/server")` and
+  `k_owner = HKDF(code, "pqsse/v3/invite/owner")`. The proposal used the code itself as the MAC key, which
+  the server could not check without learning it. Now the server holds only `k_server` and cannot forge the
+  owner's proof (`test_the_server_cannot_forge_the_owners_invite_proof`).
+- The six-word fingerprints use a 256-word list written for this project (`pqsse/invite.py`), not the PGP
+  word list, whose licence could not be confirmed. Six words carry 48 bits; the full hex is shown beside them.
+
+Milestone 3 of `REALLIFE_PLAN.md`.
 
 ## The problem
 

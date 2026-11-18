@@ -22,3 +22,17 @@ Optional additions, all in the code's favour and not required:
   leakage reduction.
 - The receiver also rejects a response whose newest state is older than a key it holds ("hiding a
   new epoch"), and the server refuses an epoch change without a final state of the old epoch.
+
+## Implementation notes from design note 002 (networked joining)
+
+These add steps around the paper's Join; they change no theorem. For the paper's implementation section:
+
+- The receiver learns the server address, the server's TLS certificate fingerprint and the fingerprints of
+  the server's and the owner's post-quantum keys from an **invite** made by the owner (the paper's
+  "public verification keys are distributed authentically").
+- A join request names a single-use invite and carries two proofs of its one-time code (HMAC-SHA3-256 under
+  two keys derived from the code: one checked by the server, one by the owner). The server stores join
+  requests only for registered, unexpired, unused invites.
+- Listing join requests needs the owner's ML-DSA signature, and fetching mail needs the receiver's, each over
+  a fresh timestamp.
+- Documents can be fetched in parts; the owner's signature is still checked over the whole ciphertext.

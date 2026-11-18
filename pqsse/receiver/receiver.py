@@ -11,6 +11,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from .. import invite as invites
 from .. import narrator, pqbackend
 from ..core import index, seal, signing, wire
 from ..core.chain import CHAIN_START, chain_fold
@@ -22,6 +23,8 @@ from ..core.state import StateHeader, check_state_signature, open_state
 from ..gpu.batchprf import BatchPRF, CpuPRF
 from ..pqbackend import DEFAULT_PARAMS, Params
 from ..transport import CloudAPI
+
+DOWNLOAD_PART = 4 * 1024 * 1024        # bytes per part of a document download (design note 002 D)
 
 CHECKS = (
     "state signature",
@@ -154,14 +157,24 @@ class Receiver:
         return self.cloud
 
     # ------------------------------------------------------------------ Join
-    def join_request(self) -> dict:
-        """Algorithm 2 Join (receiver part): keys plus an ML-DSA signature over a fresh nonce."""
-        req = wire.enc({"name": self.name, "kem": self.params.kem, "sig": self.params.sig, "ek": self.ek,
-                        "vk": self.vk, "nonce": os.urandom(32), "ts": int(self.clock() * 1000)})
-        return {"req": req, "sig": signing.sign_bytes(self.params, self._sk, "join", req)}
+    def join_request(self, invite_id: str | None = None, code: str | None = None) -> dict:
+        """Algorithm 2 Join (receiver part): keys plus an ML-DSA signature over a fresh nonce.
 
-    def send_join(self) -> str:
-        request = self.join_request()
+        With an invite (design note 002 B) the signed request names the invite id, and two proofs of the
+        one-time code go with it: one the server checks, one the owner checks. The code itself is never sent."""
+        fields = {"name": self.name, "kem": self.params.kem, "sig": self.params.sig, "ek": self.ek,
+                  "vk": self.vk, "nonce": os.urandom(32), "ts": int(self.clock() * 1000)}
+        if invite_id is not None:
+            fields["invite"] = invite_id
+        req = wire.enc(fields)
+        request = {"req": req, "sig": signing.sign_bytes(self.params, self._sk, "join", req)}
+        if invite_id is not None:
+            k_server, k_owner = invites.keys_from_code(code or "")
+            request["proof_s"], request["proof_o"] = invites.proof(k_server, req), invites.proof(k_owner, req)
+        return request
+
+    def send_join(self, invite_id: str | None = None, code: str | None = None) -> str:
+        request = self.join_request(invite_id, code)
         uid = self._cloud().call("join_post", request)["uid"]
         narrator.emit("join.request", self.name, bytes=len(request["req"]))
         return uid
@@ -175,6 +188,12 @@ class Receiver:
         cap = self._me["cap"]
         return sorted(cap["groups"]) if cap else []
 
+    def mail_items(self) -> list[dict]:
+        """The raw sealed mailbox items for this receiver; the request is signed (design note 002 C)."""
+        ts = int(self.clock() * 1000)
+        sig = signing.sign_bytes(self.params, self._sk, "mail_get", wire.enc({"uid": self.uid, "ts": ts}))
+        return self._cloud().call("mail_get", {"uid": self.uid, "ts": ts, "sig": sig})
+
     def fetch_mail(self) -> list[str]:
         """Fetch and process mailbox items: the sealed capability and rekey boxes.
 
@@ -182,7 +201,7 @@ class Receiver:
         ignored (they cannot have come from the owner).
         """
         events: list[str] = []
-        for item in self._cloud().call("mail_get", {"uid": self.uid}):
+        for item in self.mail_items():
             mark = H(item["body"])[:12]
             if mark in self._me["mail_done"]:
                 continue
@@ -457,8 +476,27 @@ class Receiver:
             raise
         k_doc = group_subkeys(keys[epoch], g, epoch)[1]
         handle = doc_handle(k_doc, doc_id)
-        _, reply = self._request("doc_get", {"g": g, "e": epoch, "handle": handle})
-        return self.decrypt_document(g, doc_id, epoch, reply)
+        return self.decrypt_document(g, doc_id, epoch, self._fetch_parts(g, epoch, handle))
+
+    def _fetch_parts(self, g: str, epoch: int, handle: bytes) -> dict:
+        """Design note 002 D: fetch the ciphertext in parts. What arrived is kept in the encrypted store, so a
+        broken download continues where it stopped (the owner's signature is checked over the whole)."""
+        key = "download:" + handle.hex()
+        saved = self.vault.get(key) or {"data": b"", "total": None, "sig": b""}
+        while saved["total"] is None or len(saved["data"]) < saved["total"]:
+            _, reply = self._request("doc_get", {"g": g, "e": epoch, "handle": handle,
+                                                 "offset": len(saved["data"]), "length": DOWNLOAD_PART})
+            if "part" not in reply:                   # a server without parts: the whole document at once
+                self.vault.delete(key)
+                return reply
+            if reply["offset"] != len(saved["data"]) or (saved["total"] not in (None, reply["total"])):
+                self.vault.delete(key)
+                raise VerifyError("document signature", "the parts of the document do not fit together")
+            saved = {"data": saved["data"] + reply["part"], "total": reply["total"], "sig": reply["sig"]}
+            if len(saved["data"]) < saved["total"]:
+                self.vault.put(key, saved)
+        self.vault.delete(key)
+        return {"blob": saved["data"], "sig": saved["sig"]}
 
     def decrypt_document(self, g: str, doc_id: int, epoch: int, reply: dict) -> Document:
         """Decrypt a fetched document reply {blob, sig} after checking the owner's signature."""

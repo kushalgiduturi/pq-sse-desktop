@@ -43,16 +43,18 @@ Helpers used inside PRF inputs: `u32(i)` = 4 bytes big endian, `sstr(w)` = `u32(
 | --- | --- | --- | --- |
 | Setup | `pub` | none | cloud public identity |
 | Setup (pair) | `admin_pair_owner` | `{ident, replace}` | `{ok}` |
-| Join | `join_post` | `{req: enc({name, kem, sig, ek, vk, nonce, ts}), sig: Sig_u("join", req)}` | `{uid}` |
-| Join | `join_list` | none | list of `{uid, req, sig}` |
+| Join | `join_post` | `{req: enc({name, kem, sig, ek, vk, nonce, ts, invite?}), sig: Sig_u("join", req), proof_s?, proof_o?}`; with an invite `proof_s = HMAC-SHA3-256(k_server, "join" \|\| H(req))`, `proof_o` the same with `k_owner` (design note 002); the cloud checks `sig`, and the invite when present or required | `{uid}` |
+| Join | `join_list` | `{ts, sig: Sig_O("join_list", enc({ts}))}` (owner only, 300 s window) | list of `{uid, req, sig, proof_o}` |
 | Join | `ctl` op `cred` | `{msg: Seal(ek_C, enc({seq, op, uid, box, cap, cap_sig}), aad = "ctl"), sig: Sig_O("ctl", msg)}` where `box = Seal(ek_C, {a, groups})`, `cap = Seal(ek_u, {uid, a, m, groups: {g: {base, keys}}})`, `cap_sig = Sig_O("cap", [uid, cap])` | `{ok}` |
-| Join, Revoke | `mail_get` | `{uid}` | list of `{id, kind: cap or rekey, body, sig}` |
+| Join, Revoke | `mail_get` | `{uid, ts, sig: Sig_u("mail_get", enc({uid, ts}))}` checked with the key of that receiver's join request | list of `{id, kind: cap or rekey, body, sig}` |
+| Join (invite) | `ctl` op `invite` | `{seq, op, id, k: k_server, exp}` sealed and signed | `{ok}` |
+| Join (invite) | `owner_pub` | none | the paired owner's public identity |
 | group setup | `ctl` op `group` | `{seq, op, g}` sealed and signed as above | `{ok}` |
 | BuildIndex, Update | `update` | `{msg: enc({g, e, seq, addrs: n*32 bytes, vals: n*5 bytes, docs: [[handle, blob, Sig_O("doc", [g, e, handle, H(blob)])]], del: [[e, handle]], reset}), sig: Sig_O("batch", msg)}` | `{ok, seq}` |
 | Publish | `state_put` | `{hdr: enc({g, e, ver, exp, final, base}), ct, sig: Sig_O("state", hdr || H(ct))}` | `{ok}` |
 | TokenGen | `states_get` | `{uid, ct: E_a({g, ts, nonce})}` | `{cur, base, states: [{hdr, ct, sig}]}` |
 | TokenGen, Search | `search` | `{uid, ct: E_a({g, cur, segs: [[e, addresses]], ts, nonce})}` | `{ct: rho, sig: Sig_C("resp", H(request ct) || H(rho))}` with `rho = AES-GCM(token key of a_u, enc({g, segs: [[e, addresses, values]]}), aad = uid || "/search-response")` |
-| Decrypt | `doc_get` | `{uid, ct: E_a({g, e, handle, ts, nonce})}` | `{blob, sig}` |
+| Decrypt | `doc_get` | `{uid, ct: E_a({g, e, handle, ts, nonce, offset?, length?})}` | `{blob, sig}`; with `offset` one part: `{part, offset, total, sig}` (design note 002 D) |
 | Revoke | `ctl` op `deauth` | `{seq, op, uid}` sealed and signed; the cloud erases the wrapped `a_u` | `{ok}` |
 | Revoke | `ctl` op `epoch` | `{seq, op, g, e, reset, boxes: {uid: [box, Sig_O("rekey", [uid, box])]}}` with `box = Seal(ek_v, {g, e, key, base, reset}, psk = m_v)` | `{ok}` |
 
@@ -72,5 +74,7 @@ HTTP 403 with `enc({reason, detail})`.
 | `bad_token`, `stale_token` | request does not authenticate under `a_u`, or its timestamp is outside the window |
 | `scope` | group outside the receiver's capability |
 | `stale_epoch`, `bad_segment` | token for an old epoch, or a segment that is no longer live |
+| `invite_required`, `bad_invite`, `invite_used`, `invite_expired`, `bad_join` | join refused: no invite on a server that needs one, unknown invite or wrong code, invite used or expired, request not signed by its own key |
+| `bad_range` | a document part outside the document |
 | `no_such_doc`, `unknown_group`, `duplicate_address`, `malformed` | as named |
 | `admin_only`, `not_local` | operator endpoint without the admin token, non-loopback client |

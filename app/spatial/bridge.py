@@ -19,6 +19,7 @@ from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 
 from pqsse import applog, attacklab, narrator, paths, pqbackend, roles
+from pqsse import invite as invites
 from pqsse.core.errors import PQSSEError, VerifyError
 from pqsse.owner import DocInput
 from pqsse.version import get_version
@@ -83,6 +84,7 @@ class AppBridge(QObject):
         self._software = False
         self._role = ROLE_ALICE
         self._server_note: dict = {}
+        self._last_invite: dict = {}
         self._ctx = lesson.Ctx(self.session)
         self._lesson_html = ""
         self.last_error: dict | None = None
@@ -192,7 +194,8 @@ class AppBridge(QObject):
                         request = owner.check_join(item)
                     except PQSSEError:
                         continue
-                    pending.append({"uid": request.uid, "name": request.name, "fingerprint": request.fingerprint})
+                    pending.append({"uid": request.uid, "name": request.name, "fingerprint": request.fingerprint,
+                                    "words": invites.words(request.fingerprint), "invite": request.invite_name})
             except Exception:
                 pending = []
         return {"open": True, "exists": True, "paired": owner.cloud_pub is not None,
@@ -203,6 +206,7 @@ class AppBridge(QObject):
         for name in self.session.receiver_names():
             rec = self.session.receivers.get(name)
             out.append({"name": name, "display": roles.display(name), "open": rec is not None,
+                        "words": invites.words(rec.public_identity().fingerprint()) if rec is not None else "",
                         "paired": bool(rec and rec.paired), "joined": bool(rec and rec.joined),
                         "groups": list(rec.groups) if rec is not None and rec.joined else [],
                         "result": self._results.get(name, {}), "opened": self._opened.get(name, {})})
@@ -387,6 +391,24 @@ class AppBridge(QObject):
         def done(info: dict) -> None:
             self._server_note = {"clock": info["clock"], "level": info["level"]}
         self._run("connectServer", "Connecting to the cloud server", work, after=done)
+
+    @Property("QVariantMap", notify=stateChanged)
+    def lastInvite(self) -> dict:
+        return dict(self._last_invite)
+
+    @Slot(str)
+    def createInvite(self, name: str) -> None:
+        def done(info: dict) -> None:
+            self._last_invite = info
+        self._run("createInvite", "Making an invite", lambda: self.session.create_invite(name), after=done)
+
+    @Slot(str, str, str, str)
+    def joinWithInvite(self, text: str, code: str, name: str, passphrase: str) -> None:
+        def done(info: dict) -> None:
+            self._role = info["name"].strip().lower()
+            self.roleChanged.emit()
+        self._run("joinWithInvite", "Joining with the invite", lambda: self.session.join_with_invite(text, code, name, passphrase),
+                  after=done)
 
     @Property(bool, notify=namesChanged)
     def teachingNames(self) -> bool:

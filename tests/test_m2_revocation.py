@@ -190,7 +190,7 @@ def test_rekey_box_is_bound_to_the_pre_shared_key():
     """A rekey box needs both the ML-KEM key and m_v, and must be owner signed."""
     world, rng, recorder, alice, bob, carol = _setup(74)
     world.owner.revoke(alice.uid, "R")
-    mail = [m for m in world.api.call("mail_get", {"uid": bob.uid}) if m["kind"] == "rekey"]
+    mail = [m for m in bob.mail_items() if m["kind"] == "rekey"]
     assert len(mail) == 1
     good_m = bob._me["cap"]["m"]
     bob._me["cap"]["m"] = bytes(32)

@@ -89,6 +89,8 @@ class TamperCloud:
             reply = self.inner.call(endpoint, obj)
             self.applied = True
             if self.mode == "doc_modify":
+                if "part" in reply:                       # documents fetched in parts (design note 002 D)
+                    return {**reply, "part": _flip(reply["part"], self.rng)}
                 return {"blob": _flip(reply["blob"], self.rng), "sig": reply["sig"]}
             return dict(self.doc_override or reply)
         if endpoint == "states_get" and self.mode == "states" and self.states_override is not None:

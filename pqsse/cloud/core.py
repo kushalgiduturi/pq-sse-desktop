@@ -23,6 +23,7 @@ from ..core.errors import Rejected, VerifyError, WireError
 from ..core.index import ADDR_LEN, RESPONSE_LABEL, VAL_LEN, token_aad, token_key
 from ..core.pairing import PublicIdentity
 from ..core.prims import H, aead_decrypt, aead_encrypt
+from ..invite import check_proof
 from ..pqbackend import DEFAULT_PARAMS, Params
 from .blobs import BlobError, BlobStore, is_ref
 
@@ -38,6 +39,8 @@ CREATE TABLE IF NOT EXISTS creds (uid TEXT PRIMARY KEY, enc_a BLOB, scope TEXT, 
 CREATE TABLE IF NOT EXISTS mail (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, kind TEXT, body BLOB, sig BLOB);
 CREATE TABLE IF NOT EXISTS joins (uid TEXT PRIMARY KEY, req BLOB, sig BLOB);
 CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, endpoint TEXT, in_bytes INTEGER, out_bytes INTEGER, ok INTEGER, reason TEXT);
+CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, k BLOB, expires REAL, used INTEGER);
+CREATE TABLE IF NOT EXISTS joinkeys (uid TEXT PRIMARY KEY, vk BLOB, proof_o BLOB);
 """
 
 
@@ -46,10 +49,11 @@ class CloudCore:
 
     def __init__(self, vault: Any, params: Params = DEFAULT_PARAMS, name: str = "cloud",
                  clock: Callable[[], float] = time.time, keep_log: bool = True,
-                 blobs: BlobStore | None = None, limits: dict | None = None) -> None:
+                 blobs: BlobStore | None = None, limits: dict | None = None, require_invite: bool = False) -> None:
         self.vault = vault
         self.blobs = blobs              # networked server: document ciphertexts as files
         self.limits = limits or {}      # networked server: max_docs_per_group, max_storage_bytes, max_doc_bytes
+        self.require_invite = require_invite   # networked server: a join request needs a registered invite
         self.clock = clock
         self.keep_log = keep_log
         self._lock = threading.RLock()
@@ -156,22 +160,65 @@ class CloudCore:
                 "kem": self.params.kem, "sig": self.params.sig,
                 "owner_fp": owner.fingerprint() if owner else ""}
 
+    def _h_owner_pub(self, obj: Any) -> dict:
+        """The paired data owner's public identity (public data; receivers check it against the invite's fingerprint)."""
+        owner = self.owner_identity()
+        if owner is None:
+            raise Rejected("not_paired", "no owner key installed")
+        return owner.to_wire()
+
     # ------------------------------------------------------------------ Join (mailbox)
+    def _fresh(self, ts: int) -> None:
+        if abs(self.clock() - ts / 1000.0) > TOKEN_WINDOW:
+            raise Rejected("stale_token", "request timestamp outside the window")
+
     def _h_join_post(self, obj: dict) -> dict:
-        """Join: store a receiver's join request for the owner. Content is public."""
+        """Join: store a receiver's join request for the owner (design note 002 B).
+
+        The request must carry a valid receiver signature. With an invite, the request names the invite id and
+        carries HMAC(k_server, "join" || H(req)); the invite must be registered, unexpired and unused, and is then
+        marked used. Without an invite, a networked server (require_invite) refuses the request."""
         req = wire.dec(obj["req"])
+        if not signing.check_bytes(self.params, req["vk"], "join", obj["req"], obj["sig"]):
+            raise Rejected("bad_join", "the join request is not signed by the key it carries")
+        invite_id = req.get("invite")
+        if invite_id is None:
+            if self.require_invite:
+                raise Rejected("invite_required", "this server accepts join requests only with an invite")
+        else:
+            row = self.db.execute("SELECT k, expires, used FROM invites WHERE id=?", (str(invite_id),)).fetchone()
+            if row is None:
+                raise Rejected("bad_invite", "unknown invite")
+            if row[2]:
+                raise Rejected("invite_used", "this invite was already used")
+            if self.clock() > row[1]:
+                raise Rejected("invite_expired", "this invite has expired")
+            if not check_proof(row[0], obj["req"], obj.get("proof_s", b"")):
+                raise Rejected("bad_invite", "the invite code does not match")
+            self.db.execute("UPDATE invites SET used=1 WHERE id=?", (str(invite_id),))
         uid = H(req["ek"], req["vk"])[:16].hex()
         self.db.execute("INSERT OR REPLACE INTO joins VALUES (?, ?, ?)", (uid, obj["req"], obj["sig"]))
+        self.db.execute("INSERT OR REPLACE INTO joinkeys VALUES (?, ?, ?)", (uid, req["vk"], obj.get("proof_o", b"")))
         self.db.commit()
         return {"uid": uid}
 
-    def _h_join_list(self, obj: Any) -> list:
-        rows = self.db.execute("SELECT uid, req, sig FROM joins ORDER BY uid").fetchall()
-        return [{"uid": uid, "req": req, "sig": sig} for uid, req, sig in rows]
+    def _h_join_list(self, obj: dict) -> list:
+        """Pending join requests, for the data owner only: a fresh request signed with the owner's key (note 002 C)."""
+        self._fresh(obj["ts"])
+        if not signing.check_bytes(self.params, self._owner_vk(), "join_list", wire.enc({"ts": obj["ts"]}), obj["sig"]):
+            raise Rejected("bad_signature", "join_list is for the data owner only")
+        rows = self.db.execute("SELECT j.uid, j.req, j.sig, k.proof_o FROM joins j LEFT JOIN joinkeys k ON k.uid = j.uid "
+                               "ORDER BY j.uid").fetchall()
+        return [{"uid": uid, "req": req, "sig": sig, "proof_o": proof_o or b""} for uid, req, sig, proof_o in rows]
 
     def _h_mail_get(self, obj: dict) -> list:
-        """Return sealed mailbox items (capability, rekey boxes) for a receiver."""
-        rows = self.db.execute("SELECT id, kind, body, sig FROM mail WHERE uid=? ORDER BY id", (obj["uid"],)).fetchall()
+        """Sealed mailbox items for one receiver, who signs a fresh request with the key of its join request (note 002 C)."""
+        uid = obj["uid"]
+        self._fresh(obj["ts"])
+        row = self.db.execute("SELECT vk FROM joinkeys WHERE uid=?", (uid,)).fetchone()
+        if row is None or not signing.check_bytes(self.params, row[0], "mail_get", wire.enc({"uid": uid, "ts": obj["ts"]}), obj["sig"]):
+            raise Rejected("bad_signature", "mail is fetched only by the receiver it is for")
+        rows = self.db.execute("SELECT id, kind, body, sig FROM mail WHERE uid=? ORDER BY id", (uid,)).fetchall()
         return [{"id": i, "kind": kind, "body": body, "sig": sig} for i, kind, body, sig in rows]
 
     # ------------------------------------------------------------------ owner control
@@ -198,6 +245,8 @@ class CloudCore:
             self._ctl_deauth(msg)
         elif op == "epoch":
             self._ctl_epoch(msg)
+        elif op == "invite":
+            self._ctl_invite(msg)
         else:
             raise Rejected("malformed", "unknown control op")
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('ctl_seq', ?)", (str(msg["seq"]).encode(),))
@@ -222,6 +271,10 @@ class CloudCore:
         self.db.execute("DELETE FROM mail WHERE uid=?", (uid,))
         self.db.execute("INSERT INTO mail (uid, kind, body, sig) VALUES (?, 'cap', ?, ?)", (uid, msg["cap"], msg["cap_sig"]))
         self.db.execute("DELETE FROM joins WHERE uid=?", (uid,))
+
+    def _ctl_invite(self, msg: dict) -> None:
+        """Design note 002 B: register an invite id with k_server and its expiry."""
+        self.db.execute("INSERT INTO invites VALUES (?, ?, ?, 0)", (str(msg["id"]), msg["k"], int(msg["exp"]) / 1000.0))
 
     def _ctl_deauth(self, msg: dict) -> None:
         """Revoke: deauthorize a receiver. Its credential stops working at once."""
@@ -388,7 +441,13 @@ class CloudCore:
         row = self.db.execute("SELECT blob, sig FROM docs WHERE g=? AND e=? AND handle=?", (req["g"], req["e"], req["handle"])).fetchone()
         if row is None:
             raise Rejected("no_such_doc", "document not stored")
-        return {"blob": self._load_blob(row[0]), "sig": row[1]}
+        blob = self._load_blob(row[0])
+        if "offset" not in req:
+            return {"blob": blob, "sig": row[1]}
+        offset, length = int(req["offset"]), int(req["length"])      # design note 002 D: one part of the ciphertext
+        if offset < 0 or length <= 0 or offset > len(blob):
+            raise Rejected("bad_range", "offset or length out of range")
+        return {"part": blob[offset:offset + length], "offset": offset, "total": len(blob), "sig": row[1]}
 
     # ------------------------------------------------------------------ storage helpers (networked server)
     def _load_blob(self, stored: bytes) -> bytes:

@@ -248,7 +248,7 @@ def test_a_capability_only_opens_for_its_receiver():
     world, _ = filled_world(["alpha"], docs_per_group=1, seed=43)
     bob = world.join("receiver-a", ["alpha"])
     eve = world.new_receiver("eve")
-    mail = world.api.call("mail_get", {"uid": bob.uid})
+    mail = bob.mail_items()
     assert mail and mail[0]["kind"] == "cap"
     with pytest.raises(VerifyError):
         eve.accept_capability(mail[0]["body"], mail[0]["sig"])

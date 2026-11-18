@@ -27,6 +27,7 @@ from pqsse.gpu.batchprf import BatchPRF, CpuPRF
 from pqsse.owner import Owner
 from pqsse.pqbackend import Params
 from pqsse.receiver import Receiver, describe_rejection
+from pqsse import invite as invites
 from pqsse.transport import CloudUnavailable, HttpCloud, HttpsCloud, clock_skew
 
 from . import winjob
@@ -400,6 +401,43 @@ class Session:
             ident = import_pub(path or paths.pub_dir() / "cloud.pqpub", expect_role="cloud")
         self.owner.pair_cloud(ident)
         return ident.fingerprint()
+
+    # ------------------------------------------------------------------ invites (design note 002)
+    def create_invite(self, name: str, days: float = invites.DEFAULT_DAYS) -> dict:
+        """Data owner mode: make an invite for one person. Saves a .pqinvite file without the code."""
+        if self.owner is None:
+            raise PQSSEError("Unlock the data owner's keys first.")
+        server = self.settings.get("server") or {}
+        if not self.remote or not server.get("host"):
+            raise PQSSEError("Invites are for the Data owner mode, after connecting to the cloud server.")
+        inv = self.owner.create_invite(server["host"], int(server["port"]), server["pin"], name.strip(), days)
+        folder = paths.data_dir() / "invites"
+        folder.mkdir(parents=True, exist_ok=True)
+        safe = "".join(ch for ch in name if ch.isalnum() or ch in "-_") or "person"
+        path = folder / f"{safe}-{inv.id[:8]}.pqinvite"
+        path.write_text(inv.to_file(include_code=False), encoding="utf-8")
+        return {"code": inv.code, "link": inv.to_link(include_code=False), "file": str(path), "name": name,
+                "expires": inv.expires}
+
+    def join_with_invite(self, text: str, code: str, name: str, passphrase: str) -> dict:
+        """Receiver mode: connect as the invite says, check both public keys against it, then send the join request."""
+        inv = invites.parse(text)
+        if inv.expired:
+            raise PQSSEError("This invite has expired. Ask the data owner for a new one.")
+        code = code.strip() or inv.code
+        if not code:
+            raise PQSSEError("Enter the one-time code that came with the invite.")
+        self.connect_server(inv.host, inv.port, inv.tls, inv.server_fp)
+        owner = PublicIdentity.from_wire(self.api().call("owner_pub", None))
+        if owner.fingerprint().replace(" ", "") != inv.owner_fp.replace(" ", ""):
+            raise PQSSEError("The data owner's key on the server does not match the invite. Do not continue; "
+                             "ask the data owner.")
+        rec = self.open_receiver(name, passphrase)
+        rec.pair(owner, self._checked_server_identity())
+        export_pub(paths.pub_dir() / "owner.pqpub", owner)
+        rec.send_join(inv.id, code)
+        fp = rec.public_identity().fingerprint()
+        return {"name": name, "fingerprint": fp, "words": invites.words(fp)}
 
     def _checked_server_identity(self) -> PublicIdentity:
         """The server's public key over the pinned connection, accepted only if it matches the saved fingerprint."""

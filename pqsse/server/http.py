@@ -40,7 +40,7 @@ from .limits import RateLimiter
 
 API_PREFIX = "/v1/"
 LARGE_ENDPOINTS = {"update", "state_put"}
-PUBLIC_ENDPOINTS = {"pub", "info", "join_post", "join_list", "mail_get", "ctl", "update", "state_put",
+PUBLIC_ENDPOINTS = {"pub", "info", "owner_pub", "join_post", "join_list", "mail_get", "ctl", "update", "state_put",
                     "states_get", "search", "doc_get"}
 LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 

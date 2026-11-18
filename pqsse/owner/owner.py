@@ -14,6 +14,7 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 
+from .. import invite as invites
 from .. import narrator, pqbackend
 from ..core import chain, index, seal, signing, wire
 from ..core.chain import CHAIN_START
@@ -58,6 +59,8 @@ class JoinRequest:
     fingerprint: str
     ts: float
     nonce: bytes = field(repr=False, default=b"")
+    invite: str = ""                     # the invite id the request used (design note 002), or empty
+    invite_name: str = ""                # whom the owner made that invite for
 
 
 class Owner:
@@ -199,8 +202,29 @@ class Owner:
 
     # ------------------------------------------------------------------ Join
     def pending_joins(self) -> list[dict]:
-        """Raw join requests waiting at the cloud mailbox."""
-        return self._cloud().call("join_list", None)
+        """Raw join requests waiting at the cloud mailbox. Only the owner may list them (design note 002 C)."""
+        ts = int(self.clock() * 1000)
+        sig = signing.sign_bytes(self.params, self._sk, "join_list", wire.enc({"ts": ts}))
+        return self._cloud().call("join_list", {"ts": ts, "sig": sig})
+
+    # ------------------------------------------------------------------ invites (design note 002)
+    def create_invite(self, host: str, port: int, tls: str, name: str = "", days: float = invites.DEFAULT_DAYS) -> invites.Invite:
+        """Make an invite for one person and register it at the cloud. The returned invite holds the one-time code."""
+        cloud_pub = self.cloud_pub
+        if cloud_pub is None:
+            raise PQSSEError("pair with the cloud before inviting people")
+        inv = invites.new_invite(host, port, tls, cloud_pub.fingerprint(), self.public_identity().fingerprint(), name, days)
+        k_server, k_owner = invites.keys_from_code(inv.code)
+        exp_ms = int(inv.expires * 1000)                 # the wire encoding has integers only
+        self._ctl("invite", id=inv.id, k=k_server, exp=exp_ms)
+        self._meta.setdefault("invites", {})[inv.id] = {"k": k_owner, "exp": exp_ms, "name": name, "used": False}
+        self._save_meta()
+        return inv
+
+    def invites(self) -> list[dict]:
+        """Invites made so far: id, name, expiry, used (the codes are not kept)."""
+        return [{"id": i, "name": v["name"], "expires": v["exp"] / 1000.0, "used": v["used"]}
+                for i, v in sorted(self._meta.get("invites", {}).items(), key=lambda kv: kv[1]["exp"])]
 
     def check_join(self, item: dict) -> JoinRequest:
         """Algorithm 2 Join (owner check): verify the proof of key ownership.
@@ -222,8 +246,22 @@ class Owner:
             raise VerifyError("join proof", "join request is not fresh")
         if nonce in self._meta["nonces"]:
             raise VerifyError("join proof", "join nonce was already used")
+        invite_id = req.get("invite")
+        invite_name = ""
+        if invite_id is not None:
+            record = self._meta.get("invites", {}).get(str(invite_id))
+            if record is None:
+                raise VerifyError("join proof", "the request names an invite this owner did not make")
+            if record["used"]:
+                raise VerifyError("join proof", "this invite was already used")
+            if self.clock() * 1000 > record["exp"]:
+                raise VerifyError("join proof", "this invite has expired")
+            if not invites.check_proof(record["k"], item["req"], item.get("proof_o", b"")):
+                raise VerifyError("join proof", "the invite code does not match")
+            invite_name = record["name"]
         ident = PublicIdentity("receiver", name, self.params, vk, ek)
-        return JoinRequest(H(ek, vk)[:16].hex(), name, ek, vk, ident.fingerprint(), ts / 1000.0, nonce)
+        return JoinRequest(H(ek, vk)[:16].hex(), name, ek, vk, ident.fingerprint(), ts / 1000.0, nonce,
+                           str(invite_id or ""), invite_name)
 
     def approve_join(self, item: dict, groups: Sequence[str]) -> str:
         """Algorithm 2 Join (owner approval): issue the capability and the credential.
@@ -250,6 +288,8 @@ class Owner:
         cred_box = seal.seal(self.params, cloud_pub.ek, cred, b"cred" + uid_raw)
         self._ctl("cred", uid=req.uid, box=cred_box, cap=cap_box, cap_sig=cap_sig)
         self._meta["nonces"] = (self._meta["nonces"] + [req.nonce])[-500:]
+        if req.invite:
+            self._meta["invites"][req.invite]["used"] = True
         self.receivers[req.uid] = {"name": req.name, "ek": req.ek, "vk": req.vk, "a": a_u, "m": m_u,
                                    "groups": sorted(groups), "revoked": False}
         self._save_meta()

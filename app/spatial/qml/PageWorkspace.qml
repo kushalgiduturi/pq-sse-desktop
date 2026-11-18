@@ -150,7 +150,7 @@ Item {
 
             // ============================================================ the server (Data owner and Receiver modes)
             TaskCard {
-                visible: app.remote
+                visible: app.remote && (app.use === "owner" || app.server.connected)    // a receiver connects through the invite
                 width: Math.min(parent.width, 2 * scroller.cardWidth + Theme.sp10)
                 title: T.cardConnect
                 next: !app.server.connected
@@ -165,6 +165,35 @@ Item {
                 PButton { visible: !app.server.connected || page.editServer; primary: true; enabled: !app.busy && srvHost.text.length > 0 && srvPin.text.length > 0
                           text: T.connectBtn; onClicked: { app.connectServer(srvHost.text, parseInt(srvPort.text), srvPin.text, srvKey.text); page.editServer = false } }
                 PButton { visible: app.server.connected && !page.editServer; text: T.connectAgain; onClicked: page.editServer = true }
+            }
+
+            // ============================================================ invites (Data owner and Receiver modes)
+            TaskCard {
+                visible: app.remote && app.use === "owner" && page.owner.open && page.owner.paired && app.server.connected
+                width: Math.min(parent.width, 2 * scroller.cardWidth + Theme.sp10)
+                title: T.inviteTitle
+                summary: app.lastInvite.code ? page.fill(T.inviteDone, { name: app.lastInvite.name, file: app.lastInvite.file, code: app.lastInvite.code }) : ""
+                Field { id: inviteName; width: parent.width; hint: T.inviteName; onAccepted: inviteBtn.clicked() }
+                Flow { width: parent.width; spacing: Theme.sp2
+                    PButton { id: inviteBtn; primary: true; enabled: !app.busy && inviteName.text.trim().length > 0; text: T.inviteBtn
+                              onClicked: { app.createInvite(inviteName.text); inviteName.clear() } }
+                    PButton { visible: app.lastInvite.link !== undefined; text: T.inviteCopyLink; onClicked: app.copyText(app.lastInvite.link) }
+                    PButton { visible: app.lastInvite.code !== undefined; text: T.inviteCopyCode; onClicked: app.copyText(app.lastInvite.code) } }
+            }
+            TaskCard {
+                visible: app.remote && app.use === "receiver" && page.role === ""
+                width: Math.min(parent.width, 2 * scroller.cardWidth + Theme.sp10)
+                title: T.joinInviteTitle
+                next: true
+                summary: T.joinInviteNote
+                Field { id: invText; width: parent.width; hint: T.joinInviteText }
+                Field { id: invCode; width: parent.width; hint: T.joinInviteCode }
+                Field { id: invName; width: parent.width; hint: T.joinInviteName }
+                Field { id: invPass; width: parent.width; secret: true; hint: T.passphrase }
+                Lbl { width: parent.width; text: T.passphraseHint; tone: "muted"; size: Theme.caption }
+                PButton { primary: true; enabled: !app.busy && invText.text.length > 0 && invName.text.trim().length > 0 && invPass.text.length > 0
+                          text: T.joinInviteBtn
+                          onClicked: { app.joinWithInvite(invText.text, invCode.text, invName.text, invPass.text); invPass.clear() } }
             }
 
             // ============================================================ Alice
@@ -288,7 +317,8 @@ Item {
                             id: pend
                             required property var modelData
                             width: parent.width; spacing: 6
-                            Lbl { width: parent.width; text: page.fill(T.joinRequestLine, { who: page.cap(pend.modelData.name), fp: pend.modelData.fingerprint }); strong: true }
+                            Lbl { width: parent.width; text: page.fill(T.joinRequestLine, { who: page.cap(pend.modelData.name), fp: pend.modelData.fingerprint, words: pend.modelData.words || "",
+                                                   via: pend.modelData.invite ? page.fill(T.joinVia, { name: pend.modelData.invite }) : "" }); strong: true }
                             Flow { width: parent.width; spacing: 8
                                    Repeater { model: page.owner.groups
                                               Pick { required property var modelData; text: modelData.name; selected: page.ticked(pend.modelData.uid, modelData.name)
@@ -343,7 +373,7 @@ Item {
             }
 
             // ============================================================ a doctor
-            Txt { visible: page.role === ""; width: Math.min(parent.width, 720); tone: "secondary"; text: T.receiverStart }
+            Txt { visible: page.role === "" && !app.remote; width: Math.min(parent.width, 720); tone: "secondary"; text: T.receiverStart }
             Flow {
                 visible: !page.isAlice && !page.isCloud && page.role !== ""
                 width: parent.width
@@ -369,6 +399,8 @@ Item {
                     Row { visible: page.doctor.open && page.doctor.paired; spacing: 10
                           PButton { visible: !page.doctor.joined; primary: true; enabled: !app.busy; text: T.joinAskBtn; onClicked: app.sendJoin(page.role) }
                           PButton { enabled: !app.busy; text: T.joinFetchBtn; onClicked: app.fetchMail(page.role) } }
+                    Lbl { visible: app.remote && page.doctor.open && !page.doctor.joined && (page.doctor.words || "") !== ""; width: parent.width
+                          text: page.fill(T.yourWords, { words: page.doctor.words || "" }); tone: "secondary"; size: Theme.caption }
                 }
                 TaskCard {
                     width: scroller.cardWidth
