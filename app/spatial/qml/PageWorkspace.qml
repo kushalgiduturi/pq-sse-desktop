@@ -12,6 +12,7 @@ Item {
     readonly property var cloud: app.state.cloud
     readonly property var doctors: app.state.receivers
     readonly property string role: app.role
+    property bool editServer: false          // Data owner and Receiver modes: show the server fields again
     readonly property bool isAlice: role === "alice"
     readonly property bool isCloud: role === "cloud"
     readonly property var doctor: {
@@ -62,8 +63,10 @@ Item {
             spacing: Theme.sp1
             Txt { text: T.workAs; strong: true; bottomPadding: Theme.sp2 }
             Repeater {
-                model: ["alice"].concat(page.doctors.map(function (d) { return d.name }),
-                                        page.isAlice || page.isCloud || page.doctors.some(function (d) { return d.name === page.role }) ? [] : [page.role], ["cloud"])
+                model: app.remote && app.use === "owner" ? ["alice"]
+                     : (app.remote ? [] : ["alice"]).concat(page.doctors.map(function (d) { return d.name }),
+                                        page.isAlice || page.isCloud || page.doctors.some(function (d) { return d.name === page.role }) || page.role === "" ? [] : [page.role],
+                                        app.remote ? [] : ["cloud"])
                 Rectangle {
                     id: roleItem
                     required property string modelData
@@ -117,7 +120,7 @@ Item {
             Column {
                 width: parent.width
                 spacing: Theme.sp1
-                Txt { text: page.fill(T.workspaceTitle, { role: page.cap(page.role) }); kind: "xl"; width: parent.width }
+                Txt { text: page.role === "" ? T.workspaceTitleNone : page.fill(T.workspaceTitle, { role: page.cap(page.role) }); kind: "xl"; width: parent.width }
                 Txt { text: T.workspaceSub + (app.practice ? " " + T.practicePass : ""); tone: "secondary"; width: Math.min(parent.width, 720) }
             }
 
@@ -145,6 +148,25 @@ Item {
                 }
             }
 
+            // ============================================================ the server (Data owner and Receiver modes)
+            TaskCard {
+                visible: app.remote
+                width: Math.min(parent.width, 2 * scroller.cardWidth + Theme.sp10)
+                title: T.cardConnect
+                next: !app.server.connected
+                summary: app.server.connected ? page.fill(T.connectDone, { host: app.server.host, port: app.server.port, fp: app.server.server_fp })
+                                              : T.connectNone
+                Lbl { visible: app.server.connected && app.server.clock !== undefined && app.server.clock !== ""; width: parent.width
+                      text: app.server.clock || ""; tone: app.server.level === "warn" ? "warn" : "muted"; size: Theme.caption }
+                Field { id: srvHost; visible: !app.server.connected || page.editServer; width: parent.width; hint: T.connectHost; text: app.server.host || "" }
+                Field { id: srvPort; visible: !app.server.connected || page.editServer; width: parent.width; hint: T.connectPort; text: app.server.port ? String(app.server.port) : "8443" }
+                Field { id: srvPin; visible: !app.server.connected || page.editServer; width: parent.width; hint: T.connectPin; text: app.server.pin || "" }
+                Field { id: srvKey; visible: !app.server.connected || page.editServer; width: parent.width; hint: T.connectKey; text: app.server.server_fp || "" }
+                PButton { visible: !app.server.connected || page.editServer; primary: true; enabled: !app.busy && srvHost.text.length > 0 && srvPin.text.length > 0
+                          text: T.connectBtn; onClicked: { app.connectServer(srvHost.text, parseInt(srvPort.text), srvPin.text, srvKey.text); page.editServer = false } }
+                PButton { visible: app.server.connected && !page.editServer; text: T.connectAgain; onClicked: page.editServer = true }
+            }
+
             // ============================================================ Alice
             Flow {
                 visible: page.isAlice
@@ -165,7 +187,9 @@ Item {
                     PButton { visible: page.owner.open && !page.owner.paired; primary: true; enabled: !app.busy && page.cloud.running
                               text: T.alicePairBtn; onClicked: app.pairOwnerAndCloud() }
                     Lbl { visible: page.owner.open && !page.owner.paired && !page.cloud.running; width: parent.width; tone: "muted"; size: Theme.caption
-                          text: T.startCloudFirst }
+                          text: app.remote ? T.connectNone : T.startCloudFirst }
+                    Lbl { visible: app.remote && page.owner.open && page.owner.paired; width: parent.width; tone: "muted"; size: Theme.caption
+                          text: T.operatorPair }
                 }
 
                 TaskCard {
@@ -319,8 +343,9 @@ Item {
             }
 
             // ============================================================ a doctor
+            Txt { visible: page.role === ""; width: Math.min(parent.width, 720); tone: "secondary"; text: T.receiverStart }
             Flow {
-                visible: !page.isAlice && !page.isCloud
+                visible: !page.isAlice && !page.isCloud && page.role !== ""
                 width: parent.width
                 spacing: Theme.sp10
 

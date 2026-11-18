@@ -27,7 +27,7 @@ from pqsse.gpu.batchprf import BatchPRF, CpuPRF
 from pqsse.owner import Owner
 from pqsse.pqbackend import Params
 from pqsse.receiver import Receiver, describe_rejection
-from pqsse.transport import CloudUnavailable, HttpCloud
+from pqsse.transport import CloudUnavailable, HttpCloud, HttpsCloud, clock_skew
 
 from . import winjob
 
@@ -37,6 +37,8 @@ DEFAULTS = {"kem": "ML-KEM-768", "sig": "ML-DSA-65", "port": 8765, "engine": "au
             "mode": "expert", "show_welcome": True, "font_size": "normal", "reduce_motion": False,
             "narrator": True, "lesson_step": 0, "lesson_done": [], "challenges_done": []}
 LESSON_PROFILE = "lesson"
+NETWORK_PROFILE = "network"           # data folder of the Data owner and Receiver modes
+USES = ("demo", "owner", "receiver")
 LESSON_PASSPHRASE = "lesson"
 
 
@@ -183,6 +185,9 @@ class Session:
         self.first_run = "mode" not in self._read_settings()
         self.profile = ""
         self._job: int | None = None
+        self._https: HttpsCloud | None = None
+        if self.networked:                      # real keys live apart from the demo's
+            self.set_profile(NETWORK_PROFILE)
 
     # ------------------------------------------------------------------ settings
     @staticmethod
@@ -205,8 +210,69 @@ class Session:
     def port(self) -> int:
         return int(self.settings["port"])
 
-    def api(self, admin: bool = False) -> HttpCloud:
+    def api(self, admin: bool = False) -> HttpCloud | HttpsCloud:
+        if self.remote:
+            if admin:
+                raise PQSSEError("The server runs on another computer; its operator uses its own admin commands.")
+            if self._https is None:
+                server = self.settings.get("server") or {}
+                if not server.get("host"):
+                    raise PQSSEError("Connect to the cloud server first: enter its address and certificate fingerprint.")
+                self._https = HttpsCloud(server["host"], int(server["port"]), server["pin"])
+            return self._https
         return HttpCloud(port=self.port, admin_token=self.admin_token if admin else None)
+
+    # ------------------------------------------------------------------ how this copy is used
+    @property
+    def use(self) -> str:
+        """"demo" (all roles on this PC, the teaching mode), "owner" or "receiver" (networked)."""
+        return self.settings.get("use", "demo")
+
+    @property
+    def networked(self) -> bool:
+        return self.use in ("owner", "receiver")
+
+    @property
+    def own_profile(self) -> str:
+        """The data folder of the user's own data: "network" in the Data owner and Receiver modes, else the base folder."""
+        return NETWORK_PROFILE if self.networked else ""
+
+    @property
+    def remote(self) -> bool:
+        """Talk to a server on another computer: networked modes, except inside the guided lesson's practice area."""
+        return self.networked and self.profile != LESSON_PROFILE
+
+    def set_use(self, use: str) -> None:
+        if use not in USES:
+            raise PQSSEError("unknown mode of use")
+        if use == self.use:
+            return
+        self.close()
+        self.owner, self.receivers, self._https = None, {}, None
+        self.settings["use"] = use
+        self.save_settings()
+        self.set_profile(NETWORK_PROFILE if self.networked else "")
+
+    def connect_server(self, host: str, port: int, pin: str, server_fp: str) -> dict:
+        """Networked modes: pin the server's certificate, check the clock, check the server's key fingerprint."""
+        host, pin = host.strip(), pin.replace(" ", "").replace(":", "").strip().lower()
+        if not host or not 0 < int(port) < 65536 or len(pin) != 64:
+            raise PQSSEError("Enter the server address, its port and the 64-character certificate fingerprint.")
+        api = HttpsCloud(host, int(port), pin)
+        skew, level, message = clock_skew(api)
+        if level == "refuse":
+            raise PQSSEError(message)
+        ident = PublicIdentity.from_wire(api.call("pub", None))
+        want = server_fp.replace(" ", "").upper()
+        if want and ident.fingerprint().replace(" ", "").upper() != want:
+            raise PQSSEError("The server's key does not match the fingerprint you were given. Do not continue; "
+                             "ask the data owner or the server's operator.")
+        self.settings["server"] = {"host": host, "port": int(port), "pin": pin, "server_fp": ident.fingerprint()}
+        self.save_settings()
+        self._https = api
+        export_pub(paths.pub_dir() / "cloud.pqpub", ident)
+        return {"fingerprint": ident.fingerprint(), "skew": round(skew, 1), "clock": message, "level": level,
+                "kem": ident.params.kem, "sig": ident.params.sig}
 
     # ------------------------------------------------------------------ engine
     def init_engine(self, refresh: bool = False) -> str:
@@ -229,10 +295,14 @@ class Session:
 
     # ------------------------------------------------------------------ cloud process
     def cloud_running(self) -> bool:
+        if self.remote:
+            return bool(self._https is not None and self._https.online)
         return self.cloud_proc is not None and self.cloud_proc.poll() is None
 
     def start_cloud(self, passphrase: str) -> str:
         """Start the cloud server as a separate process and wait until it answers."""
+        if self.remote:
+            raise PQSSEError("In this mode the cloud server runs on another computer. Connect to it instead.")
         if self.cloud_running():
             return self.cloud_line
         if not passphrase:
@@ -324,9 +394,20 @@ class Session:
         """Pair devices, owner side: import cloud.pqpub."""
         if self.owner is None:
             raise PQSSEError("Open the owner first.")
-        ident = import_pub(path or paths.pub_dir() / "cloud.pqpub", expect_role="cloud")
+        if self.remote and path is None:
+            ident = self._checked_server_identity()
+        else:
+            ident = import_pub(path or paths.pub_dir() / "cloud.pqpub", expect_role="cloud")
         self.owner.pair_cloud(ident)
         return ident.fingerprint()
+
+    def _checked_server_identity(self) -> PublicIdentity:
+        """The server's public key over the pinned connection, accepted only if it matches the saved fingerprint."""
+        ident = self.cloud_identity()
+        want = (self.settings.get("server") or {}).get("server_fp", "")
+        if not want or ident.fingerprint() != want:
+            raise PQSSEError("The server's key changed since you connected. Do not continue; ask the server's operator.")
+        return ident
 
     # ------------------------------------------------------------------ receivers
     def receiver_names(self) -> list[str]:
@@ -351,7 +432,10 @@ class Session:
         """Pair devices, receiver side: import owner.pqpub and cloud.pqpub."""
         rec = self.receivers[name]
         owner = import_pub(owner_path or paths.pub_dir() / "owner.pqpub", expect_role="owner")
-        cloud = import_pub(cloud_path or paths.pub_dir() / "cloud.pqpub", expect_role="cloud")
+        if self.remote and cloud_path is None:
+            cloud = self._checked_server_identity()
+        else:
+            cloud = import_pub(cloud_path or paths.pub_dir() / "cloud.pqpub", expect_role="cloud")
         rec.pair(owner, cloud)
         return f"owner {owner.fingerprint()} | cloud {cloud.fingerprint()}"
 
@@ -376,7 +460,7 @@ class Session:
         shutil.rmtree(paths.base_dir() / LESSON_PROFILE, ignore_errors=True)
         self.settings.update(lesson_step=0, lesson_done=[])
         self.save_settings()
-        paths.set_profile(LESSON_PROFILE if was_lesson else "")
+        paths.set_profile(LESSON_PROFILE if was_lesson else self.own_profile)
 
     def header_text(self) -> str:
         return f"PQ backend: {pqbackend.backend_name()} | New identities: {self.params.label()}"

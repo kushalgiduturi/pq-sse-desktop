@@ -25,10 +25,10 @@ def test_forged_modified_replayed_and_out_of_order_updates_are_rejected():
     genuine, _ = recorder.last("update")
     entries_before = world.cloud.db.execute("SELECT COUNT(*) FROM entries").fetchone()[0]
 
-    # replayed: the same signed batch again
+    # replayed: the same signed batch again (the last accepted batch is named "duplicate", an older one "bad_sequence")
     with pytest.raises(Rejected) as err:
         world.api.call("update", genuine)
-    assert err.value.reason == "bad_sequence"
+    assert err.value.reason == "duplicate"
 
     # modified: one byte changed, signature kept
     raw = bytearray(genuine["msg"])

@@ -17,7 +17,7 @@ import numpy as np
 from .. import narrator, pqbackend
 from ..core import chain, index, seal, signing, wire
 from ..core.chain import CHAIN_START
-from ..core.errors import PQSSEError, VerifyError
+from ..core.errors import PQSSEError, Rejected, VerifyError
 from ..core.pairing import PublicIdentity
 from ..core.index import doc_aad, doc_handle
 from ..core.prims import H, aead_encrypt, group_subkeys, random_key
@@ -131,6 +131,17 @@ class Owner:
             raise PQSSEError("owner is not connected to a cloud")
         return self.cloud
 
+    def _send(self, endpoint: str, obj: Any) -> Any:
+        """Send one of the owner's own signed messages. "duplicate" means the server already applied these exact
+        bytes: the reply to an earlier attempt was lost and the transport sent them again, so it counts as accepted.
+        Only the owner holds the signing key, so these bytes can only be the owner's own message."""
+        try:
+            return self._cloud().call(endpoint, obj)
+        except Rejected as exc:
+            if exc.reason == "duplicate":
+                return {"ok": True, "repeat": True}
+            raise
+
     def _tick(self, name: str, start: float) -> None:
         if self.timings is not None:
             self.timings[name] = self.timings.get(name, 0.0) + time.perf_counter() - start
@@ -144,7 +155,7 @@ class Owner:
         seq = self._meta["ctl_seq"] + 1
         box = seal.seal(self.params, cloud_pub.ek, wire.enc({"seq": seq, "op": op, **fields}), b"ctl")
         sig = signing.sign_bytes(self.params, self._sk, "ctl", box)
-        self._cloud().call("ctl", {"msg": box, "sig": sig})
+        self._send("ctl", {"msg": box, "sig": sig})
         self._meta["ctl_seq"] = seq
         self._save_meta()
 
@@ -344,7 +355,7 @@ class Owner:
         sig = signing.sign_bytes(self.params, self._sk, "batch", msg)
         self._tick("batch signature (ML-DSA)", t0)
         t0 = time.perf_counter()
-        self._cloud().call("update", {"msg": msg, "sig": sig})
+        self._send("update", {"msg": msg, "sig": sig})
         self._tick("cloud store", t0)
 
         # The cloud accepted the batch: commit.
@@ -386,7 +397,7 @@ class Owner:
         t0 = time.perf_counter()
         msg = make_state(self.params, self._sk, k_st, header, records, nmax)
         self._tick("state (AES-GCM + ML-DSA)", t0)
-        self._cloud().call("state_put", msg)
+        self._send("state_put", msg)
         gs["ver"] += 1
         gs["nmax"] = nmax
         gs["exp"] = exp

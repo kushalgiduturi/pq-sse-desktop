@@ -185,6 +185,8 @@ class CloudCore:
         except VerifyError as exc:
             raise Rejected("bad_control", "control message does not open under the cloud's key") from exc
         last = int(self._meta_get("ctl_seq") or b"0")
+        if msg["seq"] == last and self._meta_get("last_ctl") == H(box):
+            raise Rejected("duplicate", "this exact control message was already applied")
         if msg["seq"] != last + 1:
             raise Rejected("bad_sequence", f"expected control seq {last + 1}")
         op = msg["op"]
@@ -199,6 +201,7 @@ class CloudCore:
         else:
             raise Rejected("malformed", "unknown control op")
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('ctl_seq', ?)", (str(msg["seq"]).encode(),))
+        self.db.execute("INSERT OR REPLACE INTO meta VALUES ('last_ctl', ?)", (H(box),))
         self.db.commit()
         return {"ok": True}
 
@@ -245,6 +248,8 @@ class CloudCore:
         batch = self._owner_signed(obj, "batch")
         g = batch["g"]
         cur, base, seq, pending = self._group(g)
+        if batch["seq"] == seq and self._meta_get("last_batch:" + g) == H(obj["msg"]):
+            raise Rejected("duplicate", "this exact batch was already applied")   # a replay, or the owner's own resend
         if batch["e"] != cur:
             raise Rejected("bad_epoch", "batch is not for the current epoch")
         if batch["seq"] != seq + 1:
@@ -275,6 +280,7 @@ class CloudCore:
             self._drop_blobs("SELECT blob FROM docs WHERE g=? AND e=? AND handle=?", (g, epoch, handle))
             self.db.execute("DELETE FROM docs WHERE g=? AND e=? AND handle=?", (g, epoch, handle))
         self.db.execute("UPDATE groups SET seq=?, base=?, reset_pending=0 WHERE g=?", (batch["seq"], base, g))
+        self.db.execute("INSERT OR REPLACE INTO meta VALUES (?, ?)", ("last_batch:" + g, H(obj["msg"])))
         self.db.commit()
         return {"ok": True, "seq": batch["seq"]}
 
@@ -289,7 +295,9 @@ class CloudCore:
         cur, _base, _seq, _pending = self._group(g)
         if e > cur:
             raise Rejected("bad_epoch", "state is for a future epoch")
-        row = self.db.execute("SELECT ver, final FROM states WHERE g=? AND e=?", (g, e)).fetchone()
+        row = self.db.execute("SELECT ver, final, hdr, ct FROM states WHERE g=? AND e=?", (g, e)).fetchone()
+        if row is not None and row[2] == hdr_raw and row[3] == ct:
+            raise Rejected("duplicate", "this exact state is already stored")
         if row is not None and (hdr["ver"] <= row[0] or row[1]):
             raise Rejected("stale_state", "version not newer or segment already final")
         self.db.execute("INSERT OR REPLACE INTO states VALUES (?, ?, ?, ?, ?, ?, ?)",

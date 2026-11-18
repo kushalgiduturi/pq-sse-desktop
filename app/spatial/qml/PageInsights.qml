@@ -115,6 +115,10 @@ Item {
                              checked: app.reduceMotionSetting; onToggled: (on) => app.setReduceMotion(on) }
                     Switch { width: parent.width; text: T.updateMenuSetting; help: T.updateMenuHelp
                              checked: app.updateMenu; onToggled: (on) => app.setUpdateMenu(on) }
+                    Txt { text: T.useChange; kind: "sm"; strong: true; topPadding: Theme.sp2 }
+                    Segmented { width: parent.width; name: T.useChange; labels: [T.useDemo, T.useOwner, T.useReceiver]
+                                current: ["demo", "owner", "receiver"].indexOf(app.use); onChosen: (i) => app.setUse(["demo", "owner", "receiver"][i]) }
+                    Lbl { width: parent.width; text: T.useChangeNote; tone: "secondary"; size: Theme.caption }
                     Txt { text: T.settingsMode; kind: "sm"; strong: true; topPadding: Theme.sp2 }
                     Segmented { width: parent.width; name: T.settingsMode; labels: [T.chipBeginner, T.chipExpert]
                                 current: page.expert ? 1 : 0; onChosen: (i) => app.setMode(i === 1 ? "expert" : "beginner") }

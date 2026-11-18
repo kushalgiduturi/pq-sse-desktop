@@ -12,7 +12,9 @@ Item {
     property bool copied: false
     property string closeText: T.close
     property string actionText: ""        // an optional second, filled button
+    property var choices: []              // optional choice buttons above the action row: [{key, label, note}]
     signal action()
+    signal chosen(string key)
     signal dismissed()
 
     anchors.fill: parent
@@ -55,6 +57,17 @@ Item {
                 }
             }
             Item { width: 1; height: Theme.sp2 }
+            Repeater {
+                model: sheet.choices
+                Row {
+                    required property var modelData
+                    width: body.width
+                    spacing: Theme.sp3
+                    PButton { id: choiceButton; text: modelData.label; onClicked: { sheet.open = false; sheet.chosen(modelData.key) } }
+                    Txt { text: modelData.note; tone: "secondary"; kind: "sm"; width: body.width - choiceButton.width - Theme.sp3
+                          anchors.verticalCenter: parent.verticalCenter }
+                }
+            }
             Flow {
                 width: parent.width
                 spacing: Theme.sp2

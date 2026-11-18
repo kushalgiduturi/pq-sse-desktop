@@ -198,7 +198,7 @@ class LearnTab(TabBase):
         self.notify("You are in the lesson practice area. Follow the steps on the left.")
 
     def exit_lesson(self) -> None:
-        self.session.set_profile("")
+        self.session.set_profile(self.session.own_profile)
         self.win.reset_views()
         self.refresh_lists()
         self.notify("Back to your own data. The lesson progress is saved.")

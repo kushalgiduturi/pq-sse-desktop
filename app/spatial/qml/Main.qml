@@ -205,8 +205,10 @@ Window {
         rows: [{ head: "", body: T.welcomeIdea }, { head: "", body: T.welcomeCast }, { head: "", body: T.welcomeHow }, { head: "", body: T.welcomeHonest }]
         actionText: T.welcomeStart
         closeText: T.welcomeLater
+        choices: [{ key: "owner", label: T.useOwner, note: T.useOwnerNote }, { key: "receiver", label: T.useReceiver, note: T.useReceiverNote }]
         onAction: app.dismissWelcome(true)
         onDismissed: app.dismissWelcome(false)
+        onChosen: (key) => { app.setUse(key); app.dismissWelcome(false); win.go("workspace") }
     }
     Timer { interval: 400; running: app.showWelcome; onTriggered: welcomeSheet.show() }
 

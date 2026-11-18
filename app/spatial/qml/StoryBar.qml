@@ -73,7 +73,7 @@ Surface {
             width: children[0].width; height: Math.max(32, Theme.ctlH - 8)
             Pill {
                 anchors.verticalCenter: parent.verticalCenter
-                text: app.cloudRunning ? T.chipCloudOn : T.chipCloudOff
+                text: app.remote ? (app.cloudRunning ? T.chipOnline : T.chipOffline) : (app.cloudRunning ? T.chipCloudOn : T.chipCloudOff)
                 status: app.cloudRunning ? "ok" : "neutral"
                 clickable: true
                 onClicked: bar.openWorkspaceCloud()

@@ -65,6 +65,7 @@ HTTP 403 with `enc({reason, detail})`.
 | `bad_signature` | owner signature on a batch, state or control message is invalid |
 | `bad_control` | a control message does not open under the cloud's ML-KEM key |
 | `bad_sequence` | batch or control message is replayed or out of order |
+| `duplicate` | the exact batch, control message or state that was last accepted, sent again (a replay, or the owner resending after a lost reply; the owner treats it as accepted) |
 | `bad_epoch`, `bad_reset`, `not_final` | wrong epoch, reset flag mismatch, epoch change without a final state |
 | `stale_state` | state version not newer, or the segment is already final |
 | `unknown_user`, `revoked` | no credential for this receiver, or it was revoked |

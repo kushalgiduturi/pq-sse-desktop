@@ -82,6 +82,7 @@ class AppBridge(QObject):
         self._busy = (0, "")
         self._software = False
         self._role = ROLE_ALICE
+        self._server_note: dict = {}
         self._ctx = lesson.Ctx(self.session)
         self._lesson_html = ""
         self.last_error: dict | None = None
@@ -351,6 +352,42 @@ class AppBridge(QObject):
     def setDetailLevel(self, level: int) -> None:
         self._set("detail_level", max(0, min(3, int(level))))
 
+    # ------------------------------------------------------------------ mode of use (REALLIFE_PLAN milestone 3)
+    @Property(str, notify=settingsChanged)
+    def use(self) -> str:
+        return self.session.use
+
+    @Property(bool, notify=stateChanged)
+    def remote(self) -> bool:
+        return self.session.remote
+
+    @Property("QVariantMap", notify=stateChanged)
+    def server(self) -> dict:
+        info = dict(self.session.settings.get("server") or {})
+        info["connected"] = bool(info.get("host")) and self.session.cloud_running()
+        info.update(self._server_note)
+        return info
+
+    @Slot(str)
+    def setUse(self, use: str) -> None:
+        if use == self.session.use:
+            return
+        self.session.set_use(use)
+        self._results, self._opened, self._server_note = {}, {}, {}
+        self._role = ROLE_ALICE if use != "receiver" else ""
+        self.settingsChanged.emit()
+        self.roleChanged.emit()
+        self.refresh_now()
+
+    @Slot(str, int, str, str)
+    def connectServer(self, host: str, port: int, pin: str, server_fp: str) -> None:
+        def work() -> dict:
+            return self.session.connect_server(host, port, pin, server_fp)
+
+        def done(info: dict) -> None:
+            self._server_note = {"clock": info["clock"], "level": info["level"]}
+        self._run("connectServer", "Connecting to the cloud server", work, after=done)
+
     @Property(bool, notify=namesChanged)
     def teachingNames(self) -> bool:
         return roles.teaching()
@@ -400,7 +437,8 @@ class AppBridge(QObject):
     def pairOwnerAndCloud(self) -> None:
         def work() -> None:
             self.session.owner_pair_cloud()
-            self.session.cloud_pair_owner()
+            if not self.session.remote:          # networked: the server's operator installs owner.pqpub
+                self.session.cloud_pair_owner()
 
         self._run("pairOwnerAndCloud", "Exchanging public keys", work)
 
@@ -576,7 +614,7 @@ class AppBridge(QObject):
     @Slot()
     def leavePractice(self) -> None:
         def work() -> None:
-            self.session.set_profile("")
+            self.session.set_profile(self.session.own_profile)
             self._results.clear()
             self._opened.clear()
 
@@ -1076,4 +1114,4 @@ class AppBridge(QObject):
         self.events.close()
         self.session.close()
         if self.session.profile:
-            self.session.set_profile("")
+            self.session.set_profile(self.session.own_profile)

@@ -313,7 +313,7 @@ class MainWindow(QMainWindow):
         self.narrator.close_panel()
         self.session.close()
         if self.session.profile:
-            self.session.set_profile("")
+            self.session.set_profile(self.session.own_profile)
         super().closeEvent(event)
 
 
