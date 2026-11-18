@@ -66,8 +66,8 @@ secondary = "See the features"
 meta = "Free and open source. Windows 10 or 11, 64-bit. Version {version}, released {released}."
 # the hero screenshot: [name of the light picture, name of the dark picture, alt text, caption]
 hero_shot = ["light-workspace-alice", "dark-workspace-alice",
-  "The Workspace screen of PQ-SSE Desktop, working as Alice, the data owner.",
-  "The Workspace screen as Alice, the data owner: her keys are unlocked, four documents in the group Finance, and the fields to add another. The bar at the top says in one sentence what just happened."]
+  "The Workspace screen of PQ-SSE Desktop, working as the data owner.",
+  "The Workspace screen as the data owner: the keys are unlocked, four documents in the group Finance, and the fields to add another. The bar at the top says in one sentence what just happened."]
 
 can_title = "What you can do with it"
 can_more = "All features"
@@ -95,7 +95,7 @@ flow = [
 screens_title = "Inside the app"
 screens_more = "Every feature, by screen"
 # one line per screen; the screen names come from the app (app/spatial/copy.py)
-screens = { journey = "A guided lesson of {counts.lesson_steps} short steps that runs the real system in a separate practice area, plus {counts.challenges} challenges.", stage = "What each party holds and what moved between them, with a lens to see the same data as Alice, a doctor or the server sees it.", workspace = "The working tools, one role at a time: the data owner, a doctor, or the storage server.", lab = "{security_lab.attacks} attacks and a comparison of the two ways to revoke, each run on a throwaway copy.", insights = "The GPU engine and its self-test, measurements, settings, the data folder, logs and About." }
+screens = { journey = "A guided lesson of {counts.lesson_steps} short steps that runs the real system in a separate practice area, plus {counts.challenges} challenges.", stage = "What each party holds and what moved between them, with a lens to see the same data as the data owner, a receiver or the server sees it.", workspace = "The working tools, one role at a time: the data owner, a receiver, or the storage server.", lab = "{security_lab.attacks} attacks and a comparison of the two ways to revoke, each run on a throwaway copy.", insights = "The GPU engine and its self-test, measurements, settings, the data folder, logs and About." }
 
 proof_title = "Proof, not claims"
 proof_note = "Measured on {measured} on {machine.cpu}, {machine.gpu}, {machine.os}, Python {machine.python}, post-quantum code: {machine.pq_backend}. Timings are from the app's own benchmark with {bench.default_params}, all three parties in one process (the same encoded messages as over HTTP, without the network)."
@@ -121,13 +121,13 @@ limits = [
   "The installers are not code signed, so Windows warns before it runs them.",
 ]
 
-lesson_title = "How the lesson tells it"
-lesson_text = "The guided lesson in Journey gives each party a name, so every step has someone attached to it. The same names appear on the Stage."
+lesson_title = "The guided lesson"
+lesson_text = "Journey runs the whole system for real, step by step, in a separate practice area that leaves your own data alone. It uses the three role names below. An option in Journey, Teaching names, shows a small cast instead: Alice for the data owner, Bob and Carol for two receivers."
 lesson_more = "About Journey"
 cast = [
-  ["person", "Alice", "A hospital records manager: the data owner. She holds the keys and decides who may search which group."],
-  ["person", "Bob and Carol", "Doctors: receivers. Each may search only the groups Alice approved them for."],
-  ["cloud", "The Cloud", "Rented storage that nobody trusts: the server. It stores the encrypted documents and answers searches."],
+  ["person", "Data owner", "Owns the documents and holds the keys. Decides who may search which group."],
+  ["person", "Receivers", "May search only the groups the data owner approved them for."],
+  ["cloud", "Cloud server", "Stores the encrypted documents and answers searches. Nobody trusts it."],
 ]
 
 # ------------------------------------------------------------------ features page
@@ -314,16 +314,16 @@ trouble = [
 title = "How it works"
 lede = "Ten algorithms, each one a real step you can run and replay in the app. The words below are the app's own plain-language layer; the step inspector shows the bytes."
 algos = [
-  ["1", "Setup", "Alice, the Cloud and each doctor make their own key pairs: ML-KEM for sealed envelopes, ML-DSA for stamps. Private keys never leave the PC that made them."],
-  ["2", "Join", "Bob asks to join with his public keys and a stamped request. Alice approves him for some groups, and sends him those groups' keys in a sealed envelope only he can open."],
-  ["3", "BuildIndex", "Alice locks each document with AES-256-GCM and builds a search index: for every word, a list of addresses that look random and point at locked entries."],
+  ["1", "Setup", "The data owner, the cloud server and each receiver make their own key pairs: ML-KEM for sealed envelopes, ML-DSA for stamps. Private keys never leave the PC that made them."],
+  ["2", "Join", "Receiver A asks to join with their public keys and a stamped request. The data owner approves them for some groups, and sends them those groups' keys in a sealed envelope only the receiver can open."],
+  ["3", "BuildIndex", "The data owner locks each document with AES-256-GCM and builds a search index: for every word, a list of addresses that look random and point at locked entries."],
   ["4", "Update", "Adding or deleting documents appends new, stamped batches. Old searches cannot find new documents (forward privacy), and deleted ones stay hidden (backward privacy)."],
-  ["5", "Publish", "Alice stamps a short summary of each group: its version, how many entries, and a running fingerprint of everything in it. The Cloud keeps the newest one."],
-  ["6", "TokenGen", "Bob turns a word into a sealed search slip: the addresses to look up, locked so that only the Cloud can read the slip and still not learn the word."],
-  ["7", "Search", "The Cloud checks that Bob may search that group, looks up the addresses, and returns the locked entries with its own stamp. It never sees the word or the documents."],
-  ["8", "Verify", "Bob checks the Cloud's answer against Alice's stamped summary: nothing dropped, nothing changed, nothing replayed, and the summary is fresh."],
-  ["9", "Decrypt", "Bob fetches a locked document and opens it with his group key, after checking Alice's stamp on it."],
-  ["10", "Revoke", "Alice takes a doctor's access away by changing the locks of his groups and giving the new keys only to those who stay."],
+  ["5", "Publish", "The data owner stamps a short summary of each group: its version, how many entries, and a running fingerprint of everything in it. The cloud server keeps the newest one."],
+  ["6", "TokenGen", "Receiver A turns a word into a sealed search slip: the addresses to look up, locked so that only the cloud server can read the slip and still not learn the word."],
+  ["7", "Search", "The cloud server checks that Receiver A may search that group, looks up the addresses, and returns the locked entries with its own stamp. It never sees the word or the documents."],
+  ["8", "Verify", "Receiver A checks the cloud server's answer against the data owner's stamped summary: nothing dropped, nothing changed, nothing replayed, and the summary is fresh."],
+  ["9", "Decrypt", "Receiver A fetches a locked document and opens it with their group key, after checking the data owner's stamp on it."],
+  ["10", "Revoke", "The data owner takes a receiver's access away by changing the locks of their groups and giving the new keys only to those who stay."],
 ]
 shots = [
   ["dark-inspector-encrypt", "BuildIndex in the step inspector: readable text in, scrambled bytes out."],
@@ -331,7 +331,7 @@ shots = [
 ]
 limits_title = "Honest limits"
 limits = [
-  ["Policy R or policy RE", "Revoking with policy R is quick: everything written after the change uses the new key. Documents from before it stay locked with the old key, which the revoked doctor still has; if he teams up with the Cloud, he can read those. Policy RE also locks every old document again with the new key and makes the Cloud delete the old copies. It closes that gap and takes longer. The Security Lab runs both and shows the difference."],
+  ["Policy R or policy RE", "Revoking with policy R is quick: everything written after the change uses the new key. Documents from before it stay locked with the old key, which the revoked receiver still has; if the receiver teams up with the cloud server, the receiver can read those. Policy RE also locks every old document again with the new key and makes the cloud server delete the old copies. It closes that gap and takes longer. The Security Lab runs both and shows the difference."],
   ["What the GPU does", "The graphics chip only speeds up the symmetric batch work (computing many addresses and masks with SHA3) when a large index is built. ML-KEM and ML-DSA always run on the normal processor. At small sizes the GPU is not faster, and the app says so with measured numbers."],
   ["What the Cloud still learns", "Like every practical searchable encryption scheme, the Cloud sees which stored entries a search touches and when, and how many there are. It does not learn the word, the documents or the keys. The app shows exactly what the Cloud holds in its Cloud sees lens."],
   ["Not audited", "The post-quantum code is a pure Python implementation of the NIST standards: slow and not constant time. This is teaching and research software."],

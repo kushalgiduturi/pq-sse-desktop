@@ -99,7 +99,7 @@ def test_full_scenario_over_http_with_encrypted_stores(tmp_path):
         owner.publish("beta")
 
         receivers = {}
-        for name, groups in (("alice", ["alpha"]), ("bob", ["alpha", "beta"])):
+        for name, groups in (("alice", ["alpha"]), ("receiver-a", ["alpha", "beta"])):
             vault = Vault(tmp_path / f"{name}.sqlite", name + "-pass")
             rec = Receiver.create(vault, FAST_PARAMS, name, cloud=cloud.api)
             rec.pair(import_pub(owner_pub, "owner"), cloud_ident)
@@ -108,7 +108,7 @@ def test_full_scenario_over_http_with_encrypted_stores(tmp_path):
             owner.approve_join(item, groups)
             assert rec.fetch_mail()
             receivers[name] = rec
-        alice, bob = receivers["alice"], receivers["bob"]
+        alice, bob = receivers["alice"], receivers["receiver-a"]
 
         result = alice.search("alpha", "xylophonic")
         assert result.ids == {ids[0], ids[2]} and result.report.all_ok

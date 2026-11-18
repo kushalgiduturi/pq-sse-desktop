@@ -47,7 +47,7 @@ QLabel#engine {{ padding: 0 2px 6px 2px; color: #2c3845; }}
 QLabel#intro {{ background: #eef4fb; color: #16293d; border: 1px solid #9db7d3; border-radius: 6px; padding: 8px; }}
 QFrame#tour {{ background: #fff6d6; color: #3a2e00; border: 2px solid #b58900; border-radius: 6px; }}
 """
-TAB_NAMES = [("Owner", "Owner (Alice)"), ("Receiver", "Receiver (Bob, Carol)"), ("Cloud", "Cloud (storage)"),
+TAB_NAMES = [("Owner", "Data owner"), ("Receiver", "Receiver"), ("Cloud", "Cloud server"),
              ("Attack Lab", "Attack Lab"), ("Benchmarks", "Benchmarks"), ("Settings", "Settings")]
 
 

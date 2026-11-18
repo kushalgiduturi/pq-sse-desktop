@@ -71,29 +71,29 @@ def test_guided_lesson_runs_start_to_finish_resumes_and_resets(qapp):
 
         # expected end state of the real lesson system
         owner = session.owner
-        assert sorted(owner.groups) == ["Finance", "Medical"]
-        assert owner.overview("Finance")["epoch"] == 2 and owner.overview("Medical")["epoch"] == 1
+        assert sorted(owner.groups) == ["Finance", "Legal"]
+        assert owner.overview("Finance")["epoch"] == 2 and owner.overview("Legal")["epoch"] == 1
         titles = [d["title"] for d in owner.documents("Finance")]
-        assert "Invoice 1050, ultrasound probe" in titles and "Payroll note, nursing" not in titles
-        assert len(owner.documents("Medical")) == 4
-        bob = next(r for r in owner.receivers.values() if r["name"] == "bob")
+        assert "Invoice 1050, network switch" in titles and "Payroll note Q3" not in titles
+        assert len(owner.documents("Legal")) == 4
+        bob = next(r for r in owner.receivers.values() if r["name"] == "receiver-a")
         assert bob["revoked"] and bob["groups"] == ["Finance"]
         with pytest.raises(Rejected):
-            session.receivers["bob"].search("Finance", "invoice")
+            session.receivers["receiver-a"].search("Finance", "invoice")
         assert session.cloud_running()
         assert session.settings["lesson_step"] == 12 and len(session.settings["lesson_done"]) == 13
 
         # the lesson lives in its own folder; the user's own data folder was never written
         assert (paths.base_dir() / LESSON_PROFILE / "owner.sqlite").exists()
         assert not (paths.base_dir() / "owner.sqlite").exists()
-        assert win.owner_tab.groups.count() == 2 and win.receiver_tab.current == "bob"
+        assert win.owner_tab.groups.count() == 2 and win.receiver_tab.current == "receiver-a"
         assert win.cloud_tab.light.text() == "Running"
 
         # the narrator told the whole story: all ten algorithms, in plain lines, with packets
         kinds = [e.kind for e in win.narrator.events]
         assert {narrator.algorithm_of(k) for k in kinds} >= set(range(1, 11))
         text = win.narrator.browser.toPlainText()
-        assert "[Alice]" in text and "[Bob]" in text and "[Cloud]" in text and "[Security]" in text
+        assert "[Data owner]" in text and "[Receiver A]" in text and "[Cloud server]" in text and "[Security]" in text
         assert "Tell me more" in text and "sealed search slip for 'invoice'" in text
         more = win.narrator.show_more(kinds.index("tokengen"))
         assert "TokenGen, Algorithm 6" in more and "Under the hood" in more
@@ -105,11 +105,11 @@ def test_guided_lesson_runs_start_to_finish_resumes_and_resets(qapp):
         # 'Who sees what'
         party = learn.party
         party.refresh()
-        assert "Invoice 1042, MRI scanner" in party.alice.toPlainText()
+        assert "Invoice 1042, server hardware" in party.alice.toPlainText()
         assert "REVOKED" in party.doctors.toPlainText()
         cloud_view = party.cloud.toPlainText()
         assert "INDEX ENTRIES" in cloud_view
-        for plain in ("Invoice", "invoice", "allergy", "penicillin", "Budget"):
+        for plain in ("Invoice", "invoice", "confidential", "retention", "Budget"):
             assert plain not in cloud_view
         party.show_as_cloud()
         assert "AS THE CLOUD STORES IT" in party.aha.toPlainText()
@@ -117,12 +117,12 @@ def test_guided_lesson_runs_start_to_finish_resumes_and_resets(qapp):
         # challenges: several were completed by the lesson itself, the rest by hand
         done = learn.check_challenges()
         assert {"invoice", "revoke", "attack", "compare", "update", "cloudview"} <= done
-        assert "carol" not in done
-        win.receiver_tab.unlock("carol", "lesson")
+        assert "receiver-b" not in done
+        win.receiver_tab.unlock("receiver-b", "lesson")
         win.receiver_tab.pair()
         win.receiver_tab.send_join()
         win.owner_tab.refresh_joins()
-        win.owner_tab.approve(session.receivers["carol"].uid, ["Finance"])
+        win.owner_tab.approve(session.receivers["receiver-b"].uid, ["Finance"])
         assert learn.check_challenges() == {c.key for c in CHALLENGES}
         assert learn.challenge_list.item(0).text().startswith("Done: ")
         learn.challenge_list.setCurrentRow(0)
@@ -148,7 +148,7 @@ def test_guided_lesson_runs_start_to_finish_resumes_and_resets(qapp):
         assert not session.cloud_running() and session.owner is None and win.owner_tab.groups.count() == 0
         learn.goto(3)
         learn.do_it()                                   # runs the skipped steps 2 and 3 first
-        assert {1, 2, 3} <= learn.done and sorted(session.owner.groups) == ["Finance", "Medical"]
+        assert {1, 2, 3} <= learn.done and sorted(session.owner.groups) == ["Finance", "Legal"]
         assert session.owner.documents("Finance") == []
     finally:
         win.close()
@@ -189,8 +189,8 @@ def test_beginner_and_expert_toggle_keeps_session_state(qapp):
 
         win.mode_action.setChecked(True)                 # the toolbar toggle
         assert win.mode == "beginner" and win.tabs.count() == 7 and win.tabs.tabText(0) == "Learn"
-        assert win.tabs.tabText(1) == "Owner (Alice)" and not win.dock.isHidden()
-        assert not win.owner_tab.intro.isHidden() and "You are Alice" in win.owner_tab.intro.text()
+        assert win.tabs.tabText(1) == "Data owner" and not win.dock.isHidden()
+        assert not win.owner_tab.intro.isHidden() and "You are the data owner" in win.owner_tab.intro.text()
         assert win.bench_tab.build_table.isHidden() and not win.bench_tab.show_advanced.isHidden()
         assert not win.settings_tab.form.isRowVisible(win.settings_tab.kem)
         assert "Beginner" in win.header.text() and "PQ backend" not in win.header.text()
@@ -234,7 +234,7 @@ def test_first_run_flag_welcome_dialog_and_tour(qapp):
     try:
         dialog = win.show_welcome(execute=False)
         shown = " ".join(label.text() for label in dialog.findChildren(type(win.header)))
-        assert IDEA in shown and "Alice" in shown and "Bob" in shown and "Carol" in shown and "Cloud" in shown
+        assert IDEA in shown and "The data owner" in shown and "Receiver A" in shown and "Receiver B" in shown and "Cloud" in shown
         assert dialog.lesson_button.text() == "Start the guided lesson"
         assert dialog.explore_button.text() == "Explore on my own"
         dialog.dont_show.setChecked(True)
@@ -296,10 +296,10 @@ def test_glossary_dialog_errors_footer_diagram_and_text_size(qapp):
         flow.clear()
         packet = narrator.STORIES["tokengen"].packet
         flow.pause.setChecked(True)
-        flow.add(packet, "Bob")
-        flow.add(narrator.STORIES["search"].packet, "Bob")
+        flow.add(packet, "Receiver A")
+        flow.add(narrator.STORIES["search"].packet, "Receiver A")
         assert flow.pending() == 2 and flow.pause.text() == "Resume" and flow.listing.count() == 2
-        assert "SLIP (sealed search slip)" in flow.listing.item(0).text() and "from Bob to the Cloud" in flow.listing.item(0).text()
+        assert "SLIP (sealed search slip)" in flow.listing.item(0).text() and "from Receiver A to the Cloud" in flow.listing.item(0).text()
         flow.slow.setChecked(True)
         flow.pause.setChecked(False)
         assert flow.pending() == 1 and flow.anim.duration() > 3000

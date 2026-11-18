@@ -18,7 +18,7 @@ from typing import Any, Callable
 from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 
-from pqsse import applog, attacklab, narrator, paths, pqbackend
+from pqsse import applog, attacklab, narrator, paths, pqbackend, roles
 from pqsse.core.errors import PQSSEError, VerifyError
 from pqsse.owner import DocInput
 from pqsse.version import get_version
@@ -31,6 +31,16 @@ from . import inspector
 from . import settings as ui_settings
 from .copy import CHALLENGE_HINTS, CHALLENGE_PLACES, DESTINATIONS, TRY, T
 from .events import EventLog
+
+
+def _taught(fn: Callable) -> Callable:
+    """Results shown in QML pass through the "Teaching names" filter (pqsse.roles)."""
+    import functools
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        return roles.teach_all(fn(*args, **kwargs))
+    return wrapper
 
 log = logging.getLogger("pqsse.app")
 ROLE_ALICE, ROLE_CLOUD = "alice", "cloud"
@@ -56,10 +66,12 @@ class AppBridge(QObject):
     insightsChanged = Signal()
     welcomeRequested = Signal()
     updateChanged = Signal()
+    namesChanged = Signal()              # the Teaching names option changed
 
     def __init__(self, session: Session | None = None, sync: bool = False, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.session = session or Session()
+        roles.set_teaching(bool(self.session.settings.get("teaching_names", False)))
         self.runner = TaskRunner(self.session.lock, sync=sync, parent=self)
         self._sync = sync                        # tests: run in line, never start programs
         self.events = EventLog(self)
@@ -189,7 +201,7 @@ class AppBridge(QObject):
         out = []
         for name in self.session.receiver_names():
             rec = self.session.receivers.get(name)
-            out.append({"name": name, "display": name[:1].upper() + name[1:], "open": rec is not None,
+            out.append({"name": name, "display": roles.display(name), "open": rec is not None,
                         "paired": bool(rec and rec.paired), "joined": bool(rec and rec.joined),
                         "groups": list(rec.groups) if rec is not None and rec.joined else [],
                         "result": self._results.get(name, {}), "opened": self._opened.get(name, {})})
@@ -339,6 +351,26 @@ class AppBridge(QObject):
     def setDetailLevel(self, level: int) -> None:
         self._set("detail_level", max(0, min(3, int(level))))
 
+    @Property(bool, notify=namesChanged)
+    def teachingNames(self) -> bool:
+        return roles.teaching()
+
+    @Slot(bool)
+    def setTeachingNames(self, on: bool) -> None:
+        """Journey option: show the lesson cast's names (Alice, Bob, Carol, Cloud) instead of the plain role names."""
+        roles.set_teaching(bool(on))
+        self._set("teaching_names", bool(on))
+        self.namesChanged.emit()
+        self.stateChanged.emit()
+        self.lessonChanged.emit()
+        self.challengesChanged.emit()
+        self.labChanged.emit()
+
+    @Slot(str, result=str)
+    def displayName(self, uid: str) -> str:
+        """The name to show for a role key or user id (plain, or the cast name with Teaching names on)."""
+        return roles.display(uid)
+
     @Slot(bool)
     def setSoftware(self, software: bool) -> None:
         """Called by QML once it knows which renderer is in use."""
@@ -362,7 +394,7 @@ class AppBridge(QObject):
     # ------------------------------------------------------------------ actions: Alice
     @Slot(str)
     def openOwner(self, passphrase: str) -> None:
-        self._run("openOwner", "Unlocking Alice's keys", lambda: self.session.open_owner(passphrase))
+        self._run("openOwner", "Unlocking the data owner's keys", lambda: self.session.open_owner(passphrase))
 
     @Slot()
     def pairOwnerAndCloud(self) -> None:
@@ -374,7 +406,7 @@ class AppBridge(QObject):
 
     def _owner(self):
         if self.session.owner is None:
-            raise PQSSEError("Unlock Alice's keys first.")
+            raise PQSSEError("Unlock the data owner's keys first.")
         return self.session.owner
 
     @Slot(str)
@@ -454,7 +486,7 @@ class AppBridge(QObject):
     def _receiver(self, name: str):
         rec = self.session.receivers.get(name)
         if rec is None:
-            raise PQSSEError(f"Unlock {name[:1].upper() + name[1:]}'s keys first.")
+            raise PQSSEError(f"Unlock {roles.display(name)}'s keys first.")
         return rec
 
     @Slot(str, str)
@@ -465,7 +497,7 @@ class AppBridge(QObject):
             self._role = clean or self._role
             self.roleChanged.emit()
 
-        self._run("openReceiver", "Unlocking the doctor's keys", lambda: self.session.open_receiver(clean, passphrase), after)
+        self._run("openReceiver", "Unlocking the receiver's keys", lambda: self.session.open_receiver(clean, passphrase), after)
 
     @Slot(str)
     def pairReceiver(self, name: str) -> None:
@@ -505,7 +537,8 @@ class AppBridge(QObject):
         self._run("openDocument", "Opening the document", work)
 
     # ------------------------------------------------------------------ lesson (Journey, and "Play the story" on the Stage)
-    @Property("QVariantList", constant=True)
+    @Property("QVariantList", notify=namesChanged)
+    @_taught
     def lessonSteps(self) -> list[dict]:
         return [{"key": step.key, "title": step.title, "explain": step.explain, "runnable": step.do is not None}
                 for step in lesson.STEPS]
@@ -519,6 +552,7 @@ class AppBridge(QObject):
         return list(self.session.settings.get("lesson_done", []))
 
     @Property(str, notify=lessonChanged)
+    @_taught
     def lessonResult(self) -> str:
         return self._lesson_html
 
@@ -573,11 +607,11 @@ class AppBridge(QObject):
         self._run("lesson:" + step.key, step.title, work, after)
 
     def _remember_lesson_search(self) -> None:
-        """Show the lesson's last verified search in Bob's cards and on the Stage."""
+        """Show the lesson's last verified search in Receiver A's cards and on the Stage."""
         result = self._ctx.store.get("result")
         if result is None:
             return
-        self._results["bob"] = {"group": result.group, "keyword": result.keyword, "entries": result.entries, "failed": False,
+        self._results["receiver-a"] = {"group": result.group, "keyword": result.keyword, "entries": result.entries, "failed": False,
                                 "hits": [{"id": doc_id, "epoch": epoch} for doc_id, epoch in result.hits],
                                 "checks": [{"name": n, "ok": ok, "detail": d} for n, ok, d in result.report.checks]}
 
@@ -603,6 +637,7 @@ class AppBridge(QObject):
 
     # ------------------------------------------------------------------ palette, glossary, clipboard, folders
     @Property("QVariantList", notify=stateChanged)
+    @_taught
     def paletteItems(self) -> list[dict]:
         items = [{"id": "go:" + d["key"], "group": "Go to", "label": d["label"], "hint": d["hint"]} for d in DESTINATIONS]
         roles = [ROLE_ALICE] + [r["name"] for r in self._state.get("receivers", [])] + [ROLE_CLOUD]
@@ -648,6 +683,7 @@ class AppBridge(QObject):
              "motion": lambda v: self.setReduceMotion(v == "on")}[name](value)
 
     @Slot(str, result="QVariantMap")
+    @_taught
     def glossaryEntry(self, key: str) -> dict:
         entry = GLOSSARY.get(key)
         if entry is None:
@@ -677,6 +713,7 @@ class AppBridge(QObject):
 
     # ------------------------------------------------------------------ Journey: let me try, check my work, challenges
     @Property("QVariantMap", notify=lessonChanged)
+    @_taught
     def task(self) -> dict:
         """The "Let me try" task that is open right now: {step, title, text}, or empty."""
         return self._task
@@ -696,7 +733,7 @@ class AppBridge(QObject):
             self._task = {"step": index, "title": step.title, "text": text}
             self._check = {}
             self.lessonChanged.emit()
-            if where in ("alice", "cloud", "bob"):
+            if where in ("alice", "cloud", "receiver-a"):
                 self.setRole(where)
                 self.navigate.emit("workspace")
             else:
@@ -710,6 +747,7 @@ class AppBridge(QObject):
         self.lessonChanged.emit()
 
     @Property("QVariantMap", notify=lessonChanged)
+    @_taught
     def lessonCheck(self) -> dict:
         """Result of the last "Check my work": {step, ok, text}, or empty."""
         return self._check
@@ -746,6 +784,7 @@ class AppBridge(QObject):
             self.challengesChanged.emit()
 
     @Property("QVariantList", notify=challengesChanged)
+    @_taught
     def challengeList(self) -> list[dict]:
         done = set(self.session.settings.get("challenges_done", []))
         return [{"key": c.key, "title": c.title, "task": c.task, "hint": CHALLENGE_HINTS.get(c.key, ""),
@@ -766,11 +805,12 @@ class AppBridge(QObject):
 
     # ------------------------------------------------------------------ Security Lab
     @Property("QVariantList", notify=labChanged)
+    @_taught
     def attacks(self) -> list[dict]:
         out = []
         for key, _, _, _ in attacklab.SCENARIOS:
             outcome = self._outcomes.get(key)
-            record = inspector.build_attack(key, outcome)
+            record = roles.teach_all(inspector.build_attack(key, outcome))
             record.update(key=key, ran=outcome is not None, lines=list(outcome.lines) if outcome else [],
                           caughtBy=outcome.caught_by if outcome else "", verdict=outcome.verdict if outcome else "",
                           tries=attacklab.TEACH[key]["tries"], without=attacklab.TEACH[key]["without"],

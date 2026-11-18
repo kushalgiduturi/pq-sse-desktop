@@ -14,7 +14,7 @@ from .glossary import term, tip
 from .common import GREEN, GREY, RED, Light, TabBase, password_field
 
 CHECK_LABELS = {
-    "state signature": "Alice's stamp on the summary (state signature)",
+    "state signature": "The data owner's stamp on the summary (state signature)",
     "segments complete": "Every part of the index present (segments)",
     "older segments final": "Closed parts marked final",
     "freshness": "Summary not expired (freshness)",
@@ -26,8 +26,8 @@ CHECK_LABELS = {
 
 
 class ReceiverTab(TabBase):
-    INTRO = ("<b>You are a doctor (a receiver), for example Bob or Carol.</b> You may search and read only the groups "
-             f"Alice approved you for. Your app sends the cloud a sealed {term('token', 'search slip')}, then checks "
+    INTRO = ("<b>You are a receiver.</b> You may search and read only the groups "
+             f"The data owner approved you for. Your app sends the cloud a sealed {term('token', 'search slip')}, then checks "
              "the cloud's answer before showing anything, because the cloud is not trusted.")
 
     def __init__(self, session, runner) -> None:

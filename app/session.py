@@ -55,23 +55,23 @@ class Friendly:
 
 _GENERIC_WHY = "The app stopped instead of guessing, so nothing wrong was shown or stored."
 _REJECTED = {
-    "revoked": ("Alice took this doctor's access away. The cloud no longer accepts the doctor's pass, so old "
+    "revoked": ("The data owner took this receiver's access away. The cloud no longer accepts the receiver's pass, so old "
                 "and new requests are refused alike.",
-                "Nothing to fix on this side. If access is still needed, the doctor sends a new join request "
-                "and Alice approves it."),
-    "unknown_user": ("The cloud only answers doctors that Alice approved. This protects the data from strangers.",
-                     "Send a join request on the Receiver tab, let Alice approve it on the Owner tab, then press Fetch mailbox."),
-    "scope": ("Each doctor may only ask about the groups Alice chose. The cloud enforces this even if the doctor's app is changed.",
-              "Search a group you belong to, or ask Alice to approve you for this group."),
-    "bad_signature": ("Every update must carry Alice's stamp. A missing or wrong stamp means it may be forged or was changed on the way.",
-                      "If you are Alice, check that the cloud is paired with your current key file, then try again."),
+                "Nothing to fix on this side. If access is still needed, the receiver sends a new join request "
+                "and the data owner approves it."),
+    "unknown_user": ("The cloud only answers receivers that the data owner approved. This protects the data from strangers.",
+                     "Send a join request on the Receiver tab, let the data owner approve it on the Owner tab, then press Fetch mailbox."),
+    "scope": ("Each receiver may only ask about the groups the data owner chose. The cloud enforces this even if the receiver's app is changed.",
+              "Search a group you belong to, or ask the data owner to approve you for this group."),
+    "bad_signature": ("Every update must carry the data owner's stamp. A missing or wrong stamp means it may be forged or was changed on the way.",
+                      "If you are the data owner, check that the cloud is paired with your current key file, then try again."),
     "bad_sequence": ("Updates are numbered. A repeated or out-of-order update could bring back old data, so the cloud refuses it.",
-                     "Nothing to do: the genuine update is already stored. If you are Alice and this keeps happening, restart the app."),
+                     "Nothing to do: the genuine update is already stored. If you are the data owner and this keeps happening, restart the app."),
     "stale_state": ("The cloud keeps only the newest stamped summary. An older or duplicate one is refused so old data cannot return.",
                     "Press Publish again to create a new version."),
     "stale_epoch": ("The group's locks were changed since this search slip was made, so the slip is out of date.",
                     "Press Fetch mailbox to receive the new key, then search again."),
-    "bad_token": ("The request could not be opened with this doctor's pass. It may be damaged or made with the wrong pass.",
+    "bad_token": ("The request could not be opened with this receiver's pass. It may be damaged or made with the wrong pass.",
                   "Press Fetch mailbox to refresh the pass, then try again."),
     "stale_token": ("Requests carry a time. One that is too old is refused so that recordings cannot be replayed later.",
                     "Check that this computer's clock is right, then try again."),
@@ -79,34 +79,34 @@ _REJECTED = {
                     "Search again to get the current list of documents."),
     "bad_segment": ("That part of the index was dropped when the group was re-locked.",
                     "Press Fetch mailbox, then search again."),
-    "not_paired": ("The cloud does not know Alice's public key yet, so it cannot check her stamps.",
+    "not_paired": ("The cloud does not know the data owner's public key yet, so it cannot check their stamps.",
                    "On the Cloud tab press 'Pair: import owner key' and pick owner.pqpub."),
     "group_exists": ("Group names must be unique so that keys and documents cannot be mixed up.",
                      "Choose a different group name."),
 }
 _VERIFY = {
-    "state signature": ("The summary of the index must carry Alice's stamp. Without it the cloud could invent what the index contains.",
+    "state signature": ("The summary of the index must carry the data owner's stamp. Without it the cloud could invent what the index contains.",
                         "Do not trust this answer. Search again; if it repeats, the cloud is misbehaving."),
     "segments complete": ("An answer must cover every live part of the index. A missing part could hide documents.",
                           "Search again; if it repeats, the cloud is withholding data."),
-    "older segments final": ("Closed parts of the index must be marked final by Alice, otherwise entries could be hidden in them.",
+    "older segments final": ("Closed parts of the index must be marked final by the data owner, otherwise entries could be hidden in them.",
                              "Search again; if it repeats, the cloud is misbehaving."),
     "freshness": ("An expired summary could be an old copy that hides newer changes. The app refuses to rely on it.",
-                  "Alice presses Publish on the Owner tab to issue a fresh summary. Then search again."),
+                  "The data owner presses Publish on the Owner tab to issue a fresh summary. Then search again."),
     "no rollback": ("The cloud showed an older version than one this app has already seen. That would hide recent changes.",
                     "Do not trust this answer. Search again; if it repeats, the cloud is serving old data."),
     "response signature": ("The cloud must stamp every answer. A missing or wrong stamp means the answer cannot be trusted or proven.",
                            "Search again; if it repeats, the cloud is misbehaving or the wrong cloud key is paired."),
-    "completeness": ("Alice's summary says exactly which entries must come back. Some were missing, extra or out of order.",
+    "completeness": ("The data owner's summary says exactly which entries must come back. Some were missing, extra or out of order.",
                      "No result is shown. Search again; if it repeats, the cloud is hiding or reordering results."),
-    "hash chain": ("The running fingerprint of the entries does not match the one Alice stamped, so an entry was changed or swapped.",
+    "hash chain": ("The running fingerprint of the entries does not match the one the data owner stamped, so an entry was changed or swapped.",
                    "No result is shown. Search again; if it repeats, the cloud is tampering with results."),
-    "document signature": ("The document that came back is not the one Alice stamped under that name. It may be swapped or altered.",
+    "document signature": ("The document that came back is not the one the data owner stamped under that name. It may be swapped or altered.",
                            "The document was not opened. Try again; if it repeats, the cloud is tampering."),
     "join proof": ("A join request must prove that the sender really owns the key in it. This one does not, or it is too old.",
-                   "Ask the doctor to send a new join request."),
-    "capability": ("An access pass must be stamped by Alice. This one is not, so it was ignored.",
-                   "Ask Alice to approve the join request again."),
+                   "Ask the receiver to send a new join request."),
+    "capability": ("An access pass must be stamped by the data owner. This one is not, so it was ignored.",
+                   "Ask the data owner to approve the join request again."),
 }
 
 
@@ -131,7 +131,7 @@ def explain_full(exc: BaseException) -> Friendly:
     if isinstance(exc, AccessDenied):
         return Friendly(_sentence(f"Access denied: {exc}"),
                         "Access is decided by keys. Without the key for a group, its data cannot be searched or read.",
-                        "Use a group you were approved for, or ask Alice to approve you for this one.", technical)
+                        "Use a group you were approved for, or ask the data owner to approve you for this one.", technical)
     if isinstance(exc, BadPassphrase):
         return Friendly("Wrong passphrase.",
                         "The passphrase unlocks the keys stored on this computer. Without it they stay locked.",

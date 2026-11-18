@@ -23,7 +23,7 @@ NOTE = ("What the GPU does here: only the symmetric batch work of BuildIndex, th
 
 
 class BenchTab(TabBase):
-    INTRO = ("<b>How fast is it on this computer?</b> Press the first button to measure how long Alice needs to lock "
+    INTRO = ("<b>How fast is it on this computer?</b> Press the first button to measure how long the data owner needs to lock "
              f"and index documents, with and without the {term('gpu', 'graphics chip (GPU)')}. The honest result: the GPU "
              "only speeds up computing the secret index addresses. It does not speed up the post-quantum steps, so for "
              "small amounts of data it makes little or no difference. Every number shown is measured here, not promised.")

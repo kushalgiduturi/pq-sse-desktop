@@ -18,14 +18,14 @@ from .common import GREEN, GREY, RED, Light, TabBase, make_table, password_field
 SEE_INTRO = (
     "Everything below is read straight from the cloud's database.\n"
     "The server holds: locked index entries (a secret-looking address and a masked value),\n"
-    "locked documents (AES-GCM ciphertext), Alice's stamped summaries (states), sealed mailbox\n"
-    "items and each doctor's wrapped pass (credential).\n"
+    "locked documents (AES-GCM ciphertext), the data owner's stamped summaries (states), sealed mailbox\n"
+    "items and each receiver's wrapped pass (credential).\n"
     "It holds no group key, no index key, no document key, no keyword and no document text.\n"
 )
 
 
 class CloudTab(TabBase):
-    INTRO = ("<b>This is the Cloud, a rented storage company.</b> It stores everything for Alice but is not trusted: "
+    INTRO = ("<b>This is the Cloud, a rented storage company.</b> It stores everything for the data owner but is not trusted: "
              "it might peek, lie, drop results or send old data. So it only ever receives "
              f"{term('ciphertext', 'locked data')}. The panel on the right shows exactly what it holds.")
 

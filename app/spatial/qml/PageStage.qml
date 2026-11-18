@@ -16,9 +16,9 @@ Item {
     readonly property var owner: app.state.owner
     readonly property var cloud: app.state.cloud
     readonly property var doctors: app.state.receivers
-    readonly property string lensDoctor: doctors.length > 0 ? doctors[0].name : "bob"
+    readonly property string lensDoctor: doctors.length > 0 ? doctors[0].name : "receiver-a"
     readonly property var lensNotes: [T.lensNoteEveryone, T.lensNoteAlice, Theme.fmt(T.lensNoteDoctor, { who: cap(lensDoctor) }), T.lensNoteCloud]
-    function cap(s) { return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s }
+    function cap(s) { void app.teachingNames; return app.displayName(s) }   // reading teachingNames re-runs bindings when it changes
     function hiddenFrom(zone) {             // zone: "alice", "cloud" or a doctor's name
         if (lens === 0) return false
         if (lens === 1) return false

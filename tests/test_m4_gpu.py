@@ -120,7 +120,7 @@ def test_index_derivation_and_chain_are_identical_on_gpu(gpu):
 def test_scheme_is_correct_with_the_gpu_engine(gpu):
     """Owner and receivers on the GPU path produce results equal to the plaintext reference."""
     world, rng = filled_world(["alpha"], docs_per_group=40, seed=81, prf=AutoPRF(gpu, 1))
-    bob = world.join("bob", ["alpha"])
+    bob = world.join("receiver-a", ["alpha"])
     for _ in range(6):
         random_update(world, "alpha", rng)
     world.owner.publish("alpha")
@@ -160,7 +160,7 @@ def test_cpu_fallback_with_cuda_hidden(tmp_path):
         "world.owner.create_group('g')\n"
         "doc = world.owner.add_document('g', 't', 'fallback works fine')\n"
         "world.owner.publish('g')\n"
-        "bob = world.join('bob', ['g'])\n"
+        "bob = world.join('receiver-a', ['g'])\n"
         "assert bob.search('g', 'fallback').ids == {doc}\n"
         "print('FALLBACK-OK', info.summary())\n"
     )

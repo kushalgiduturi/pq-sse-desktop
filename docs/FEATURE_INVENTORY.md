@@ -10,7 +10,7 @@ screenshots of every screen).
 
 Status: **verified**; **tested**; **partial**; **not-verified**.
 
-31 features: 25 verified, 4 tested, 2 partial.
+31 features: 26 verified, 4 tested, 1 partial.
 
 ## Protect and share
 
@@ -19,8 +19,8 @@ Status: **verified**; **tested**; **partial**; **not-verified**.
 Each role creates its own post-quantum keys, locked with a passphrase, and the parties exchange public key files whose fingerprints can be compared by eye.
 
 - **Who uses it:** data owner, receiver, cloud operator
-- **Where:** Workspace, Keys card and Join card; labels: "Create Alice's keys", "Unlock Alice's keys", "Exchange public keys with the cloud", "Import the public keys", "Passphrase"
-- **What it produces:** An ML-DSA key pair for Alice; ML-KEM and ML-DSA key pairs for each doctor and for the cloud; .pqpub public key files.
+- **Where:** Workspace, Keys card and Join card; labels: "Create the data owner's keys", "Unlock the data owner's keys", "Exchange public keys with the cloud", "Import the public keys", "Passphrase"
+- **What it produces:** An ML-DSA key pair for the data owner; ML-KEM and ML-DSA key pairs for each receiver and for the cloud; .pqpub public key files.
 - **What the Cloud sees:** Public keys only.
 - **Tests:** `tests/test_m1_core.py`: `test_kem_round_trip`, `test_signature_round_trip`, `test_vault_encrypts_and_checks_passphrase`, `test_pairing_file_round_trip` (17 tests in the file)
 - **Limits:** A passphrase cannot be recovered. Fingerprints are only useful if compared over a path you trust.
@@ -28,22 +28,22 @@ Each role creates its own post-quantum keys, locked with a passphrase, and the p
 
 ### Groups
 
-Alice sorts documents into groups; each group has its own key, so access to one group gives nothing in another.
+The data owner sorts documents into groups; each group has its own key, so access to one group gives nothing in another.
 
 - **Who uses it:** data owner
 - **Where:** Workspace, People and access card (More options); labels: "People and access", "More options", "New group name", "Create group"
-- **What it produces:** A random 32-byte key per group, kept by Alice.
+- **What it produces:** A random 32-byte key per group, kept by the data owner.
 - **What the Cloud sees:** Group names and that a group exists.
 - **Tests:** `tests/test_m2_protocol.py`: `test_scope_confinement` (12 tests in the file)
 - **Status:** Verified: seen in the running app and covered by tests
 
 ### Documents: add, import, edit, delete
 
-Alice types a document or imports .txt, .md and .pdf files; the app encrypts each one before it leaves her side, and she can edit or delete it later.
+The data owner types a document or imports .txt, .md and .pdf files; the app encrypts each one before it leaves their side, and the owner can edit or delete it later.
 
 - **Who uses it:** data owner
 - **Where:** Workspace, Documents card; labels: "Documents", "Lock and upload a document", "Import files (.txt, .md, .pdf)", "Edit", "Save the changed document", "Delete"
-- **What it produces:** Each document encrypted with AES-256-GCM and signed by Alice (ML-DSA).
+- **What it produces:** Each document encrypted with AES-256-GCM and signed by the data owner (ML-DSA).
 - **What the Cloud sees:** Encrypted documents, their sizes and how many there are.
 - **Tests:** `tests/test_m2_correctness.py`: `test_keyword_search_is_case_insensitive_and_edit_changes_id`, `test_search_then_decrypt_returns_the_documents` (7 tests in the file)
 - **Limits:** PDF import keeps the text only (pypdf); layout and images are dropped. PDF import was not tried by hand in this pass.
@@ -51,40 +51,40 @@ Alice types a document or imports .txt, .md and .pdf files; the app encrypts eac
 
 ### Join requests and approval
 
-A doctor sends a signed join request; Alice sees it with the key fingerprint, ticks the groups to allow and approves, and the doctor fetches a sealed access pass.
+A receiver sends a signed join request; the data owner sees it with the key fingerprint, ticks the groups to allow and approves, and the receiver fetches a sealed access pass.
 
 - **Who uses it:** receiver, data owner
-- **Where:** Workspace, Join card (doctor) and People and access card (Alice); labels: "Send join request", "Look for new requests", "Approve for the ticked groups", "Fetch mailbox"
-- **What it produces:** An access pass (capability) with the keys of the chosen groups, sealed for that doctor with ML-KEM and AES-256-GCM and signed by Alice.
-- **What the Cloud sees:** That a request and a sealed pass passed through, their sizes, and which groups the doctor may ask about. Not the group keys.
+- **Where:** Workspace, Join card (receiver) and People and access card (the data owner); labels: "Send join request", "Look for new requests", "Approve for the ticked groups", "Fetch mailbox"
+- **What it produces:** An access pass (capability) with the keys of the chosen groups, sealed for that receiver with ML-KEM and AES-256-GCM and signed by the data owner.
+- **What the Cloud sees:** That a request and a sealed pass passed through, their sizes, and which groups the receiver may ask about. Not the group keys.
 - **Tests:** `tests/test_m2_protocol.py`: `test_join_with_wrong_proof_of_ownership_is_rejected`, `test_unapproved_key_is_rejected`, `test_a_capability_only_opens_for_its_receiver` (12 tests in the file)
-- **Limits:** A doctor's groups are fixed at approval. To change them, revoke and approve a new request.
+- **Limits:** A receiver's groups are fixed at approval. To change them, revoke and approve a new request.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ### Build the index and publish the summary
 
-Uploading documents builds an encrypted index (one masked entry per word, linked in a hash chain), and Publish summary sends a signed, encrypted summary that doctors check every answer against.
+Uploading documents builds an encrypted index (one masked entry per word, linked in a hash chain), and Publish summary sends a signed, encrypted summary that receivers check every answer against.
 
 - **Who uses it:** data owner
-- **Where:** Workspace, Documents and Publish cards; labels: "Publish", "Publish summary", "Changes are waiting. Doctors do not see them until you publish.", "Everything is published."
+- **Where:** Workspace, Documents and Publish cards; labels: "Publish", "Publish summary", "Changes are waiting. Receivers do not see them until you publish.", "Everything is published."
 - **What it produces:** Index entries at addresses computed with HMAC-SHA3-256; a summary (state) padded, encrypted, versioned, with an expiry time, signed with ML-DSA.
 - **What the Cloud sees:** Addresses and masked values that look random, how many entries there are, the batch size, and the time of each upload.
 - **Tests:** `tests/test_m2_correctness.py`: `test_random_workload_matches_plaintext_reference`, `test_unpublished_updates_are_not_visible_until_publish` (7 tests in the file); `tests/test_m1_core.py`: `test_index_derive_matches_definition`, `test_hash_chain` (17 tests in the file)
-- **Limits:** A summary is valid for a set time (default 24 hours). Inside that time the cloud can still show the newest summary a doctor has already seen.
+- **Limits:** A summary is valid for a set time (default 24 hours). Inside that time the cloud can still show the newest summary a receiver has already seen.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ## Search and verify
 
 ### Search without unlocking
 
-A doctor types one word; the app turns it into encrypted secret addresses (a token), and the cloud returns what is stored there without learning the word.
+A receiver types one word; the app turns it into encrypted secret addresses (a token), and the cloud returns what is stored there without learning the word.
 
 - **Who uses it:** receiver
 - **Where:** Workspace, Search card; labels: "Search", "A word, for example invoice"
 - **What it produces:** A list of matching document ids, shown only after Verify passes.
 - **What the Cloud sees:** Which addresses were asked for, how many entries matched, when, and whether the same search was made before. Not the word.
 - **Tests:** `tests/test_m2_correctness.py`: `test_random_workload_matches_plaintext_reference`, `test_keyword_search_is_case_insensitive_and_edit_changes_id` (7 tests in the file)
-- **Limits:** One word per search. Alice also knows the doctor's cloud pass, so she could read the token too.
+- **Limits:** One word per search. The data owner also knows the receiver's cloud pass, so the owner could read the token too.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ### Verify every answer: eight checks
@@ -100,14 +100,14 @@ Before showing a result, the app runs eight checks on the cloud's answer; if any
 
 ### Open a document
 
-A doctor opens a result; the app checks Alice's signature on the encrypted document and decrypts it with the group key. Outside the doctor's groups there is no key, so nothing opens.
+A receiver opens a result; the app checks the data owner's signature on the encrypted document and decrypts it with the group key. Outside the receiver's groups there is no key, so nothing opens.
 
 - **Who uses it:** receiver
 - **Where:** Workspace, Open card; labels: "Open", "Pick a result to open it."
-- **What it produces:** The document text, on the doctor's side only.
+- **What it produces:** The document text, on the receiver's side only.
 - **What the Cloud sees:** Which encrypted document was fetched, and its size.
 - **Tests:** `tests/test_m2_tamper.py`: `test_modified_documents_are_rejected`, `test_swapped_documents_are_rejected` (5 tests in the file); `tests/test_m2_correctness.py`: `test_receiver_without_capability_cannot_search` (7 tests in the file)
-- **Limits:** Neither policy can take back a document a doctor already opened.
+- **Limits:** Neither policy can take back a document a receiver already opened.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ## Change and revoke
@@ -126,14 +126,14 @@ Adding or deleting documents sends a numbered, signed batch; new entries get new
 
 ### Revoke: policy R and policy RE
 
-Alice takes a person's access away; the cloud refuses their pass, each affected group gets a new key, and only the people who stay receive it. Quick (policy R) or Thorough (policy RE).
+The data owner takes a person's access away; the cloud refuses their pass, each affected group gets a new key, and only the people who stay receive it. Quick (policy R) or Thorough (policy RE).
 
 - **Who uses it:** data owner
 - **Where:** Workspace, Revoke card; labels: "Revoke", "Quick (policy R)", "Thorough (policy RE)", "Take away access"
-- **What it produces:** A new key period (epoch) per group, sealed once per remaining doctor. With RE every document is encrypted and signed again.
+- **What it produces:** A new key period (epoch) per group, sealed once per remaining receiver. With RE every document is encrypted and signed again.
 - **What the Cloud sees:** That a revocation happened, which pass is refused, and with RE the full re-upload.
 - **Tests:** `tests/test_m2_revocation.py`: `test_revoke_policy_r`, `test_revoke_policy_re`, `test_r_then_re_then_new_member` (4 tests in the file)
-- **Limits:** Policy R: documents from before the change stay under the old key, so a revoked person who teams up with the cloud can still read them. Policy RE closes that gap but re-encrypts everything. Cannot be undone. Known display issue: after a revocation the Stage still lists the revoked doctor's old groups and last search result.
+- **Limits:** Policy R: documents from before the change stay under the old key, so a revoked person who teams up with the cloud can still read them. Policy RE closes that gap but re-encrypts everything. Cannot be undone. Known display issue: after a revocation the Stage still lists the revoked receiver's old groups and last search result.
 - **Status:** Verified: seen in the running app and covered by tests
 
 ## Learn and inspect
@@ -162,10 +162,10 @@ The Stage keeps a timeline of every step in this session; clicking a step replay
 
 ### The lens: whose view
 
-On the Stage, the lens shows the same data as each party holds it: Everyone, Alice sees, a doctor sees, or Cloud sees (the real stored bytes).
+On the Stage, the lens shows the same data as each party holds it: Everyone, the data owner sees, a receiver sees, or Cloud sees (the real stored bytes).
 
 - **Who uses it:** learner
-- **Where:** Stage, top; labels: "Everyone", "Alice sees", "Bob sees", "Cloud sees"
+- **Where:** Stage, top; labels: "Everyone", "Data owner sees", "Receiver A sees", "Cloud server sees"
 - **What it produces:** Nothing new; Cloud sees shows the real stored bytes.
 - **Tests:** `tests/test_m11_spatial.py`: `test_bridge_runs_the_real_flow_and_never_exposes_secrets` (21 tests in the file)
 - **Status:** Verified: seen in the running app and covered by tests
@@ -195,18 +195,18 @@ Ctrl+K (or F1) opens a search box that finds screens, roles, lesson steps, setti
 Thirteen short steps run the whole system for real in a separate practice area, each with Run this step for me, Let me try and Check my work.
 
 - **Who uses it:** learner
-- **Where:** Journey; labels: "Your journey", "Run this step for me", "Let me try", "Check my work", "Reset lesson", "Back to my own data"
+- **Where:** Journey; labels: "Your journey", "Run this step for me", "Let me try", "Check my work", "Reset lesson", "Back to my own data", "Teaching names"
 - **What it produces:** A practice area with its own data; every passphrase there is the word lesson. Your own data is not touched.
 - **Tests:** `tests/test_m9_learn_app.py`: `test_guided_lesson_runs_start_to_finish_resumes_and_resets`, `test_let_me_try_and_check_my_work` (7 tests in the file)
-- **Limits:** Known text issue: the last step still names places in the classic window (Attack Lab, Who sees what, the toolbar). In this window they are the Security Lab, the Stage lens and Mode in Insights.
-- **Status:** Partial: works, with the gap named under Limits
+- **Limits:** Teaching names (off by default) shows the lesson cast's names, Alice, Bob and Carol, instead of the role names; it changes only what is shown.
+- **Status:** Verified: seen in the running app and covered by tests
 
 ### Challenges
 
 Seven short tasks with hints and no score; the app checks each one by what really happened.
 
 - **Who uses it:** learner
-- **Where:** Journey, Challenges; labels: "Challenges", "Show a hint", "Go there", "Let Carol read only Finance", "Compare policy R and policy RE"
+- **Where:** Journey, Challenges; labels: "Challenges", "Show a hint", "Go there", "Let Receiver B read only Finance", "Compare policy R and policy RE"
 - **What it produces:** A count of challenges done.
 - **Tests:** `tests/test_m11_spatial.py`: `test_security_lab_tasks_and_challenges_through_the_bridge` (21 tests in the file)
 - **Status:** Verified: seen in the running app and covered by tests
@@ -236,7 +236,7 @@ Ten attacks by a cheating cloud or an outsider run for real on a throwaway copy,
 
 ### Revoking: quick or thorough (R versus RE)
 
-A comparison where a revoked doctor keeps the old key and teams up with the cloud: under policy R older documents stay readable, under policy RE nothing stored can be read.
+A comparison where a revoked receiver keeps the old key and teams up with the cloud: under policy R older documents stay readable, under policy RE nothing stored can be read.
 
 - **Who uses it:** learner
 - **Where:** Security Lab, Revoking: quick or thorough; labels: "Revoking: quick or thorough", "Run the comparison", "Policy R (quick)", "Policy RE (thorough)"
@@ -282,10 +282,10 @@ The window has a dock with five screens: Journey, Stage, Workspace, Security Lab
 
 ### Three roles and the role switcher
 
-Workspace shows the tools of one role at a time: the data owner (Alice), a doctor (Bob, Carol or a person you add), or the storage server (Cloud).
+Workspace shows the tools of one role at a time: the data owner (the data owner), a receiver (Receiver A, Receiver B or a person you add), or the storage server (Cloud).
 
 - **Who uses it:** data owner, receiver, cloud operator
-- **Where:** Workspace; labels: "Work as", "Data owner", "Doctor", "Storage server", "Add a person"
+- **Where:** Workspace; labels: "Work as", "Data owner", "Receiver", "Stores encrypted data", "Add a person"
 - **What it produces:** All three roles run on this one computer, each with its own key store.
 - **Tests:** `tests/test_m11_spatial.py`: `test_bridge_runs_the_real_flow_and_never_exposes_secrets` (21 tests in the file)
 - **Limits:** All roles run on one PC. There is no setup for separate machines.
@@ -332,7 +332,7 @@ Everything is kept in one folder per Windows user; secret keys are stored only i
 - **Where:** Insights, Data and logs; labels: "Data and logs", "Open data folder", "Open log folder", "Show the latest log lines"
 - **What it produces:** %LOCALAPPDATA%\PQ-SSE-Desktop: owner.sqlite, cloud.sqlite, receiver_<name>.sqlite, pubkeys\, settings.json, logs\ (1 MB, 3 older files kept), and a lesson folder for the practice area. Key stores: scrypt (N = 2^15, r = 8) from the passphrase, then AES-256-GCM per record.
 - **Tests:** `tests/test_m1_core.py`: `test_vault_encrypts_and_checks_passphrase` (17 tests in the file); `tests/test_m3_http.py`: `test_full_scenario_over_http_with_encrypted_stores` (3 tests in the file); `tests/test_m10_packaging.py`: `test_log_file_is_written_under_the_data_folder` (15 tests in the file)
-- **Limits:** The log never contains passphrases or keys. Alice's own readable copies of her documents are saved with the group keys inside her encrypted key store (owner.sqlite), not as plain files.
+- **Limits:** The log never contains passphrases or keys. The data owner's own readable copies of their documents are saved with the group keys inside their encrypted key store (owner.sqlite), not as plain files.
 - **Status:** Tested: covered by automated tests, not looked at by hand in this pass
 
 ### The classic window
@@ -370,7 +370,7 @@ A small web installer picks the Standard or GPU build and checks it; full instal
 
 ## What the Cloud sees, in one place
 
-It sees: encrypted documents and their sizes; how many documents and index entries exist; group names, how many doctors there are and which groups each may ask about; when each request happens and how large it is; which addresses a search asks for, so a repeated search is visible; how many entries matched; that an update or a revocation happened.
+It sees: encrypted documents and their sizes; how many documents and index entries exist; group names, how many receivers there are and which groups each may ask about; when each request happens and how large it is; which addresses a search asks for, so a repeated search is visible; how many entries matched; that an update or a revocation happened.
 
 It never sees: search words; document text or titles; group keys or any private key.
 
@@ -380,7 +380,7 @@ It never sees: search words; document text or titles; group keys or any private 
 - No connection to a real cloud provider. Evidence: The only server is pqsse/cloud, started as a child process.
 - No sync between devices or users' computers. Evidence: Each role's data is a local SQLite file under %LOCALAPPDATA%\PQ-SSE-Desktop.
 - No more than one data owner. Evidence: README Known limits: single owner.
-- No change of a doctor's groups after approval. Evidence: README Known limits: no capability update.
+- No change of a receiver's groups after approval. Evidence: README Known limits: no capability update.
 - Searches are one word at a time; no phrases or Boolean queries. Evidence: Receiver.search takes one keyword.
 - Not audited by outside experts. Evidence: README Known limits.
 - The default post-quantum code is pure Python: slow and not constant time. Evidence: pqsse/pqbackend.py uses kyber-py and dilithium-py unless liboqs is importable; liboqs was never tested here.
@@ -390,10 +390,8 @@ It never sees: search words; document text or titles; group keys or any private 
 
 Places where the app, its docs or the brief disagree. None is fixed yet.
 
-- **Journey, step 13 'What you learned' (app/lesson.py SUMMARY):** Names classic window places: 'the Attack Lab', 'Who sees what', 'Expert Mode in the toolbar'. The new window calls them Security Lab, the Stage lens (Cloud sees) and Mode in Insights.
-- **Stage after a revocation:** The revoked doctor is still shown as 'May search: Finance' with the last search result, because the Stage reads the doctor's own stored pass. Seen after the lesson revoked Bob with policy R.
-- **Security Lab, 'Which check reacts':** The text repeats itself: "the 'hash chain' check in Bob's Verify step. DETECTED by the 'hash chain' check."
-- **Workspace, People and access:** "asks to join. Key fingerprint:" is written in PageWorkspace.qml, not in copy.py, so a site check cannot read it from copy.py.
+- **Stage after a revocation:** The revoked receiver is still shown as 'May search: Finance' with the last search result, because the Stage reads the receiver's own stored pass. Seen after the lesson revoked Receiver A with policy R.
+- **Security Lab, 'Which check reacts':** The text repeats itself: "the 'hash chain' check in Receiver A's Verify step. DETECTED by the 'hash chain' check."
 - **README.md and docs/START_HERE.md:** Describe the classic window (Learn tab, Narrator, toolbar, F1 glossary, 11 Attack Lab demos). In the new window F1 opens the command palette and the Lab has ten attacks plus the R versus RE comparison.
 - **Your brief:** It mentions 'the seven checks'. The app has eight (pqsse/receiver/receiver.py CHECKS).
 - **copy.py journeyMore:** An unused string still says the polished Journey 'arrives in milestone 5'. Not shown anywhere; can be deleted.

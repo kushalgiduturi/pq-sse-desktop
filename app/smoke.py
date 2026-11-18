@@ -33,11 +33,11 @@ from pqsse.core.errors import AccessDenied, Rejected
 from pqsse.owner import DocInput
 from pqsse.version import APP_NAME, get_version
 
-from .lesson import DELETED_TITLE, DEMO_DOCS, FINANCE, MEDICAL, NEW_DOC, SEARCH_WORD
+from .lesson import DELETED_TITLE, DEMO_DOCS, FINANCE, LEGAL, NEW_DOC, SEARCH_WORD
 from .session import Session
 
 SMOKE_PASSPHRASE = "smoke-test-only"       # protects throwaway keys in a temporary folder
-PLAINTEXT_PROBES = ("invoice", "penicillin", "radiology", "payroll")
+PLAINTEXT_PROBES = ("invoice", "confidential", "retention", "payroll")
 
 
 def write_report(text: str, report: Path | None) -> None:
@@ -159,15 +159,15 @@ def run_flow(flow: Flow, data_dir: Path) -> None:
         return f"owner created ({session.params.label()}), paired with the cloud, groups {', '.join(docs)}"
 
     def join() -> str:
-        bob = session.open_receiver("bob", SMOKE_PASSPHRASE)
-        session.receiver_pair("bob")
+        bob = session.open_receiver("receiver-a", SMOKE_PASSPHRASE)
+        session.receiver_pair("receiver-a")
         uid = bob.send_join()
         item = next(i for i in session.owner.pending_joins() if i["uid"] == uid)
         session.owner.check_join(item)
         session.owner.approve_join(item, [FINANCE])
         bob.fetch_mail()
         check(bob.joined, "the receiver did not receive its capability")
-        state["bob"] = bob
+        state["receiver-a"] = bob
         return "receiver bob joined, approved for Finance only"
 
     def build_publish() -> str:
@@ -179,7 +179,7 @@ def run_flow(flow: Flow, data_dir: Path) -> None:
         return f"cloud holds {stats['docs']} encrypted documents and {stats['entries']} index entries"
 
     def search_verify() -> str:
-        result = state["bob"].search(FINANCE, SEARCH_WORD)
+        result = state["receiver-a"].search(FINANCE, SEARCH_WORD)
         bad = [name for name, ok, _ in result.report.checks if not ok]
         check(not bad, f"verification checks failed: {bad}")
         check(len(result.report.checks) >= 8, f"only {len(result.report.checks)} checks ran")
@@ -192,7 +192,7 @@ def run_flow(flow: Flow, data_dir: Path) -> None:
         plain = dict(docs[FINANCE])
         titles = set()
         for doc_id, epoch in state["result"].hits:
-            doc = state["bob"].open_document(FINANCE, doc_id, epoch)
+            doc = state["receiver-a"].open_document(FINANCE, doc_id, epoch)
             check(plain.get(doc.title) == doc.text, f"document {doc_id} does not match the original")
             titles.add(doc.title)
         check(titles == expected_titles(FINANCE, SEARCH_WORD, docs[FINANCE]), "wrong set of documents")
@@ -210,7 +210,7 @@ def run_flow(flow: Flow, data_dir: Path) -> None:
 
     def access_control() -> str:
         try:
-            state["bob"].search(MEDICAL, "allergy")
+            state["receiver-a"].search(LEGAL, "confidential")
         except AccessDenied:
             return "search in a group without a key was refused"
         raise AssertionError("a search in a group without a key was answered")
@@ -222,16 +222,16 @@ def run_flow(flow: Flow, data_dir: Path) -> None:
         owner.delete_document(FINANCE, old["id"])
         owner.publish(FINANCE)
         current = [item for item in docs[FINANCE] if item[0] != DELETED_TITLE] + [NEW_DOC]
-        result = state["bob"].search(FINANCE, SEARCH_WORD)
+        result = state["receiver-a"].search(FINANCE, SEARCH_WORD)
         check(len(result.hits) == len(expected_titles(FINANCE, SEARCH_WORD, current)), f"{len(result.hits)} hits after the update")
-        gone = state["bob"].search(FINANCE, "payroll")
+        gone = state["receiver-a"].search(FINANCE, "payroll")
         check(len(gone.hits) == 0, "a deleted document is still found")
         return f"add and delete applied; '{SEARCH_WORD}' now has {len(result.hits)} hits, the deleted document is gone"
 
     def revoke() -> str:
-        session.owner.revoke(state["bob"].uid, "R")
+        session.owner.revoke(state["receiver-a"].uid, "R")
         try:
-            state["bob"].search(FINANCE, SEARCH_WORD)
+            state["receiver-a"].search(FINANCE, SEARCH_WORD)
         except Rejected as exc:
             return f"revoked receiver refused by the cloud (reason: {exc.reason})"
         raise AssertionError("a revoked receiver was still answered")

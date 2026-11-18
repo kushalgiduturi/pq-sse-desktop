@@ -90,7 +90,7 @@ class Owner:
         vk, sk = pqbackend.sig_keygen(params.sig)
         vault.put("owner", {"name": name, "kem": params.kem, "sig": params.sig, "vk": vk, "sk": sk,
                             "ctl_seq": 0, "cloud_pub": None, "receivers": {}, "nonces": []})
-        narrator.emit("setup.owner", "Alice", sig=params.sig, vk_bytes=len(vk))
+        narrator.emit("setup.owner", "The data owner", sig=params.sig, vk_bytes=len(vk))
         return cls(vault, **kwargs)
 
     @staticmethod
@@ -108,7 +108,7 @@ class Owner:
             raise PQSSEError("cloud uses a different parameter set")
         self._meta["cloud_pub"] = ident.to_wire()
         self._save_meta()
-        narrator.emit("pair", "Alice", other="the cloud")
+        narrator.emit("pair", "The data owner", other="the cloud")
 
     @property
     def cloud_pub(self) -> PublicIdentity | None:
@@ -160,7 +160,7 @@ class Owner:
         self.groups[g] = {"epoch": 1, "base": 1, "keys": {"1": random_key()}, "seq": 0, "ver": 0,
                           "next_id": 1, "nmax": nmax, "kw": {"1": {}}, "docs": {}, "dirty": False, "exp": 0}
         self._save_group(g)
-        narrator.emit("group", "Alice", g=g)
+        narrator.emit("group", "The data owner", g=g)
         self.publish(g)
 
     def documents(self, g: str) -> list[dict]:
@@ -357,7 +357,7 @@ class Owner:
         gs["next_id"] = next_id
         gs["dirty"] = True
         self._save_group(g)
-        narrator.emit("reencrypt" if reset else kind, "Alice", g=g, e=e, docs=len(adds), adds=len(adds),
+        narrator.emit("reencrypt" if reset else kind, "The data owner", g=g, e=e, docs=len(adds), adds=len(adds),
                       deletes=len(dels), entries=n, bytes=len(msg), engine=self.prf.name)
         return [int(i) for i in new_docs]
 
@@ -388,7 +388,7 @@ class Owner:
         gs["exp"] = exp
         gs["dirty"] = False
         self._save_group(g)
-        narrator.emit("publish", "Alice", g=g, e=e, ver=gs["ver"], records=len(records), bytes=len(msg["ct"]),
+        narrator.emit("publish", "The data owner", g=g, e=e, ver=gs["ver"], records=len(records), bytes=len(msg["ct"]),
                       final="yes" if final else "no")
         return gs["ver"]
 
@@ -418,7 +418,8 @@ class Owner:
                 rotated.append(g)
         remaining = sorted({r["name"] for r in self.receivers.values()
                             if not r["revoked"] and any(g in r["groups"] for g in rotated)})
-        narrator.emit("revoke", rec["name"], policy=policy, groups=rotated, remaining=remaining)
+        narrator.emit("revoke", rec["name"], policy=policy, groups=rotated,
+                      remaining=[narrator.display_name(n) for n in remaining])
         return rotated
 
     def _rotate(self, g: str, policy: str) -> None:

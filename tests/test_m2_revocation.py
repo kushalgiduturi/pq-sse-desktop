@@ -16,8 +16,8 @@ def _setup(seed: int):
     world, rng = filled_world(["alpha", "beta"], docs_per_group=8, seed=seed)
     recorder = Recorder(world.api)
     alice = world.join("alice", ["alpha"], api=recorder)
-    bob = world.join("bob", ["alpha", "beta"])
-    carol = world.join("carol", ["alpha"])
+    bob = world.join("receiver-a", ["alpha", "beta"])
+    carol = world.join("receiver-b", ["alpha"])
     hits = alice.search("alpha", "token").hits or alice.search("alpha", "cloud").hits
     alice.open_document("alpha", *hits[0])
     return world, rng, recorder, alice, bob, carol

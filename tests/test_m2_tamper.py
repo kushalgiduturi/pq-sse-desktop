@@ -21,7 +21,7 @@ def setup():
         world.owner.delete_document("alpha", doc["id"])
     world.owner.publish("alpha")
     tamper = TamperCloud(world.cloud, seed=3)
-    bob = world.join("bob", ["alpha"], api=tamper)
+    bob = world.join("receiver-a", ["alpha"], api=tamper)
     return world, tamper, bob
 
 

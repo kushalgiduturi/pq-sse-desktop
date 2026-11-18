@@ -241,6 +241,8 @@ Item {
                     PButton { text: T.journeyReset; enabled: !app.busy; onClicked: { app.resetLesson(); app.resetChallenges() } }
                     PButton { visible: app.practice; text: T.journeyLeave; enabled: !app.busy; onClicked: app.leavePractice() }
                 }
+                Switch { width: parent.width; text: T.journeyTeaching; help: T.journeyTeachingNote
+                         checked: app.teachingNames; onToggled: (on) => app.setTeachingNames(on) }
             }
         }
     }

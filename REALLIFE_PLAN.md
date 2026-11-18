@@ -99,3 +99,14 @@ new ones) and a commit on `reallife`. Nothing is pushed, merged into `master` or
    of git), R3 (role names replace the lesson cast on the new site), R4 (stdlib server with TLS) and R13.
 2. Later: start Docker Desktop when M2 needs it; tell me where VirtualBox is, or switch on Windows Sandbox;
    machines for the M4 test.
+
+## 7. Decisions made during the milestones
+
+| # | Decision | Why |
+| --- | --- | --- |
+| M0-1 | The roles are shown as Data owner, Receiver (Receiver A and Receiver B in the practice area) and Cloud server. In running text "the cloud" stays as the common noun for the server, as in the paper | Plain, and the paper's own term |
+| M0-2 | Internal ids that never reach the screen keep their names (the role key `alice`, variables such as `ctx.bob`); every displayed name goes through `pqsse/roles.py` (`display`). The demo receivers' user ids are now `receiver-a` and `receiver-b` | Small, safe change; one place decides what is shown |
+| M0-3 | "Teaching names" (Journey, off by default, saved in settings) is a display filter: a fixed list of plain phrases is shown with the cast's names. Labels, lesson, challenges, narrator, Step Inspector, glossary and Security Lab texts pass through it; ids, data and the protocol do not change | One source of text, no second copy of every string |
+| M0-4 | Demo data: groups Finance and Legal; documents such as "Invoice 1042, server hardware", "Contract A", "Report Q3"; the search word stays "invoice" so the lesson's checks are unchanged | Brief: neutral demo data |
+| M0-5 | Historical plan documents (PLAN.md, SPATIAL_PLAN.md, LEARN_PLAN.md, RESTYLE_PLAN.md, WEB_PLAN.md) keep their original wording; user documents (README, START_HERE, cheatsheet, concepts), the site and the feature inventory use role names | Plans are records of what was decided then |
+| M0-6 | The site text on this branch (Home, How it works, Features, the lesson section) uses role names, and the app screenshots were retaken. The site session on `master` still has the cast; merging the two is a later, explicit step | R3 |

@@ -50,18 +50,19 @@ on the welcome screen. Installed app: Start Menu > PQ-SSE Desktop. From source:
 & "$env:USERPROFILE\.venvs\pqsse\Scripts\python.exe" -m app
 ```
 
-- **The story.** Alice is a hospital records manager (the data owner). Bob and Carol are
-  doctors (receivers). The Cloud is a rented storage company that is not trusted.
-- **The idea.** Alice keeps her files locked, yet Bob can still search them through the
-  cloud, and the cloud learns almost nothing, even against future quantum computers.
-- **The Learn tab** walks through 13 steps on the real system (about 15 minutes), with
-  "Do it for me" and "Let me try" for each step. It uses its own practice area, so your
-  own data is untouched; every passphrase there is the word `lesson`.
-- **The Narrator** on the right says in plain words what just happened, and a small
-  diagram shows what travelled between Alice, the doctors and the Cloud.
-- **Who sees what** (a page on the Learn tab) puts Alice's view, a doctor's view and the
-  Cloud's view of the same data side by side.
-- **Beginner Mode / Expert Mode** is a toggle in the toolbar. Press **F1** for the glossary.
+- **The roles.** The data owner holds the keys and the documents. Receivers may search only the
+  groups the data owner approved. The cloud server stores everything and answers searches, and is
+  not trusted.
+- **The idea.** The data owner keeps documents encrypted, yet approved receivers can still search them through the cloud server, and the server learns almost nothing, even against future quantum computers.
+- **Journey** walks through 13 steps on the real system (about 15 minutes), with "Run this step
+  for me", "Let me try" and "Check my work" for each step. It uses its own practice area, so your
+  own data is untouched; every passphrase there is the word `lesson`. The option "Teaching names"
+  in Journey shows a small cast instead of the role names (Alice, Bob, Carol); it is off by default.
+- **The Story bar** at the top says in plain words what just happened, and **What exactly is
+  happening?** (Ctrl+I) replays each real step at four levels of detail.
+- **The Stage** shows the same data as the data owner, a receiver and the cloud server see it.
+- **Beginner / Expert** mode is in Insights. **Ctrl+K** (or F1) finds any screen, action, lesson
+  step, setting or glossary word.
 
 Read next: [docs/START_HERE.md](docs/START_HERE.md) (one page, with a FAQ),
 [docs/cheatsheet.md](docs/cheatsheet.md) (the ten steps, one sentence each) and

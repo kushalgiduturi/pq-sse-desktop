@@ -19,34 +19,34 @@ from .glossary import term
 from .session import LESSON_PASSPHRASE, Session, explain_full
 from .story import IDEA, analogies_html, cast_html
 
-FINANCE, MEDICAL = "Finance", "Medical"
+FINANCE, LEGAL = "Finance", "Legal"
 DEMO_DOCS: dict[str, list[tuple[str, str]]] = {
     FINANCE: [
-        ("Invoice 1042, MRI scanner", "Invoice for the MRI scanner service contract. Amount due in March."),
-        ("Budget 2026, radiology", "Annual budget for the radiology department, with salary and equipment costs."),
-        ("Payroll note, nursing", "Payroll summary for nursing staff, including overtime salary adjustments."),
-        ("Supplier invoice, pharmacy", "Invoice from the pharmacy supplier for vaccines and gloves."),
+        ("Invoice 1042, server hardware", "Invoice for the server hardware maintenance contract. Amount due in March."),
+        ("Budget 2026", "Annual budget for the department, with salary and equipment costs."),
+        ("Payroll note Q3", "Payroll summary for the third quarter, including overtime salary adjustments."),
+        ("Supplier invoice, office", "Invoice from the office supplier for paper and toner."),
     ],
-    MEDICAL: [
-        ("Allergy record, patient A", "The patient has a penicillin allergy. Avoid amoxicillin."),
-        ("Lab result 77", "Blood test shows normal glucose and low iron."),
-        ("Discharge summary, knee", "Patient discharged after knee surgery. Physiotherapy advised."),
-        ("Vaccination log", "Vaccines given this season: influenza and tetanus."),
+    LEGAL: [
+        ("Contract A", "Service contract with the supplier. The penalty clause is confidential."),
+        ("Report Q3", "Quarterly report on the audit findings and the open contract reviews."),
+        ("Policy update", "New retention policy: records are kept for seven years."),
+        ("Meeting notes", "Notes from the review meeting: the merger is postponed."),
     ],
 }
-NEW_DOC = ("Invoice 1050, ultrasound probe", "Invoice for an ultrasound probe and its yearly maintenance.")
-DELETED_TITLE = "Payroll note, nursing"
+NEW_DOC = ("Invoice 1050, network switch", "Invoice for a network switch and its yearly maintenance.")
+DELETED_TITLE = "Payroll note Q3"
 SEARCH_WORD = "invoice"
 
 CHECK_MEANING = {
-    "state signature": "Alice's stamp is on the summary of the index. The cloud cannot invent what the index contains.",
+    "state signature": "The data owner's stamp is on the summary of the index. The cloud cannot invent what the index contains.",
     "segments complete": "Every live part of the index is covered. The cloud cannot hide a whole part.",
-    "older segments final": "Closed parts are marked final by Alice. Nothing can be slipped into them later.",
+    "older segments final": "Closed parts are marked final by the data owner. Nothing can be slipped into them later.",
     "freshness": "The summary has not expired. The cloud cannot serve an old copy forever.",
-    "no rollback": "The version is not older than one Bob has already seen. The cloud cannot go back in time.",
+    "no rollback": "The version is not older than one Receiver A has already seen. The cloud cannot go back in time.",
     "response signature": "The cloud stamped this exact answer to this exact slip. It cannot deny or reuse it.",
     "completeness": "Every entry the summary promises is present, in order. Nothing was dropped or added.",
-    "hash chain": "The running fingerprint of the entries matches Alice's. Nothing was changed or swapped.",
+    "hash chain": "The running fingerprint of the entries matches the data owner's. Nothing was changed or swapped.",
 }
 
 
@@ -64,7 +64,7 @@ class Ctx:
 
     @property
     def bob(self):
-        return self.session.receivers["bob"]
+        return self.session.receivers["receiver-a"]
 
 
 @dataclass(frozen=True)
@@ -95,8 +95,8 @@ def ensure(ctx: Ctx, number: int) -> None:
         s.start_cloud(LESSON_PASSPHRASE)
     if number > 3 and s.owner is None:
         s.open_owner(LESSON_PASSPHRASE)
-    if number > 5 and "bob" not in s.receivers:
-        s.open_receiver("bob", LESSON_PASSPHRASE)
+    if number > 5 and "receiver-a" not in s.receivers:
+        s.open_receiver("receiver-a", LESSON_PASSPHRASE)
 
 
 # ---------------------------------------------------------------- step actions
@@ -105,7 +105,7 @@ def do_cloud(ctx: Ctx) -> str:
     fingerprint = line.split("fingerprint=")[-1]
     return p("The cloud server is now running as its own program on this computer.",
              f"It made its own keys. Its {term('fingerprint', 'key fingerprint')} is <b>{esc(fingerprint)}</b>.",
-             "Remember: the cloud stores things for Alice, but nobody trusts it. From now on, watch what it is given.")
+             "Remember: the cloud stores things for the data owner, but nobody trusts it. From now on, watch what it is given.")
 
 
 def do_setup(ctx: Ctx) -> str:
@@ -113,12 +113,12 @@ def do_setup(ctx: Ctx) -> str:
     created = s.open_owner(LESSON_PASSPHRASE)
     cloud_fp = s.owner_pair_cloud()
     owner_fp = s.cloud_pair_owner()
-    return p(("Alice created her key pair." if created else "Alice unlocked her keys.")
+    return p(("The data owner created their key pair." if created else "The data owner unlocked their keys.")
              + f" Her key fingerprint is <b>{esc(owner_fp)}</b>.",
-             "A key pair has two halves. The <b>private</b> half stays with Alice and makes her stamps. "
+             "A key pair has two halves. The <b>private</b> half stays with the data owner and makes their stamps. "
              "The <b>public</b> half can be given to anyone and lets them check those stamps.",
-             f"Alice and the cloud also exchanged public keys ({term('pairing', 'pairing')}). "
-             f"Alice now knows the cloud's key <b>{esc(cloud_fp)}</b>, and the cloud knows hers.",
+             f"The data owner and the cloud also exchanged public keys ({term('pairing', 'pairing')}). "
+             f"The data owner now knows the cloud's key <b>{esc(cloud_fp)}</b>, and the cloud knows theirs.",
              f"The keys are {term('post-quantum', 'post-quantum')}: the stamps use {term('ml-dsa', 'ML-DSA')} and sealed "
              f"messages use {term('ml-kem', 'ML-KEM')}.",
              "<i>Simplification: a key is really a long number, and the fingerprint is a short code computed from the public half.</i>")
@@ -126,37 +126,37 @@ def do_setup(ctx: Ctx) -> str:
 
 def do_groups(ctx: Ctx) -> str:
     made = []
-    for group in (FINANCE, MEDICAL):
+    for group in (FINANCE, LEGAL):
         if group not in ctx.owner.groups:
             ctx.owner.create_group(group)
             made.append(group)
     rows = "".join(f"<li><b>{g}</b>: " + "; ".join(esc(t) for t, _ in docs) + "</li>" for g, docs in DEMO_DOCS.items())
-    return p(f"Alice created the groups: {', '.join(made) or 'Finance and Medical (already there)'}. Each group got its own secret key.",
-             "She also picked eight short demo documents. They are still only on Alice's side:",
+    return p(f"The data owner created the groups: {', '.join(made) or 'Finance and Legal (already there)'}. Each group got its own secret key.",
+             "The owner also picked eight short demo documents. They are still only on the data owner's side:",
              f"<ul>{rows}</ul>",
              "The cloud was told that two groups exist. It was not given any key. Step 6 locks the documents and sends them.")
 
 
 def do_join(ctx: Ctx) -> str:
     s = ctx.session
-    bob = s.open_receiver("bob", LESSON_PASSPHRASE)
+    bob = s.open_receiver("receiver-a", LESSON_PASSPHRASE)
     if not bob.paired:
-        s.receiver_pair("bob")
+        s.receiver_pair("receiver-a")
     known = {r["name"]: r for r in ctx.owner.receivers.values()}
-    if not bob.joined and not known.get("bob", {}).get("revoked"):
+    if not bob.joined and not known.get("receiver-a", {}).get("revoked"):
         uid = bob.send_join()
         item = next(i for i in ctx.owner.pending_joins() if i["uid"] == uid)
         request = ctx.owner.check_join(item)
         ctx.store["bob_fp"] = request.fingerprint
         ctx.owner.approve_join(item, [FINANCE])
         bob.fetch_mail()
-    return p("Bob created his own keys and sent a join request. The request carries a stamp that proves the keys are his.",
-             f"Alice saw the request with the key fingerprint <b>{esc(ctx.store.get('bob_fp', bob.public_identity().fingerprint()))}</b> "
-             "and approved Bob for <b>Finance only</b>.",
-             f"She sent Bob an access pass ({term('capability', 'capability')}): the Finance key and a secret pass for the cloud "
-             f"({term('credential', 'credential')}). It is sealed so only Bob can open it, and stamped so Bob knows it is from Alice.",
-             "The cloud passed the sealed pass along and was told one thing: Bob may ask about Finance. "
-             "Bob holds no Medical key, so Medical is closed to him.")
+    return p("Receiver A created their own keys and sent a join request. The request carries a stamp that proves the keys are their.",
+             f"The data owner saw the request with the key fingerprint <b>{esc(ctx.store.get('bob_fp', bob.public_identity().fingerprint()))}</b> "
+             "and approved Receiver A for <b>Finance only</b>.",
+             f"The receiver sent Receiver A an access pass ({term('capability', 'capability')}): the Finance key and a secret pass for the cloud "
+             f"({term('credential', 'credential')}). It is sealed so only Receiver A can open it, and stamped so Receiver A knows it is from the data owner.",
+             "The cloud passed the sealed pass along and was told one thing: Receiver A may ask about Finance. "
+             "Receiver A holds no Legal key, so Legal is closed to them.")
 
 
 def do_build(ctx: Ctx) -> str:
@@ -170,8 +170,8 @@ def do_build(ctx: Ctx) -> str:
     peek = ctx.session.cloud_admin("peek")
     entry = peek["entries"][0] if peek["entries"] else ["", 0, "", ""]
     doc = peek["docs"][0] if peek["docs"] else ["", 0, "", "", 0]
-    return p("Alice put each document into its own locked box and built the locked index: one entry for every word of every document.",
-             f"Then she published a stamped summary ({term('state', 'published state')}) for each group, so doctors can check the cloud's answers.",
+    return p("The data owner put each document into its own locked box and built the locked index: one entry for every word of every document.",
+             f"Then the receiver published a stamped summary ({term('state', 'published state')}) for each group, so receivers can check the cloud's answers.",
              f"<b>What the cloud holds now:</b> {stats['docs']} locked documents and {stats['entries']} index entries. For example:",
              f"<ul><li>one index entry: address <code>{esc(entry[2][:32])}...</code> value <code>{esc(entry[3])}</code></li>"
              f"<li>one document: <code>{esc(doc[3][:48])}...</code> ({doc[4]} bytes)</li></ul>",
@@ -190,11 +190,11 @@ def do_search(ctx: Ctx) -> str:
     recent = max(0, ctx.session.cloud_admin("stats")["requests"] - 40)
     rows = [r for r in ctx.session.cloud_admin("log", {"since": recent}) if r[2] in ("states_get", "search")][-2:]
     seen = "".join(f"<li>request '{esc(r[2])}': {r[3]} bytes in, {r[4]} bytes out</li>" for r in rows)
-    return p(f"Bob searched Finance for <b>'{SEARCH_WORD}'</b>.",
+    return p(f"Receiver A searched Finance for <b>'{SEARCH_WORD}'</b>.",
              f"His app did not send the word. It computed the secret addresses where entries for that word live, wrote them on a "
              f"sealed search slip ({term('token', 'token')}) and sent the slip to the cloud.",
-             f"<b>What the cloud saw:</b><ul>{seen}</ul>Only encrypted bytes and addresses. The word '{SEARCH_WORD}' never left Bob's computer.",
-             f"The cloud returned {result.entries} scrambled entries. After checking them (next step), Bob's app found "
+             f"<b>What the cloud saw:</b><ul>{seen}</ul>Only encrypted bytes and addresses. The word '{SEARCH_WORD}' never left Receiver A's computer.",
+             f"The cloud returned {result.entries} scrambled entries. After checking them (next step), Receiver A's app found "
              f"<b>{len(result.hits)} matching documents</b>.",
              "<i>Simplification: the cloud can tell that two searches used the same addresses, so it can notice a repeated search.</i>")
 
@@ -202,7 +202,7 @@ def do_search(ctx: Ctx) -> str:
 def do_verify(ctx: Ctx) -> str:
     result = _search(ctx)
     rows = "".join(f"<li><b>OK: {esc(name)}.</b> {CHECK_MEANING[name]}</li>" for name, ok, _ in result.report.checks if ok)
-    return p("Bob does not trust the cloud, so his app checked the answer before showing anything. All checks passed:",
+    return p("Receiver A does not trust the cloud, so their app checked the answer before showing anything. All checks passed:",
              f"<ul>{rows}</ul>",
              "If any one of these fails, the app shows no result at all. The Attack Lab step later shows that happening.",
              "Look at the Receiver tab: the Verification panel shows the same checks, each with the word OK.")
@@ -213,16 +213,16 @@ def do_decrypt(ctx: Ctx) -> str:
     doc_id, epoch = result.hits[0]
     doc = ctx.bob.open_document(FINANCE, doc_id, epoch)
     try:
-        ctx.bob.search(MEDICAL, "allergy")
-        denied = "Unexpected: the Medical search was not refused."
+        ctx.bob.search(LEGAL, "confidential")
+        denied = "Unexpected: the Legal search was not refused."
     except AccessDenied as exc:
         denied = explain_full(exc).what
-    return p(f"Bob opened document {doc_id}. His app fetched the locked box, checked Alice's stamp on it, and unlocked it with the Finance key:",
+    return p(f"Receiver A opened document {doc_id}. Their app fetched the locked box, checked the data owner's stamp on it, and unlocked it with the Finance key:",
              f"<blockquote><b>{esc(doc.title)}</b><br>{esc(doc.text)}</blockquote>",
-             "Then Bob tried to search <b>Medical</b> for 'allergy'. The answer:",
+             "Then Receiver A tried to search <b>Legal</b> for 'confidential'. The answer:",
              f"<blockquote>{esc(denied)}</blockquote>",
-             "Why: Alice never gave Bob the Medical key. Without it his app cannot even compute where to look, the cloud would "
-             "refuse a request outside his permission, and a Medical box would stay random bytes even if someone handed it to him.")
+             "Why: the data owner never gave Receiver A the Legal key. Without it their app cannot even compute where to look, the cloud would "
+             "refuse a request outside his permission, and a Legal box would stay random bytes even if someone handed it to him.")
 
 
 def do_update(ctx: Ctx) -> str:
@@ -241,13 +241,13 @@ def do_update(ctx: Ctx) -> str:
         owner.publish(FINANCE)
     after = ctx.session.cloud_admin("stats")["entries"]
     hits = len(_search(ctx).hits)
-    return p(f"Alice changed Finance: {' and '.join(notes) or 'the change was already made'}. Then she published a new stamped summary.",
+    return p(f"The data owner changed Finance: {' and '.join(notes) or 'the change was already made'}. Then the owner published a new stamped summary.",
              f"The cloud now stores {after} index entries (before: {before}). Even the delete added entries: a delete is one more "
              "masked entry, so the cloud cannot tell which older entry it cancels.",
-             f"Bob searched '{SEARCH_WORD}' again and now finds <b>{hits} documents</b>, including the new invoice.",
-             f"<b>{term('forward-privacy', 'Forward privacy')}:</b> the new entries were stored at brand-new addresses. Bob's earlier "
+             f"Receiver A searched '{SEARCH_WORD}' again and now finds <b>{hits} documents</b>, including the new invoice.",
+             f"<b>{term('forward-privacy', 'Forward privacy')}:</b> the new entries were stored at brand-new addresses. Receiver A's earlier "
              "search slip listed only the old addresses, so the cloud could not tell that the new document also contains "
-             f"'{SEARCH_WORD}' until Bob searched again.",
+             f"'{SEARCH_WORD}' until Receiver A searched again.",
              "This claim is measured by the project's test suite (tests/test_m2_protocol.py compares old slips with new entries).")
 
 
@@ -255,25 +255,25 @@ def do_revoke(ctx: Ctx) -> str:
     comparison = attacklab.collusion_demo()
     ctx.store.setdefault("outcomes", []).append(comparison)
     compare = "".join(f"<li>{esc(line)}</li>" for line in comparison.lines[1:3])
-    bob_record = next((r for r in ctx.owner.receivers.values() if r["name"] == "bob"), None)
+    bob_record = next((r for r in ctx.owner.receivers.values() if r["name"] == "receiver-a"), None)
     if bob_record is not None and not bob_record["revoked"]:
         ctx.owner.revoke(ctx.bob.uid, "R")
     try:
         ctx.bob.search(FINANCE, SEARCH_WORD)
-        refused = "Unexpected: Bob's search was still answered."
+        refused = "Unexpected: Receiver A's search was still answered."
     except Rejected as exc:
         refused = explain_full(exc).what
-    return p("First, a comparison on a <b>practice copy</b> (not on the lesson data). A doctor is revoked, keeps the old key, and "
+    return p("First, a comparison on a <b>practice copy</b> (not on the lesson data). A receiver is revoked, keeps the old key, and "
              "teams up with the cloud:",
              f"<ul>{compare}</ul>",
              f"<b>{term('policy-r', 'Policy R')}</b> changes the key for everything written from now on. It is quick. Its honest limit: "
-             "data from before the change is still locked with the old key, which the revoked doctor knows.",
+             "data from before the change is still locked with the old key, which the revoked receiver knows.",
              f"<b>{term('policy-re', 'Policy RE')}</b> also re-locks every existing document, and the cloud deletes the old copies. "
-             "That closes the gap, but Alice must re-lock and re-stamp everything, which takes longer.",
-             "Now on the lesson system: Alice revoked Bob with policy R. Bob searched again and got:",
+             "That closes the gap, but the data owner must re-lock and re-stamp everything, which takes longer.",
+             "Now on the lesson system: the data owner revoked Receiver A with policy R. Receiver A searched again and got:",
              f"<blockquote>{esc(refused)}</blockquote>",
-             f"Finance moved to a new {term('epoch', 'epoch')} with a new key. Doctors who stay would receive it in a sealed message. Bob did not.",
-             "<i>Simplification: no policy can take back what a doctor already downloaded or remembers.</i>")
+             f"Finance moved to a new {term('epoch', 'epoch')} with a new key. Receivers who stay would receive it in a sealed message. Receiver A did not.",
+             "<i>Simplification: no policy can take back what a receiver already downloaded or remembers.</i>")
 
 
 def do_attacks(ctx: Ctx) -> str:
@@ -291,15 +291,15 @@ def do_attacks(ctx: Ctx) -> str:
 
 SUMMARY = (
     "<ul>"
-    "<li><b>Alice</b> owns the documents. She locks them, builds a locked index, stamps everything, and decides who gets which key.</li>"
-    "<li><b>Bob</b> searches with a sealed slip that does not contain the word, and his app checks every answer before showing it.</li>"
+    "<li><b>The data owner</b> owns the documents. The owner locks them, builds a locked index, stamps everything, and decides who gets which key.</li>"
+    "<li><b>Receiver A</b> searches with a sealed slip that does not contain the word, and their app checks every answer before showing it.</li>"
     "<li><b>The cloud</b> stores and looks up locked data. It sees sizes, counts, timing and which addresses are asked for, not words or text.</li>"
     "<li><b>Access is keys.</b> No key for a group means no search and no reading. Revoking means changing the locks: "
     "policy R for new data only, policy RE for everything.</li>"
     "<li><b>If the cloud cheats</b> (drops, changes, reorders, replays or serves old data), a check fails and nothing wrong is shown.</li>"
     "</ul>"
-    "<p><b>Where to go next:</b> try the Challenges page, run the other attacks in the Attack Lab, open 'Who sees what', "
-    "read docs/START_HERE.md and docs/concepts.md, or switch to Expert Mode in the toolbar to see every detail.</p>"
+    "<p><b>Where to go next:</b> try the Challenges, run the other attacks in the Security Lab, look at the data as the "
+    "cloud server sees it, read docs/START_HERE.md and docs/concepts.md, or switch to Expert mode to see every detail.</p>"
     "<p><i>Honest limits to remember: this is research software, not an audited product. \"Post-quantum\" means built on problems "
     "believed to be hard for quantum computers. The graphics chip only speeds up building the index, never the post-quantum steps.</i></p>")
 
@@ -311,28 +311,28 @@ def _has(ctx: Ctx, *names: str) -> bool:
 def _bob_record(ctx: Ctx) -> dict | None:
     if ctx.owner is None:
         return None
-    return next((r for r in ctx.owner.receivers.values() if r["name"] == "bob"), None)
+    return next((r for r in ctx.owner.receivers.values() if r["name"] == "receiver-a"), None)
 
 
 def _built(ctx: Ctx) -> bool:
-    return _has(ctx, FINANCE, MEDICAL) and all(ctx.owner.documents(g) and not ctx.owner.overview(g)["dirty"]
-                                               for g in (FINANCE, MEDICAL))
+    return _has(ctx, FINANCE, LEGAL) and all(ctx.owner.documents(g) and not ctx.owner.overview(g)["dirty"]
+                                               for g in (FINANCE, LEGAL))
 
 
 STEPS: list[Step] = [
     Step("meet", "Meet the three parties",
          f"<p style='font-size:12pt;'><i>{IDEA}</i></p>" + cast_html() + "<p><b>Think of it like this:</b></p>" + analogies_html()
-         + p("The diagram on the right shows Alice, the doctors and the Cloud. During the lesson you will see packets "
+         + p("The diagram on the right shows the data owner, the receivers and the Cloud. During the lesson you will see packets "
              "travel between them. Nothing to do here: press <b>Next</b>.",
              "In this lesson every passphrase is the word <b>lesson</b>. The lesson uses its own practice area, so your own data is untouched.")),
     Step("cloud", "Start the cloud server",
-         p("The Cloud is a rented storage company. Alice will keep everything there, because it is always online.",
+         p("The cloud server is rented storage. The data owner keeps everything there, because it is always online.",
            "But she does not trust it. It might peek, lie, drop results or send old data. So the cloud will only ever be given locked data.",
            "First it has to be switched on. In this app it is a separate program on your computer."),
          do_cloud, "cloud_tab", "start_button", "Type the passphrase 'lesson' and press Start server.",
          lambda ctx: ctx.session.cloud_running()),
-    Step("setup", "Alice sets up her keys",
-         p("Alice needs a way to prove that something really comes from her. She creates a <b>key pair</b>: "
+    Step("setup", "The data owner sets up their keys",
+         p("The data owner needs a way to prove that something really comes from them. The owner creates a <b>key pair</b>: "
            "a private key that only she holds, and a public key she can give to everyone.",
            f"With the private key she makes a {term('signature', 'signature')}, a tamper-proof stamp. With the public key anyone can check the stamp.",
            f"Why {term('post-quantum', 'post-quantum')}? Data stored today may still matter in twenty years. Some of today's locks could be "
@@ -342,72 +342,72 @@ STEPS: list[Step] = [
          "Type the passphrase 'lesson' and press 'Open or create owner'. Then press 'Pair: import cloud key' and pick cloud.pqpub. "
          "On the Cloud tab press 'Pair: import owner key' and pick owner.pqpub.",
          lambda ctx: ctx.owner is not None and ctx.owner.cloud_pub is not None),
-    Step("groups", "Alice creates two groups and picks documents",
-         p(f"A hospital has different kinds of records. Alice makes a {term('group', 'group')} for each kind: "
-           "<b>Finance</b> and <b>Medical</b>. Each group has its own secret key, like a folder with its own lock.",
-           "Later she will give each doctor only the keys for the groups that doctor needs.",
-           "This step also loads eight short, harmless demo documents on Alice's side."),
-         do_groups, "owner_tab", "group_name", "Type Finance and press Create group. Do the same for Medical.",
-         lambda ctx: _has(ctx, FINANCE, MEDICAL)),
-    Step("join", "Bob asks to join, Alice approves him for Finance",
-         p("Bob is a doctor who needs to look things up in Finance. He sends Alice a join request.",
-           "Alice checks that the request is really from Bob's key, then decides what Bob may see. Here: Finance only.",
-           f"She sends Bob an access pass ({term('capability', 'capability')}) sealed so only Bob can open it.",
+    Step("groups", "The data owner creates two groups and picks documents",
+         p(f"An organisation has different kinds of records. The data owner makes a {term('group', 'group')} for each kind: "
+           "<b>Finance</b> and <b>Legal</b>. Each group has its own secret key, like a folder with its own lock.",
+           "Later the receiver will give each receiver only the keys for the groups that receiver needs.",
+           "This step also loads eight short, harmless demo documents on the data owner's side."),
+         do_groups, "owner_tab", "group_name", "Type Finance and press Create group. Do the same for Legal.",
+         lambda ctx: _has(ctx, FINANCE, LEGAL)),
+    Step("join", "Receiver A asks to join, the data owner approves them for Finance",
+         p("Receiver A needs to look things up in Finance and sends the data owner a join request.",
+           "The data owner checks that the request is really from Receiver A's key, then decides what Receiver A may see. Here: Finance only.",
+           f"The receiver sends Receiver A an access pass ({term('capability', 'capability')}) sealed so only Receiver A can open it.",
            "Technical name: Join."),
          do_join, "receiver_tab", "user",
          "Type bob and the passphrase 'lesson', press Unlock or create, Pair devices, Send join request. "
          "On the Owner tab press Refresh join requests, Approve selected, and tick Finance only. Back here press Fetch mailbox.",
          lambda ctx: bool(_bob_record(ctx)) and _bob_record(ctx)["groups"] == [FINANCE]),
-    Step("build", "Alice builds and publishes the searchable index",
-         p("Now Alice locks the documents and sends them to the cloud. Each document goes into its own locked box "
+    Step("build", "The data owner builds and publishes the searchable index",
+         p("Now the data owner locks the documents and sends them to the cloud. Each document goes into its own locked box "
            f"({term('ciphertext', 'ciphertext')}).",
            f"She also builds a locked {term('index', 'index')}: for every word, one entry at an address that looks random. "
            "This is what makes searching possible without unlocking anything.",
-           "Finally she publishes a stamped summary of the index, so doctors can check that the cloud's answers are complete.",
+           "Finally the receiver publishes a stamped summary of the index, so receivers can check that the cloud's answers are complete.",
            "Technical names: BuildIndex and Publish. This step can take a few seconds because every document gets its own stamp."),
          do_build, "owner_tab", "publish_button",
-         "Select a group, use Add document (or Import files), then press Publish. Do this for Finance and Medical. "
+         "Select a group, use Add document (or Import files), then press Publish. Do this for Finance and Legal. "
          "'Do it for me' loads the eight demo documents instead.",
          _built),
-    Step("search", "Bob searches for a word",
-         p(f"Bob wants every Finance document that mentions <b>'{SEARCH_WORD}'</b>.",
+    Step("search", "Receiver A searches for a word",
+         p(f"Receiver A wants every Finance document that mentions <b>'{SEARCH_WORD}'</b>.",
            f"His app writes a sealed search slip ({term('token', 'token')}). The slip does not contain the word. "
            "It lists secret addresses that only someone with the Finance key can work out.",
            "The cloud looks up those addresses and returns what is stored there: scrambled entries.",
-           "Technical names: TokenGen (Bob makes the slip) and Search (the cloud answers)."),
+           "Technical names: TokenGen (Receiver A makes the slip) and Search (the cloud answers)."),
          do_search, "receiver_tab", "keyword", f"Choose the group Finance, type {SEARCH_WORD} and press Search.",
          lambda ctx: "verify" in ctx.seen),
-    Step("verify", "Bob checks the answer",
+    Step("verify", "Receiver A checks the answer",
          p("The cloud is not trusted. What if it left a result out, changed one, or sent an old answer?",
-           "So Bob's app checks the answer against the summary that Alice stamped. Eight checks, each guarding against one kind of cheating.",
+           "So Receiver A's app checks the answer against the summary that the data owner stamped. Eight checks, each guarding against one kind of cheating.",
            "Only if all of them pass are the results shown. Technical name: Verify."),
          do_verify, "receiver_tab", "results", "Search again and read the Verification panel: each check shows the word OK.",
          lambda ctx: "verify" in ctx.seen),
-    Step("decrypt", "Bob opens a document, and is refused another",
-         p("Bob picks a result. His app fetches the locked box from the cloud, checks Alice's stamp on it, and unlocks it with the Finance key.",
-           "Then we let Bob try something he is not allowed to do: search the Medical group.",
+    Step("decrypt", "Receiver A opens a document, and is refused another",
+         p("Receiver A picks a result. Their app fetches the locked box from the cloud, checks the data owner's stamp on it, and unlocks it with the Finance key.",
+           "Then we let Receiver A try something the receiver is not allowed to do: search the Legal group.",
            "Technical name: Decrypt."),
-         do_decrypt, "receiver_tab", "results", "Click a result to open it. Bob has only one group to choose, so use 'Do it for me' to see the refusal for Medical.",
+         do_decrypt, "receiver_tab", "results", "Click a result to open it. Receiver A has only one group to choose, so use 'Do it for me' to see the refusal for Legal.",
          lambda ctx: "decrypt" in ctx.seen),
-    Step("update", "Alice adds and deletes a document",
-         p("Records change. Alice adds a new invoice and deletes the payroll note.",
+    Step("update", "The data owner adds and deletes a document",
+         p("Records change. The data owner adds a new invoice and deletes the payroll note.",
            "Every change is numbered and stamped, so the cloud accepts only genuine changes, each exactly once, in order.",
            f"Two privacy points: new data cannot be linked to earlier searches ({term('forward-privacy', 'forward privacy')}), "
            f"and deleted documents stay hidden ({term('backward-privacy', 'backward privacy')}).",
            "Technical name: Update."),
          do_update, "owner_tab", "docs", "On the Owner tab select Finance, add a document, delete one, then press Publish.",
          lambda ctx: "update" in ctx.seen and _built(ctx)),
-    Step("revoke", "Alice revokes Bob: policy R and policy RE",
-         p(f"Bob leaves the hospital. Alice must take his access away ({term('revocation', 'revocation')}).",
+    Step("revoke", "The data owner revokes Receiver A: policy R and policy RE",
+         p(f"Receiver A leaves the organisation. The data owner must take their access away ({term('revocation', 'revocation')}).",
            "Think of it as changing the locks and giving new keys only to the people still allowed in.",
            "There are two ways to do it, and they differ in an important, honest way. This step first compares both on a practice copy, "
-           "then revokes Bob on the lesson system.",
+           "then revokes Receiver A on the lesson system.",
            "Technical name: Revoke."),
          do_revoke, "owner_tab", "policy", "On the Owner tab select bob under Approved receivers, choose a policy and press Revoke selected receiver.",
          lambda ctx: bool(_bob_record(ctx)) and _bob_record(ctx)["revoked"]),
     Step("attacks", "Attack finale: cheating gets caught",
          p("Time to attack the system. Two attempts:",
-           "1. An outsider records one of Alice's updates and sends it again (a replay).",
+           "1. An outsider records one of the data owner's updates and sends it again (a replay).",
            "2. The cloud changes one entry in a search answer (tampering).",
            "Both run on a practice copy, so the lesson data stays clean."),
          do_attacks, "attack_tab", "table", "On the Attack Lab tab select an attack and press Run selected attack.",

@@ -1,6 +1,6 @@
 """'What can each party see?': three columns for the current data.
 
-Alice's column shows plain text. The doctors' column shows which groups each doctor
+The data owner's column shows plain text. The receivers' column shows which groups each receiver
 holds keys for. The Cloud's column shows the real stored bytes, sizes and request timing.
 """
 from __future__ import annotations
@@ -10,14 +10,14 @@ import time
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout
 
-from pqsse import narrator
+from pqsse import narrator, roles
 from pqsse.core.errors import PQSSEError
 
 from .common import TabBase
 from .glossary import term
 
-HEAD = ("<b>The key idea of the whole app.</b> The same data, seen by three parties. Alice sees everything in plain text. "
-        "A doctor sees only the groups Alice gave them keys for. The Cloud stores all of it and sees only "
+HEAD = ("<b>The key idea of the whole app.</b> The same data, seen by three parties. The data owner sees everything in plain text. "
+        "A receiver sees only the groups the data owner gave them keys for. The cloud server stores all of it and sees only "
         f"{term('ciphertext', 'locked bytes')}, sizes and timing.")
 
 
@@ -31,7 +31,7 @@ def gather(session) -> dict:
     peek = session.cloud_admin("peek")
     stats = session.cloud_admin("stats")
     recent = session.cloud_admin("log", {"since": max(0, stats["requests"] - 8)})
-    return {"alice": alice, "doctors": doctors, "peek": peek, "stats": stats, "log": recent}
+    return {"alice": alice, "receivers": doctors, "peek": peek, "stats": stats, "log": recent}
 
 
 class PartyView(TabBase):
@@ -52,9 +52,9 @@ class PartyView(TabBase):
         mono = QFont("Consolas", 9)
         self.alice, self.doctors, self.cloud = QPlainTextEdit(), QPlainTextEdit(), QPlainTextEdit()
         columns = QHBoxLayout()
-        for title, box, font in (("Alice sees (plain text)", self.alice, None),
-                                 ("Doctors see (only their groups)", self.doctors, None),
-                                 ("The Cloud sees (locked bytes, sizes, timing)", self.cloud, mono)):
+        for title, box, font in (("The data owner sees (plain text)", self.alice, None),
+                                 ("Receivers see (only their groups)", self.doctors, None),
+                                 ("The cloud server sees (locked bytes, sizes, timing)", self.cloud, mono)):
             box.setReadOnly(True)
             if font is not None:
                 box.setFont(font)
@@ -95,8 +95,8 @@ class PartyView(TabBase):
         self.alice.setPlainText("\n".join(lines) or "No groups yet.")
 
         lines = []
-        for doc in data["doctors"]:
-            name = doc["name"].capitalize()
+        for doc in data["receivers"]:
+            name = roles.display(doc["name"])
             if doc["revoked"]:
                 lines.append(f"{name}: REVOKED. The cloud refuses every request. {name} still knows the old keys of: "
                              f"{', '.join(doc['groups'])}. See policy R and RE for what that means.\n")
@@ -108,7 +108,7 @@ class PartyView(TabBase):
                 else:
                     lines.append(f"  {group}: nothing. No key, so no search and no reading.")
             lines.append("")
-        self.doctors.setPlainText("\n".join(lines) or "No doctors approved yet.")
+        self.doctors.setPlainText("\n".join(lines) or "No receivers approved yet.")
 
         peek, stats = data["peek"], data["stats"]
         lines = [f"{stats['docs']} documents, {stats['entries']} index entries, {stats['states']} summaries stored.", "",
@@ -119,7 +119,7 @@ class PartyView(TabBase):
         lines += ["", "TIMING (what was asked, when, how big):"]
         lines += [f"  {time.strftime('%H:%M:%S', time.localtime(ts / 1000))}  {ep}  {n_in} bytes in, {n_out} out"
                   for _, ts, ep, n_in, n_out, _, _ in data["log"]] or ["  (none)"]
-        lines += ["", "The cloud also knows group names, how many doctors exist and which groups each may ask about.",
+        lines += ["", "The cloud also knows group names, how many receivers exist and which groups each may ask about.",
                   "It does not know any word, title, text or key."]
         self.cloud.setPlainText("\n".join(lines))
 
@@ -137,7 +137,7 @@ class PartyView(TabBase):
         text = [f"ONE DOCUMENT OF GROUP {group}, AS THE CLOUD STORES IT ({size} bytes):",
                 f"  stored under the name: {handle}",
                 f"  content: {blob}...",
-                "", "The cloud cannot tell which of Alice's documents this is. For comparison, Alice sees documents like:"]
+                "", "The cloud cannot tell which of the data owner's documents this is. For comparison, the data owner sees documents like:"]
         if plain:
             text.append(f"  {plain['title']}: {plain['text']}")
         text.append("Same data. Without the group key, the bytes above cannot be turned back into text.")

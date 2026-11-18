@@ -7,8 +7,8 @@ the code. Where the analogy leaves something out, a **Simplification** line says
 
 | Analogy | Real name | Code |
 | --- | --- | --- |
-| Alice, the hospital records manager | Data owner | `pqsse/owner/owner.py` (`Owner`) |
-| Bob and Carol, doctors | Receivers | `pqsse/receiver/receiver.py` (`Receiver`) |
+| The owner of the documents | Data owner | `pqsse/owner/owner.py` (`Owner`) |
+| The people allowed to search | Receivers | `pqsse/receiver/receiver.py` (`Receiver`) |
 | The rented storage company | Cloud server (untrusted) | `pqsse/cloud/core.py` (`CloudCore`), `pqsse/cloud/server.py` |
 
 ## Locking documents
@@ -23,11 +23,11 @@ the group key.
 `pqsse/core/prims.py` (`aead_encrypt`, `group_subkeys`).
 
 **Simplification.** There is one key per group and per key period, not one per box. Each
-box also carries Alice's stamp, so a swapped box is noticed.
+box also carries the data owner's stamp, so a swapped box is noticed.
 
 ## Searching without unlocking
 
-**Analogy.** Alice leaves the cloud a lookup table written in a secret code. Bob asks
+**Analogy.** The data owner leaves the cloud a lookup table written in a secret code. Receiver A asks
 the cloud "what is stored at these secret addresses?" The cloud fetches, without knowing
 what the addresses stand for.
 
@@ -43,20 +43,20 @@ the same addresses are requested again.
 
 ## The sealed search slip
 
-**Analogy.** Bob writes the secret addresses on a slip and seals it so only the cloud
+**Analogy.** Receiver A writes the secret addresses on a slip and seals it so only the cloud
 can read it.
 
 **Real name.** Search token (TokenGen), encrypted with AES-256-GCM under a key derived
-from Bob's credential `a_u`.
+from Receiver A's credential `a_u`.
 
 **Code.** `Receiver._seal_request`, `CloudCore._open_request`.
 
-**Simplification.** Alice also knows Bob's credential, so she could read the slip too.
+**Simplification.** The data owner also knows Receiver A's credential, so the owner could read the slip too.
 She already knows everything in it.
 
 ## Stamps
 
-**Analogy.** Alice puts a tamper-proof stamp on everything she sends. The cloud stamps
+**Analogy.** The data owner puts a tamper-proof stamp on everything the owner sends. The cloud stamps
 its answers.
 
 **Real name.** Digital signatures with ML-DSA (FIPS 204).
@@ -65,7 +65,7 @@ its answers.
 
 ## Sealed envelopes for keys
 
-**Analogy.** Alice sends Bob his access pass in an envelope only Bob can open.
+**Analogy.** The data owner sends Receiver A their access pass in an envelope only Receiver A can open.
 
 **Real name.** Key encapsulation with ML-KEM (FIPS 203), then AES-256-GCM. The package
 is called the capability.
@@ -75,8 +75,8 @@ is called the capability.
 
 ## The stamped summary and the running fingerprint
 
-**Analogy.** Alice publishes a stamped note: "for each word there are this many entries,
-and their running fingerprint is this". Bob compares the cloud's answer with the note.
+**Analogy.** The data owner publishes a stamped note: "for each word there are this many entries,
+and their running fingerprint is this". Receiver A compares the cloud's answer with the note.
 
 **Real name.** The published state `ST_{g,e}` and a per-keyword hash chain
 `d_i = SHA3-256(d_{i-1}, address_i, value_i)`.
@@ -89,7 +89,7 @@ does not learn the exact number of different words.
 
 ## Checking the cloud's answer
 
-**Analogy.** Bob trusts Alice's stamp, not the cloud. Eight checks must pass before
+**Analogy.** Receiver A trusts the data owner's stamp, not the cloud. Eight checks must pass before
 anything is shown.
 
 **Real name.** Verify (Algorithm 8).
@@ -99,7 +99,7 @@ anything is shown.
 
 ## Freshness
 
-**Analogy.** Every stamped note has a "use by" time, and Bob remembers the newest note
+**Analogy.** Every stamped note has a "use by" time, and Receiver A remembers the newest note
 he has seen.
 
 **Real name.** Freshness window (delta) and version monotonicity.
@@ -107,7 +107,7 @@ he has seen.
 **Code.** `StateHeader.exp` and `StateHeader.ver` in `pqsse/core/state.py`.
 
 **Simplification.** Inside the time window, the cloud could still show the newest note
-Bob has already seen instead of an even newer one.
+Receiver A has already seen instead of an even newer one.
 
 ## New data and old searches
 
@@ -133,7 +133,7 @@ was, and it removes the deleted box.
 
 ## Changing the locks
 
-**Analogy.** When a doctor leaves, Alice changes the locks and gives new keys only to
+**Analogy.** When a receiver leaves, the data owner changes the locks and gives new keys only to
 the people still allowed in.
 
 **Real name.** Revocation with epoch rotation. Policy R rotates; policy RE rotates and
@@ -142,7 +142,7 @@ re-encrypts.
 **Code.** `Owner.revoke`, `Owner._rotate`, `CloudCore._ctl_deauth`,
 `CloudCore._ctl_epoch`, `Receiver._accept_rekey`.
 
-**Honest limit.** With policy R, a revoked doctor who colludes with the cloud can still
+**Honest limit.** With policy R, a revoked receiver who colludes with the cloud can still
 read data from before the revocation, because it is still locked with the old key.
 Policy RE re-locks everything and the cloud drops the old copies. See
 `tests/test_m2_revocation.py` and the Attack Lab scenario "Collusion: R vs RE".

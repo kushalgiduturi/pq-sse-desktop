@@ -85,7 +85,7 @@ def main() -> int:
              None, None, None, None, None, None, None, None, lambda: shot("inspector-revoke"),
              lambda: window.setProperty("inspectorOpen", False),
              lambda: page("workspace"), lambda: bridge.setRole("alice"), None, lambda: shot("workspace-alice"),
-             lambda: bridge.setRole("bob"), None, lambda: shot("workspace-bob"),
+             lambda: bridge.setRole("receiver-a"), None, lambda: shot("workspace-receiver"),
              lambda: bridge.setRole("cloud"), None, lambda: shot("workspace-cloud"),
              lambda: page("lab"), lambda: bridge.runAttack("modify"), lambda: bridge.runAttack("collusion"),
              lambda: lab().setProperty("chosen", "modify"), None, None, None, None, None, None, lambda: shot("lab"), lambda: page("insights"), lambda: bridge.runBuildBenchmark(True), None, None, lambda: shot("insights")]

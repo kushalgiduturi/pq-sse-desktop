@@ -25,8 +25,8 @@ GLOSSARY: dict[str, Entry] = {
     "sse": Entry(
         "Searchable encryption (SSE)",
         "A way to search through locked files without unlocking them.",
-        "SSE stands for searchable symmetric encryption. Alice locks her documents and also builds a locked "
-        "index. The cloud can use the index to find matching boxes when Bob sends a search slip, but it never "
+        "SSE stands for searchable symmetric encryption. The data owner locks their documents and also builds a locked "
+        "index. The cloud can use the index to find matching boxes when Receiver A sends a search slip, but it never "
         "sees the documents or the search word.",
         "The cloud still learns a little: how many entries matched, how big things are, and when requests happen."),
     "post-quantum": Entry(
@@ -39,13 +39,13 @@ GLOSSARY: dict[str, Entry] = {
     "ml-kem": Entry(
         "ML-KEM",
         "A post-quantum way to send a secret key to someone using only their public key.",
-        "ML-KEM (standard FIPS 203) is used whenever a secret must travel: Alice uses it to send Bob his "
+        "ML-KEM (standard FIPS 203) is used whenever a secret must travel: the data owner uses it to send Receiver A their "
         "access pass, and to send new keys after a revocation. Only the person holding the matching private "
         "key can open what was sent."),
     "ml-dsa": Entry(
         "ML-DSA",
         "A post-quantum digital signature: a stamp that proves who made something and that it was not changed.",
-        "ML-DSA (standard FIPS 204) is used for every stamp in the app. Alice stamps her updates, her "
+        "ML-DSA (standard FIPS 204) is used for every stamp in the app. The data owner stamps their updates, their "
         "documents and her published summaries. The cloud stamps its answers. Anyone with the public key "
         "can check a stamp, nobody else can make one."),
     "signature": Entry(
@@ -61,22 +61,22 @@ GLOSSARY: dict[str, Entry] = {
     "passphrase": Entry(
         "Passphrase",
         "The password that protects a role's keys on this computer.",
-        "Each role (Alice, each doctor, the cloud) stores its keys in its own file. The file is locked with a "
+        "Each role (the data owner, each receiver, the cloud) stores its keys in its own file. The file is locked with a "
         "key made from the passphrase, so the keys are never stored in readable form."),
     "ciphertext": Entry(
         "Ciphertext",
         "Locked data: it looks like random bytes to anyone without the key.",
-        "When Alice locks a document the result is ciphertext. The cloud stores ciphertext only. The readable "
+        "When the data owner locks a document the result is ciphertext. The cloud stores ciphertext only. The readable "
         "original is called plaintext."),
     "group": Entry(
         "Group",
-        "A folder of documents that share one lock, such as Finance or Medical.",
-        "Alice gives each doctor access to chosen groups. A doctor without a group's key can neither search "
+        "A folder of documents that share one lock, such as Finance or Legal.",
+        "The data owner gives each receiver access to chosen groups. A receiver without a group's key can neither search "
         "nor read that group."),
     "epoch": Entry(
         "Epoch",
         "A period during which a group uses one key; changing the locks starts a new epoch.",
-        "Every group starts at epoch 1. When Alice revokes someone she creates a new key, and the group "
+        "Every group starts at epoch 1. When the data owner revokes someone the owner creates a new key, and the group "
         "moves to the next epoch. People still allowed in receive the new key."),
     "segment": Entry(
         "Segment",
@@ -86,69 +86,69 @@ GLOSSARY: dict[str, Entry] = {
     "index": Entry(
         "Index",
         "A locked lookup table that lets the cloud find matching boxes without reading them.",
-        "For every word in every document Alice stores one entry at a secret-looking address. Without the "
+        "For every word in every document the data owner stores one entry at a secret-looking address. Without the "
         "group key the addresses and values are meaningless bytes."),
     "token": Entry(
         "Search token",
-        "A sealed search slip: Bob makes it, and only the cloud can read it.",
+        "A sealed search slip: Receiver A makes it, and only the cloud can read it.",
         "The token lists the secret addresses for one word. It is encrypted for the cloud, so nobody "
         "listening on the network learns anything. The cloud sees addresses, not the word.",
         "The cloud can notice when the same addresses are asked for again, so it can tell that a search was repeated."),
     "credential": Entry(
         "Credential",
-        "Bob's secret pass for talking to the cloud.",
-        "Alice gives the same secret to Bob and to the cloud when she approves him. Bob encrypts every "
-        "request with it. When Alice revokes Bob, the cloud stops accepting it."),
+        "Receiver A's secret pass for talking to the cloud.",
+        "The data owner gives the same secret to Receiver A and to the cloud when the owner approves them. Receiver A encrypts every "
+        "request with it. When the data owner revokes Receiver A, the cloud stops accepting it."),
     "capability": Entry(
         "Capability",
-        "Bob's access pass: a sealed package with the keys for the groups he may read.",
-        "Alice seals the capability with ML-KEM so that only Bob can open it, and stamps it so Bob knows it "
+        "Receiver A's access pass: a sealed package with the keys for the groups the receiver may read.",
+        "The data owner seals the capability with ML-KEM so that only Receiver A can open it, and stamps it so Receiver A knows it "
         "is genuine. It holds his credential and the group keys."),
     "hash-chain": Entry(
         "Hash chain",
         "A running fingerprint over all index entries of a word, in order.",
-        "Each new entry is mixed into the fingerprint of the entries before it. Alice publishes the final "
-        "fingerprint with her stamp. If the cloud changes, swaps or forges an entry, Bob's recomputed "
+        "Each new entry is mixed into the fingerprint of the entries before it. The data owner publishes the final "
+        "fingerprint with their stamp. If the cloud changes, swaps or forges an entry, Receiver A's recomputed "
         "fingerprint no longer matches."),
     "state": Entry(
         "Published state",
-        "Alice's stamped summary of the index: how many entries each word has, and their fingerprint.",
-        "The state is encrypted for group members and signed by Alice. Bob uses it to know exactly what a "
+        "The data owner's stamped summary of the index: how many entries each word has, and their fingerprint.",
+        "The state is encrypted for group members and signed by the data owner. Receiver A uses it to know exactly what a "
         "complete, untampered answer must look like. It carries a version number and an expiry time."),
     "freshness": Entry(
         "Freshness",
         "A guarantee that the answer is recent, not an old copy.",
-        "Every published state expires after a set time, and Bob remembers the newest version he has seen. "
+        "Every published state expires after a set time, and Receiver A remembers the newest version the receiver has seen. "
         "So the cloud cannot keep serving an old state forever.",
-        "Inside the time window the cloud could still show the newest state Bob has already seen instead of a newer one."),
+        "Inside the time window the cloud could still show the newest state Receiver A has already seen instead of a newer one."),
     "forward-privacy": Entry(
         "Forward privacy",
         "New data cannot be linked to searches made in the past.",
-        "When Alice adds a document, its index entries go to brand-new addresses. The search slips the cloud "
+        "When the data owner adds a document, its index entries go to brand-new addresses. The search slips the cloud "
         "saw earlier listed only old addresses, so the cloud cannot tell that the new document contains a "
         "word someone searched for before."),
     "backward-privacy": Entry(
         "Backward privacy",
         "Deleted documents stay hidden from later searches.",
         "A delete is stored as one more masked entry, so the cloud cannot tell which earlier entry it cancels. "
-        "Bob's app applies the deletes after checking the answer.",
+        "Receiver A's app applies the deletes after checking the answer.",
         "The cloud does see that an update happened, when, and how large it was."),
     "revocation": Entry(
         "Revocation",
         "Taking away someone's access: changing the locks and telling only the people still allowed in.",
-        "The cloud stops accepting the revoked doctor's pass at once, the group gets a new key, and everyone "
+        "The cloud stops accepting the revoked receiver's pass at once, the group gets a new key, and everyone "
         "else receives it. There are two policies, R and RE."),
     "policy-r": Entry(
         "Policy R (rotate)",
         "Change the key for everything written from now on; leave old data as it is.",
         "Fast and cheap. The honest limit: old data is still locked with the old key, which the revoked "
-        "doctor knows. If that doctor teams up with the cloud, they can still read what existed before the revocation."),
+        "receiver knows. If that receiver teams up with the cloud, they can still read what existed before the revocation."),
     "policy-re": Entry(
         "Policy RE (rotate and re-encrypt)",
         "Change the key and also re-lock every existing document with the new key.",
         "The cloud throws away the old copies, so the old key opens nothing that is still stored. This closes "
         "the gap of policy R, at the cost of re-locking and re-stamping every document.",
-        "RE cannot take back what the revoked doctor already downloaded or remembers."),
+        "RE cannot take back what the revoked receiver already downloaded or remembers."),
     "nonce": Entry(
         "Nonce",
         "A number used only once, so that two locked messages never look the same.",
@@ -162,7 +162,7 @@ GLOSSARY: dict[str, Entry] = {
     "pairing": Entry(
         "Pairing",
         "Exchanging public keys so that each side knows who it is talking to.",
-        "Alice, the cloud and each doctor export a small public key file. Importing each other's files is "
+        "The data owner, the cloud and each receiver export a small public key file. Importing each other's files is "
         "the one moment that needs a trusted path, like handing over a card in person."),
     "aes-gcm": Entry(
         "AES-256-GCM",

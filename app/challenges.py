@@ -1,7 +1,7 @@
 """Challenges: short practice tasks with automatic checking. No score, hints available.
 
 A challenge is complete when its check is true. Checks look at the narrator events seen
-so far and at Alice's own records, so they follow what really happened in the app.
+so far and at the data owner's own records, so they follow what really happened in the app.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def _receiver(session: Session, name: str) -> dict | None:
 
 
 def _carol_finance(session: Session, events: Sequence[Event]) -> bool:
-    carol = _receiver(session, "carol")
+    carol = _receiver(session, "receiver-b")
     return bool(carol) and not carol["revoked"] and carol["groups"] == ["Finance"]
 
 
@@ -38,7 +38,7 @@ def _found_invoice(session: Session, events: Sequence[Event]) -> bool:
 
 
 def _bob_revoked(session: Session, events: Sequence[Event]) -> bool:
-    bob = _receiver(session, "bob")
+    bob = _receiver(session, "receiver-a")
     return bool(bob) and bob["revoked"]
 
 
@@ -60,29 +60,29 @@ def _update_published(session: Session, events: Sequence[Event]) -> bool:
 
 
 CHALLENGES: list[Challenge] = [
-    Challenge("carol", "Let Carol read only Finance",
-              "Create the doctor Carol and have Alice approve her for the Finance group and nothing else.",
+    Challenge("receiver-b", "Let Receiver B read only Finance",
+              "Add Receiver B and have the data owner approve them for the Finance group and nothing else.",
               "Receiver tab: type carol and a passphrase, Unlock or create, Pair devices, Send join request. "
               "Owner tab: Refresh join requests, Approve selected, tick only Finance.", _carol_finance),
     Challenge("invoice", "Find a document containing 'invoice'",
-              "As a doctor who belongs to Finance, search for the word invoice and get at least one verified result.",
-              "Receiver tab: choose the group Finance, type invoice, press Search. If the doctor was just approved, "
+              "As a receiver who belongs to Finance, search for the word invoice and get at least one verified result.",
+              "Receiver tab: choose the group Finance, type invoice, press Search. If the receiver was just approved, "
               "press Fetch mailbox first.", _found_invoice),
-    Challenge("revoke", "Revoke Bob so he can no longer search",
-              "Take Bob's access away. Afterwards a search by Bob must be refused.",
+    Challenge("revoke", "Revoke Receiver A so the receiver can no longer search",
+              "Take Receiver A's access away. Afterwards a search by Receiver A must be refused.",
               "Owner tab: select bob under Approved receivers, choose a policy, press Revoke selected receiver, confirm.",
               _bob_revoked),
     Challenge("attack", "Make an attack get caught",
               "Run any attack in the Attack Lab and see which check stops it.",
               "Attack Lab tab: select a row, press Run selected attack.", _attack_caught),
     Challenge("compare", "Compare policy R and policy RE",
-              "Find out what a revoked doctor can still read with the cloud's help under each policy.",
+              "Find out what a revoked receiver can still read with the cloud's help under each policy.",
               "Attack Lab tab: run 'Collusion: R vs RE' and read the two numbers.", _compared),
     Challenge("cloudview", "Look at a document as the cloud sees it",
               "Display one stored document exactly the way the cloud holds it.",
               "Learn tab, page 'Who sees what': press 'Show a document as the cloud sees it'.", _cloud_view),
     Challenge("update", "Add a document and make it searchable",
-              "As Alice, add a document to a group and publish, so doctors can find it.",
+              "As the data owner, add a document to a group and publish, so receivers can find it.",
               "Owner tab: select a group, Add document, then press Publish.", _update_published),
 ]
 

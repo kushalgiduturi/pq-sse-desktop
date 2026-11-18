@@ -17,8 +17,8 @@ Item {
     readonly property real lane: width - 150
     readonly property var stored: app.state.cloud ? app.state.cloud.storedEntries : []
 
-    Avatar { who: anim.record ? anim.record.who : "Bob"; size: 38; x: 4; y: 32
-             color: Theme.roleColor(anim.record && anim.record.tag === "receiver" ? anim.record.who : "bob") }
+    Avatar { who: anim.record ? anim.record.who : "Receiver A"; size: 38; x: 4; y: 32
+             color: Theme.roleColor(anim.record && anim.record.tag === "receiver" ? anim.record.who : "receiver-a") }
     Avatar { who: "Cloud"; size: 38; x: parent.width - 132; y: 6 }
 
     // the word stays on the doctor's side

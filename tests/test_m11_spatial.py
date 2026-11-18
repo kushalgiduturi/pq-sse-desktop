@@ -61,7 +61,7 @@ def strings(value) -> list[str]:
 def test_every_event_kind_has_inspector_content_with_four_layers():
     assert set(ui_copy.INSPECT) == set(narrator.STORIES)
     for kind in narrator.STORIES:
-        record = inspector.build(narrator.Event(kind, "Bob", {}, time.time()))
+        record = inspector.build(narrator.Event(kind, "Receiver A", {}, time.time()))
         assert record["anim"] in inspector.ANIMATIONS, kind
         assert len(record["steps"]) >= 1, kind
         for name, text in inspector.layers(record).items():
@@ -78,7 +78,7 @@ def test_all_ten_algorithms_have_an_inspector_timeline():
             by_algorithm.setdefault(number, []).append(kind)
     assert sorted(by_algorithm) == list(range(1, 11))
     for number, kinds in by_algorithm.items():
-        record = inspector.build(narrator.Event(kinds[0], "Bob", {}, 0.0))
+        record = inspector.build(narrator.Event(kinds[0], "Receiver A", {}, 0.0))
         assert narrator.ALGORITHMS[number] in record["technical"]
         assert len(record["steps"]) >= 3, (number, kinds[0])
         assert record["algorithm"] == number
@@ -100,9 +100,9 @@ def test_every_attack_has_an_inspector_timeline():
 
 
 def test_honest_limits_are_in_the_inspector_text():
-    revoke = inspector.build(narrator.Event("revoke", "Bob", {"policy": "R", "groups": ["Finance"]}, 0.0))
+    revoke = inspector.build(narrator.Event("revoke", "Receiver A", {"policy": "R", "groups": ["Finance"]}, 0.0))
     assert "teams up with the cloud" in revoke["safe"] and "Policy RE" in revoke["safe"]
-    build = inspector.build(narrator.Event("build_index", "Alice", {"engine": "GPU", "docs": 4, "entries": 43}, 0.0))
+    build = inspector.build(narrator.Event("build_index", "The data owner", {"engine": "GPU", "docs": 4, "entries": 43}, 0.0))
     assert any("ML-KEM and ML-DSA always run on the CPU" in line for line in build["hood"])
     assert "picture" in build["metaphor"].lower()
     assert ui_copy.T["revokeQuickNote"].startswith("Honest limit")
@@ -137,10 +137,10 @@ def test_practice_copies_are_labelled_and_the_real_system_is_not():
     seen: list[narrator.Event] = []
     stop = narrator.subscribe(seen.append)
     try:
-        narrator.emit("group", "Alice", g="Finance")
+        narrator.emit("group", "The data owner", g="Finance")
         with narrator.scope("practice"):
-            narrator.emit("group", "Alice", g="Finance")
-        narrator.emit("group", "Alice", g="Finance")
+            narrator.emit("group", "The data owner", g="Finance")
+        narrator.emit("group", "The data owner", g="Finance")
         assert [e.scope for e in seen] == ["", "practice", ""]
         seen.clear()
         attacklab.run_scenario("replay")
@@ -164,9 +164,9 @@ def test_bridge_runs_the_real_flow_and_never_exposes_secrets(qapp):
         assert len(done) == 8 and changes
         state = bridge.state
         assert bridge.practice and bridge.cloudRunning
-        assert [g["name"] for g in state["owner"]["groups"]] == ["Finance", "Medical"]
+        assert [g["name"] for g in state["owner"]["groups"]] == ["Finance", "Legal"]
         assert all(len(g["docs"]) == 4 and not g["dirty"] for g in state["owner"]["groups"])
-        assert state["owner"]["people"][0]["name"] == "bob" and state["owner"]["people"][0]["groups"] == ["Finance"]
+        assert state["owner"]["people"][0]["name"] == "receiver-a" and state["owner"]["people"][0]["groups"] == ["Finance"]
         bob = state["receivers"][0]
         assert bob["open"] and bob["joined"] and bob["groups"] == ["Finance"]
         assert bob["result"]["keyword"] == lesson.SEARCH_WORD and len(bob["result"]["hits"]) == 2
@@ -185,28 +185,28 @@ def test_bridge_runs_the_real_flow_and_never_exposes_secrets(qapp):
         # The workspace actions on the same system: a new document, publish, a second doctor.
         bridge.addDocument("Finance", "Invoice 2000, test", "An invoice for a test device.")
         bridge.publish("Finance")
-        bridge.openReceiver("Carol", "lesson")
-        bridge.pairReceiver("carol")
-        bridge.sendJoin("carol")
+        bridge.openReceiver("receiver-b", "lesson")
+        bridge.pairReceiver("receiver-b")
+        bridge.sendJoin("receiver-b")
         pending = bridge.state["owner"]["pending"]
-        assert [p["name"] for p in pending] == ["carol"] and pending[0]["fingerprint"]
-        bridge.approveJoin(pending[0]["uid"], ["Medical"])
-        bridge.fetchMail("carol")
-        bridge.search("carol", "Medical", "allergy")
-        carol = next(r for r in bridge.state["receivers"] if r["name"] == "carol")
-        assert carol["groups"] == ["Medical"] and len(carol["result"]["hits"]) == 1
+        assert [p["name"] for p in pending] == ["receiver-b"] and pending[0]["fingerprint"]
+        bridge.approveJoin(pending[0]["uid"], ["Legal"])
+        bridge.fetchMail("receiver-b")
+        bridge.search("receiver-b", "Legal", "confidential")
+        carol = next(r for r in bridge.state["receivers"] if r["name"] == "receiver-b")
+        assert carol["groups"] == ["Legal"] and len(carol["result"]["hits"]) == 1
         hit = carol["result"]["hits"][0]
-        bridge.openDocument("carol", "Medical", hit["id"], hit["epoch"])
-        carol = next(r for r in bridge.state["receivers"] if r["name"] == "carol")
-        assert "penicillin" in carol["opened"]["text"]
+        bridge.openDocument("receiver-b", "Legal", hit["id"], hit["epoch"])
+        carol = next(r for r in bridge.state["receivers"] if r["name"] == "receiver-b")
+        assert "confidential" in carol["opened"]["text"]
         assert failures == []
 
         # A refused action gives the three-part message, not an exception.
-        bridge.search("carol", "Finance", "invoice")
+        bridge.search("receiver-b", "Finance", "invoice")
         assert len(failures) == 1
         assert all(failures[0][part] for part in ("what", "why", "next", "technical"))
         bridge.revoke(pending[0]["uid"], "RE")
-        assert next(p for p in bridge.state["owner"]["people"] if p["name"] == "carol")["revoked"]
+        assert next(p for p in bridge.state["owner"]["people"] if p["name"] == "receiver-b")["revoked"]
 
         # Nothing that reaches QML may contain key material.
         everything = strings(bridge.state) + strings(bridge.events.records) + strings(bridge.paletteItems) + strings(failures)
@@ -370,7 +370,7 @@ def test_security_lab_tasks_and_challenges_through_the_bridge(qapp):
         bridge.checkLessonStep(1)
         assert bridge.lessonCheck["ok"] is True and bridge.task == {} and "cloud" in bridge.lessonDone
         for key, (where, text) in ui_copy.TRY.items():
-            assert key in {s.key for s in lesson.STEPS} and where in ("alice", "bob", "cloud", "lab") and text
+            assert key in {s.key for s in lesson.STEPS} and where in ("alice", "receiver-a", "cloud", "lab") and text
 
         for index in range(2, 6):
             bridge.runLessonStep(index)
@@ -442,7 +442,7 @@ def test_welcome_terms_and_palette_extras(qapp):
         assert bridge.showWelcome is False and navigations == ["journey"] and bridge.lessonStep == 0
         bridge.runPalette("welcome")
         assert welcomes == [1] and bridge.showWelcome is True
-        record = inspector.build(narrator.Event("join.approved", "Bob", {"groups": ["Finance"]}, 0.0))
+        record = inspector.build(narrator.Event("join.approved", "Receiver A", {"groups": ["Finance"]}, 0.0))
         keys = [term["key"] for term in record["terms"]]
         assert "ml-kem" in keys and "ml-dsa" in keys and all(key in glossary.GLOSSARY for key in keys)
     finally:
@@ -481,16 +481,16 @@ def test_update_and_revoke_have_their_own_animation_and_facts():
     try:
         world = World()
         world.owner.create_group("Finance")
-        bob = world.join("bob", ["Finance"])
-        world.join("carol", ["Finance"])
+        bob = world.join("receiver-a", ["Finance"])
+        world.join("receiver-b", ["Finance"])
         world.owner.revoke(bob.uid, "R")
     finally:
         stop()
     revoke = next(e for e in seen if e.kind == "revoke")
-    assert revoke.data["remaining"] == ["carol"] and revoke.data["groups"] == ["Finance"]
+    assert revoke.data["remaining"] == ["Receiver B"] and revoke.data["groups"] == ["Finance"]
     record = inspector.build(revoke)
-    assert "carol" in record["steps"][-1]
-    alone = inspector.build(narrator.Event("revoke", "Bob", {"policy": "R", "groups": ["Finance"], "remaining": []}, 0.0))
+    assert "Receiver B" in record["steps"][-1]
+    alone = inspector.build(narrator.Event("revoke", "Receiver A", {"policy": "R", "groups": ["Finance"], "remaining": []}, 0.0))
     assert alone["steps"][-1].endswith("none.")
 
 

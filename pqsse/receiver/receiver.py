@@ -132,7 +132,7 @@ class Receiver:
         self._me["owner_pub"] = owner.to_wire()
         self._me["cloud_pub"] = cloud.to_wire()
         self._save()
-        narrator.emit("pair", self.name, other="Alice and the cloud")
+        narrator.emit("pair", self.name, other="The data owner and the cloud")
 
     @property
     def paired(self) -> bool:
@@ -235,13 +235,13 @@ class Receiver:
     def _cap(self) -> dict:
         cap = self._me["cap"]
         if cap is None:
-            raise AccessDenied("this doctor has not been approved by Alice yet (no access pass received)")
+            raise AccessDenied("this receiver has not been approved by the data owner yet (no access pass received)")
         return cap
 
     def _group_keys(self, g: str) -> dict[int, bytes]:
         group = self._cap()["groups"].get(g)
         if group is None:
-            raise AccessDenied(f"{g} is not one of the groups Alice approved for this doctor")
+            raise AccessDenied(f"{g} is not one of the groups the data owner approved for this receiver")
         return {int(e): k for e, k in group["keys"].items()}
 
     def _seal_request(self, endpoint: str, req: dict) -> bytes:
@@ -486,11 +486,11 @@ def describe_rejection(exc: Rejected) -> str:
         "no_such_doc": "The document is no longer stored at the cloud.",
         "bad_segment": "The requested segment was dropped (group re-encrypted).",
         "unknown_group": "The cloud does not know this group.",
-        "bad_signature": "The cloud refused this: it does not carry a valid stamp (signature) from Alice.",
+        "bad_signature": "The cloud refused this: it does not carry a valid stamp (signature) from the data owner.",
         "bad_sequence": "The cloud refused this update: it is a repeat, or it arrived out of order.",
         "stale_state": "The cloud refused this summary: it is not newer than the one already stored.",
         "bad_epoch": "The cloud refused this: it belongs to a different key period (epoch) of the group.",
-        "not_paired": "The cloud is not paired with Alice yet, so it cannot check her stamps.",
+        "not_paired": "The cloud is not paired with the data owner yet, so it cannot check their stamps.",
         "group_exists": "A group with this name already exists.",
         "pairing": "Pairing was refused: the key file does not fit (wrong role, wrong settings, or another owner is already paired).",
         "malformed": "The cloud could not read the request.",

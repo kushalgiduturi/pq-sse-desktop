@@ -34,7 +34,7 @@ Item {
     readonly property string aliceNext: !owner.open || !owner.paired ? "keys" : owner.groups.length === 0 || owner.pending.length > 0 ? "people"
                                       : owner.groups.some(function (g) { return g.dirty }) ? "publish" : "documents"
     readonly property string doctorNext: !doctor.open ? "keys" : !doctor.joined ? "join" : "search"
-    function cap(s) { return s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s }
+    function cap(s) { void app.teachingNames; return app.displayName(s) }   // reading teachingNames re-runs bindings when it changes
     function fill(text, map) { for (var k in map) text = text.split("{" + k + "}").join(map[k]); return text }
     function ticked(uid, g) { return (approve[uid] || []).indexOf(g) >= 0 }
     function tick(uid, g) {
@@ -264,7 +264,7 @@ Item {
                             id: pend
                             required property var modelData
                             width: parent.width; spacing: 6
-                            Lbl { width: parent.width; text: page.cap(pend.modelData.name) + " asks to join. Key fingerprint: " + pend.modelData.fingerprint; strong: true }
+                            Lbl { width: parent.width; text: page.fill(T.joinRequestLine, { who: page.cap(pend.modelData.name), fp: pend.modelData.fingerprint }); strong: true }
                             Flow { width: parent.width; spacing: 8
                                    Repeater { model: page.owner.groups
                                               Pick { required property var modelData; text: modelData.name; selected: page.ticked(pend.modelData.uid, modelData.name)

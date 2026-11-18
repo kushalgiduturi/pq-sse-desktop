@@ -20,7 +20,7 @@ INTRO = ("Each demo builds its own small owner, cloud and receivers in memory (y
          "runs an honest baseline, then lets a malicious cloud or attacker tamper, and shows which check stops it. "
          "The demos use ML-KEM-512 and ML-DSA-44 so they finish in about a second.")
 STORY = ("<b>Here the cloud, or an outsider, tries to cheat.</b> Pick an attack to read what the attacker tries, run it, "
-         f"and see which check catches it. The checks rely on Alice's {term('signature', 'stamp')} and the "
+         f"and see which check catches it. The checks rely on the data owner's {term('signature', 'stamp')} and the "
          f"{term('hash-chain', 'running fingerprint')} of the index.")
 UNPROTECTED_NOTE = ("\n\nThis is an explanation only. The app's checks were not switched off, and no weaker version "
                     "of the system was run.")
@@ -61,7 +61,7 @@ class AttackTab(TabBase):
 
         self.caught = QLabel("Which check caught it: run an attack to see.")
         self.caught.setWordWrap(True)
-        checks_box = QGroupBox("Bob's Verify checks during the attack")
+        checks_box = QGroupBox("Receiver A's Verify checks during the attack")
         grid = QGridLayout(checks_box)
         self.lights: dict[str, Light] = {}
         for i, name in enumerate(CHECKS):

@@ -24,7 +24,7 @@ from .pqbackend import FAST_PARAMS
 from .sandbox import World
 from .transport import InProcessCloud
 
-LAB_VOCAB = ["invoice", "contract", "patient", "salary", "merger", "audit", "roadmap", "password"]
+LAB_VOCAB = ["invoice", "contract", "report", "salary", "merger", "audit", "roadmap", "password"]
 GROUP = "lab"
 
 
@@ -80,7 +80,7 @@ def _lab(seed: int = 1, docs: int = 12) -> Lab:
     tamper = TamperCloud(world.cloud, seed=seed)
     recorder = Recorder(InProcessCloud(world.cloud))
     tamper.inner = recorder
-    bob = world.join("bob", [GROUP], api=tamper)
+    bob = world.join("receiver-a", [GROUP], api=tamper)
     return Lab(world, tamper, recorder, bob, LAB_VOCAB[0])
 
 
@@ -98,7 +98,7 @@ def _search_attack(key: str, title: str, mode: str, story: str) -> Outcome:
     except VerifyError as exc:
         out.say(f"What the cloud did: {lab.tamper.note}.")
         out.say(f"Receiver Verify failed at check '{exc.check}': {exc.detail}.")
-        out.caught(exc.check, f"the '{exc.check}' check in Bob's Verify step", exc)
+        out.caught(exc.check, f"the '{exc.check}' check in Receiver A's Verify step", exc)
         out.passed, out.verdict = True, f"DETECTED by the '{exc.check}' check. No result was shown to the user."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -138,7 +138,7 @@ def substitute_document() -> Outcome:
     except VerifyError as exc:
         out.say(f"Receiver Decrypt refused: {exc}.")
         out.say("The owner's signature covers group, epoch and the document handle, so a swap cannot verify.")
-        out.caught(exc.check, "Alice's stamp (signature) on the document, checked in Bob's Decrypt step")
+        out.caught(exc.check, "The data owner's stamp (signature) on the document, checked in Receiver A's Decrypt step")
         out.passed, out.verdict = True, "DETECTED by the owner's document signature."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -182,7 +182,7 @@ def forge_update() -> Outcome:
         lab.world.api.call("update", {"msg": forged, "sig": signing.sign_bytes(lab.world.params, attacker_sk, "batch", forged)})
     except Rejected as exc:
         out.say(f"Cloud answer: rejected, reason '{exc.reason}' ({exc.detail}).")
-        out.caught(exc.reason, "Alice's stamp (signature) on every update, checked by the cloud")
+        out.caught(exc.reason, "The data owner's stamp (signature) on every update, checked by the cloud")
         out.passed, out.verdict = True, "REJECTED: only batches signed by the owner's ML-DSA key are accepted."
     else:
         out.verdict = "ACCEPTED (this would be a bug)"
@@ -206,7 +206,7 @@ def rollback_state() -> Outcome:
         lab.bob.search(GROUP, lab.keyword)
     except VerifyError as exc:
         out.say(f"Receiver Verify failed at check '{exc.check}': {exc.detail}.")
-        out.caught(exc.check, f"the '{exc.check}' check in Bob's Verify step", exc)
+        out.caught(exc.check, f"the '{exc.check}' check in Receiver A's Verify step", exc)
         out.passed, out.verdict = True, "DETECTED: the receiver remembers the highest version it has seen."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -229,7 +229,7 @@ def expired_state() -> Outcome:
         lab.world.owner.publish(GROUP)
         again = lab.bob.search(GROUP, lab.keyword)
         out.say(f"After the owner republishes, search works again ({len(again.hits)} documents).")
-        out.caught(exc.check, f"the '{exc.check}' check in Bob's Verify step", exc)
+        out.caught(exc.check, f"the '{exc.check}' check in Receiver A's Verify step", exc)
         out.passed, out.verdict = True, "DETECTED: a state older than the freshness window is refused."
     else:
         out.verdict = "NOT DETECTED (this would be a bug)"
@@ -239,7 +239,7 @@ def expired_state() -> Outcome:
 def revoked_retry() -> Outcome:
     out = Outcome("revoked", "Revoked user retries search")
     lab = _lab()
-    carol = lab.world.join("carol", [GROUP])
+    carol = lab.world.join("receiver-b", [GROUP])
     recorder = Recorder(lab.world.api)
     carol.cloud = recorder
     before = carol.search(GROUP, lab.keyword)
@@ -259,7 +259,7 @@ def revoked_retry() -> Outcome:
     still = lab.bob.search(GROUP, lab.keyword)
     out.say(f"bob, who was not revoked, still gets {len(still.hits)} documents in the new epoch.")
     if all(reasons):
-        out.caught(reasons[0], "the cloud's check of the doctor's pass (credential)")
+        out.caught(reasons[0], "the cloud's check of the receiver's pass (credential)")
         out.passed, out.verdict = True, "REJECTED: the cloud deauthorized the credential, old tokens are dead."
     else:
         out.verdict = "ACCEPTED (this would be a bug)"
@@ -318,49 +318,49 @@ def collusion_demo() -> Outcome:
 # it is an explanation only, no code path is weakened to produce it.
 TEACH: dict[str, dict[str, str]] = {
     "drop": {
-        "tries": "The cloud quietly leaves one matching document out of Bob's search answer.",
-        "without": "Bob would believe the shorter list. A missing invoice or a missing allergy note would go unnoticed.",
-        "unprotected": "An unprotected system would show Bob the shorter list as if it were complete."},
+        "tries": "The cloud quietly leaves one matching document out of Receiver A's search answer.",
+        "without": "Receiver A would believe the shorter list. A missing invoice or a missing contract would go unnoticed.",
+        "unprotected": "An unprotected system would show Receiver A the shorter list as if it were complete."},
     "modify": {
         "tries": "The cloud changes one entry in the answer so that it points somewhere else.",
-        "without": "Bob could be sent to the wrong document, or lose a real match, without any warning.",
-        "unprotected": "An unprotected system would unmask the changed entry and show Bob a wrong document number."},
+        "without": "Receiver A could be sent to the wrong document, or lose a real match, without any warning.",
+        "unprotected": "An unprotected system would unmask the changed entry and show Receiver A a wrong document number."},
     "reorder": {
         "tries": "The cloud swaps two entries of the answer.",
         "without": "Order matters: a delete applied before its add would bring a deleted document back to life.",
         "unprotected": "An unprotected system would apply the entries in the wrong order and could list a deleted document."},
     "truncate": {
         "tries": "The cloud cuts off the end of the answer, hiding the newest entries.",
-        "without": "Bob would see an old picture: new documents missing, and deleted ones still listed.",
+        "without": "Receiver A would see an old picture: new documents missing, and deleted ones still listed.",
         "unprotected": "An unprotected system would show only the older part of the results."},
     "substitute": {
-        "tries": "When Bob asks for one document, the cloud hands him a different, genuine one.",
-        "without": "Bob would read the wrong record believing it is the one he asked for. In a hospital that is dangerous.",
+        "tries": "When Receiver A asks for one document, the cloud hands them a different, genuine one.",
+        "without": "Receiver A would read the wrong record believing it is the one the receiver asked for. With real records that is dangerous.",
         "unprotected": "An unprotected system would unlock and display the other document under the wrong name."},
     "replay": {
-        "tries": "An attacker records one of Alice's updates and sends the same update to the cloud again.",
+        "tries": "An attacker records one of the data owner's updates and sends the same update to the cloud again.",
         "without": "Old changes could be applied twice or brought back later, corrupting the index.",
         "unprotected": "An unprotected system would store the same entries a second time."},
     "forge": {
-        "tries": "An attacker invents an update and signs it with their own key, pretending to be Alice.",
-        "without": "Anyone could plant fake index entries or fake documents in Alice's name.",
-        "unprotected": "An unprotected system would store the fake entry next to Alice's real ones."},
+        "tries": "An attacker invents an update and signs it with their own key, pretending to be the data owner.",
+        "without": "Anyone could plant fake index entries or fake documents in the data owner's name.",
+        "unprotected": "An unprotected system would store the fake entry next to the data owner's real ones."},
     "rollback": {
-        "tries": "The cloud shows Bob an older, genuinely stamped summary of the index to hide a new document.",
-        "without": "Bob would keep getting yesterday's answers and never learn that anything changed.",
+        "tries": "The cloud shows Receiver A an older, genuinely stamped summary of the index to hide a new document.",
+        "without": "Receiver A would keep getting yesterday's answers and never learn that anything changed.",
         "unprotected": "An unprotected system would accept the old summary because its stamp is genuine."},
     "expired": {
         "tries": "The cloud keeps serving a summary after its expiry time.",
-        "without": "A doctor who was offline for a while could be fed stale data for as long as the cloud likes.",
+        "without": "A receiver who was offline for a while could be fed stale data for as long as the cloud likes.",
         "unprotected": "An unprotected system would accept the old summary forever."},
     "revoked": {
-        "tries": "Carol, whose access Alice took away, tries to search again and replays an old search slip.",
-        "without": "Revocation would mean nothing: a removed doctor could go on searching.",
+        "tries": "Receiver B, whose access the data owner took away, tries to search again and replays an old search slip.",
+        "without": "Revocation would mean nothing: a removed receiver could go on searching.",
         "unprotected": "An unprotected system would answer the old search slip as before."},
     "collusion": {
-        "tries": "A revoked doctor kept the old group key and teams up with the cloud, which hands over everything it stores.",
+        "tries": "A revoked receiver kept the old group key and teams up with the cloud, which hands over everything it stores.",
         "without": "With policy R alone, documents from before the revocation stay readable to that pair. Policy RE re-locks them.",
-        "unprotected": "Without any key change, the revoked doctor and the cloud together could read everything, old and new."},
+        "unprotected": "Without any key change, the revoked receiver and the cloud together could read everything, old and new."},
 }
 
 

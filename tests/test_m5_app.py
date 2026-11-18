@@ -107,7 +107,7 @@ def test_app_end_to_end_offscreen(qapp, tmp_path):
 
         # Receiver tab: two users, join, approve with group choice
         uids = {}
-        for name in ("alice", "bob"):
+        for name in ("alice", "receiver-a"):
             win.receiver_tab.unlock(name, name + "-pass")
             assert win.receiver_tab.current == name
             win.receiver_tab.pair()
@@ -117,7 +117,7 @@ def test_app_end_to_end_offscreen(qapp, tmp_path):
         win.owner_tab.refresh_joins()
         assert win.owner_tab.join_table.rowCount() == 2
         win.owner_tab.approve(uids["alice"], ["research"])
-        win.owner_tab.approve(uids["bob"], ["research", "finance"])
+        win.owner_tab.approve(uids["receiver-a"], ["research", "finance"])
         assert win.owner_tab.receiver_table.rowCount() == 2 and win.owner_tab.join_table.rowCount() == 0
 
         win.receiver_tab.switch_user("alice")
@@ -163,13 +163,13 @@ def test_app_end_to_end_offscreen(qapp, tmp_path):
         assert "revoked by the data owner" in win.receiver_tab.message.text()
         assert all(win.receiver_tab.lights[name].color == GREY for name in CHECKS)
         assert win.receiver_tab.results.count() == 0
-        win.receiver_tab.switch_user("bob")
+        win.receiver_tab.switch_user("receiver-a")
         win.receiver_tab.fetch_mail()
         win.receiver_tab.search("research", "lattice")
         assert win.receiver_tab.results.count() == 1 and win.receiver_tab.lights["hash chain"].color == GREEN
         win.owner_tab.groups.setCurrentRow(1)
         assert win.owner_tab.segments.rowCount() == 2          # epoch 1 final, epoch 2 current
-        win.owner_tab.revoke(uids["bob"], "RE")
+        win.owner_tab.revoke(uids["receiver-a"], "RE")
         win.owner_tab.groups.setCurrentRow(1)
         assert win.owner_tab.segments.rowCount() == 1
 

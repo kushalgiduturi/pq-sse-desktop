@@ -1,4 +1,4 @@
-"""Animated data-flow diagram: Alice, the doctors and the Cloud, with packets moving between them.
+"""Animated data-flow diagram: the data owner, the receivers and the Cloud, with packets moving between them.
 
 Every packet is also listed as text under the diagram, so nothing depends on watching the
 animation. With "Reduce motion" a packet appears at its destination without moving.
@@ -15,14 +15,14 @@ from pqsse.narrator import Packet
 from .story import TAG_COLORS
 
 NODES = {
-    "alice": (QPointF(20, 20), "Alice\ndata owner", TAG_COLORS["alice"]),
-    "receiver": (QPointF(20, 150), "Doctors\nBob, Carol", TAG_COLORS["receiver"]),
+    "alice": (QPointF(20, 20), "The data owner\ndata owner", TAG_COLORS["alice"]),
+    "receiver": (QPointF(20, 150), "Receivers\nReceiver A, Receiver B", TAG_COLORS["receiver"]),
     "cloud": (QPointF(300, 85), "Cloud\nstorage, not trusted", TAG_COLORS["cloud"]),
 }
 NODE_W, NODE_H = 130, 54
 ICON_MEANING = {"BOX": "locked data", "STAMP": "signed message", "SLIP": "sealed search slip", "KEY": "sealed key", "NOTE": "notice"}
 NORMAL_MS, SLOW_MS = 1300, 4200
-PARTY = {"alice": "Alice", "receiver": "the doctor", "cloud": "the Cloud"}
+PARTY = {"alice": "The data owner", "receiver": "the receiver", "cloud": "the Cloud"}
 
 
 def describe(packet: Packet, who: str = "") -> str:
@@ -56,7 +56,7 @@ class FlowView(QWidget):
         self.view.setBackgroundBrush(QBrush(QColor("#f7f9fc")))
         self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.view.setMinimumHeight(200)
-        self.view.setAccessibleName("Data-flow diagram: Alice, the doctors and the Cloud")
+        self.view.setAccessibleName("Data-flow diagram: the data owner, the receivers and the Cloud")
         self._draw_nodes()
         self.scene.selectionChanged.connect(self._selection)
         self.anim = QVariantAnimation(self)

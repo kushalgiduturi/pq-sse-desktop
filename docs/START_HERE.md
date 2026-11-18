@@ -5,23 +5,25 @@ five minutes.
 
 ## The idea in one sentence
 
-**Alice keeps her files locked, yet Bob can still search them through the cloud, and the
-cloud learns almost nothing, even against future quantum computers.**
+**The data owner keeps documents encrypted, yet approved receivers can still search them through the cloud server, and the server learns almost nothing, even against future quantum computers.**
 
-## The story
+## The three roles
 
-| Who | In the story | In the app |
-| --- | --- | --- |
-| **Alice** | A hospital records manager | The **Data Owner**. She owns the documents and decides who may read what. |
-| **Bob** and **Carol** | Doctors | **Receivers**. They may search and read only the documents Alice allows. |
-| **The Cloud** | A rented storage company | Stores everything for Alice, but is **not trusted**: it might peek, lie, drop results or send old data. |
+| Role | In the app |
+| --- | --- |
+| **Data owner** | Owns the documents and holds the keys. Decides who may search which group. |
+| **Receiver** | May search and read only the groups the data owner approved. |
+| **Cloud server** | Stores everything for the data owner, but is **not trusted**: it might peek, lie, drop results or send old data. |
+
+The guided lesson can show a small cast instead of these role names (the option "Teaching names" in
+Journey, off by default): Alice is the data owner, Bob and Carol are receivers.
 
 Think of it like this:
 
 - Documents are **letters in locked boxes**.
 - A keyword search is **asking the cloud to find boxes without opening them**.
-- A search token is **a sealed search slip** only a doctor can make and only the cloud can read.
-- A signature is **Alice's tamper-proof stamp**.
+- A search token is **a sealed search slip** only a receiver can make and only the cloud can read.
+- A signature is **the data owner's tamper-proof stamp**.
 - Revocation is **changing the locks** and telling only the people still allowed in.
 
 ## The 5-minute guided path
@@ -46,17 +48,17 @@ Your own data is never touched, and **Reset lesson** gives you a clean start.
 
 ## After the lesson you can answer
 
-- **What does Alice do?** She locks her documents, builds a locked index, stamps
+- **What does the data owner do?** The owner locks their documents, builds a locked index, stamps
   everything she sends, and decides who gets which key.
-- **What does Bob do?** He sends a sealed search slip, checks the cloud's answer against
-  what Alice stamped, and only then unlocks the documents he is allowed to read.
+- **What does Receiver A do?** The receiver sends a sealed search slip, checks the cloud's answer against
+  what the data owner stamped, and only then unlocks the documents the receiver is allowed to read.
 - **What does the Cloud see?** Locked bytes, sizes, counts, timing, and which secret
   addresses are asked for. No words, no titles, no text, no keys.
 - **Why can the cloud not read the data?** It never receives a group key. Without the
   key, a locked box is just random-looking bytes.
 - **What happens when someone is revoked?** The cloud stops accepting their pass, the
-  group gets a new key, and only the doctors who stay receive it.
-- **What if the cloud cheats?** A check fails on Bob's side and nothing is shown. The
+  group gets a new key, and only the receivers who stay receive it.
+- **What if the cloud cheats?** A check fails on Receiver A's side and nothing is shown. The
   Attack Lab lets you watch that happen.
 
 ## Questions people ask
@@ -74,7 +76,7 @@ state of the art, not a guarantee.
 
 **Why do I need a GPU?**
 You do not. The app works fully without one and gives the same results. A graphics chip
-only speeds up one thing: computing the many secret addresses when Alice builds a large
+only speeds up one thing: computing the many secret addresses when the data owner builds a large
 index. It does **not** speed up the post-quantum steps (ML-KEM and ML-DSA), which always
 run on the normal processor. For small amounts of data the GPU is not faster at all, and
 the Benchmarks tab shows the measured numbers honestly.
@@ -82,7 +84,7 @@ the Benchmarks tab shows the measured numbers honestly.
 **What does the cloud actually know?**
 More than nothing, and it is worth being precise:
 - how many documents and index entries exist, and how big they are;
-- group names, how many doctors exist and which groups each may ask about;
+- group names, how many receivers exist and which groups each may ask about;
 - when requests happen, and whether the same search was made before (the same addresses
   are asked for again), and how many entries matched;
 - that an update happened and how large it was.
@@ -92,9 +94,9 @@ It does not know the search words, the documents, their titles, or any key.
 **What is the catch with revocation?**
 There are two ways to revoke. **Policy R** changes the key for everything written from
 now on. It is quick, but data from before the change is still locked with the old key.
-A revoked doctor who teams up with the cloud can still read that older data.
+A revoked receiver who teams up with the cloud can still read that older data.
 **Policy RE** also re-locks every existing document, which closes that gap but takes
-longer. Neither can take back what a doctor already downloaded or remembers.
+longer. Neither can take back what a receiver already downloaded or remembers.
 
 **I only see technical words. Where is the plain version?**
 Switch on **Beginner Mode** in the toolbar. Hover over any underlined or technical word

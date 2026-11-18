@@ -99,7 +99,7 @@ def _bob_behind_tamper(seed: int):
     tamper = TamperCloud(world.cloud, seed=seed)
     recorder = Recorder(InProcessCloud(world.cloud))
     tamper.inner = recorder
-    bob = world.join("bob", ["alpha"], api=tamper)
+    bob = world.join("receiver-a", ["alpha"], api=tamper)
     return world, rng, tamper, recorder, bob
 
 
@@ -156,7 +156,7 @@ def test_expired_state_is_rejected():
 def test_hiding_a_new_epoch_is_detected():
     """After a revocation the cloud cannot keep serving the closed epoch as current."""
     world, rng, tamper, recorder, bob = _bob_behind_tamper(34)
-    carol = world.join("carol", ["alpha"])
+    carol = world.join("receiver-b", ["alpha"])
     bob.search("alpha", "token")
     world.owner.revoke(carol.uid, "R")
     final_only = world.cloud.read_states("alpha", 1, 1)
@@ -215,7 +215,7 @@ def test_join_with_wrong_proof_of_ownership_is_rejected():
 
 def test_unapproved_key_is_rejected():
     world, _ = filled_world(["alpha"], docs_per_group=2, seed=42)
-    bob = world.join("bob", ["alpha"])
+    bob = world.join("receiver-a", ["alpha"])
     eve = world.new_receiver("eve")
     eve.send_join()                      # requested, never approved
     assert eve.fetch_mail() == [] and not eve.joined
@@ -246,7 +246,7 @@ def test_unapproved_key_is_rejected():
 
 def test_a_capability_only_opens_for_its_receiver():
     world, _ = filled_world(["alpha"], docs_per_group=1, seed=43)
-    bob = world.join("bob", ["alpha"])
+    bob = world.join("receiver-a", ["alpha"])
     eve = world.new_receiver("eve")
     mail = world.api.call("mail_get", {"uid": bob.uid})
     assert mail and mail[0]["kind"] == "cap"
@@ -260,7 +260,7 @@ def test_a_capability_only_opens_for_its_receiver():
 def test_scope_confinement():
     world, _ = filled_world(["alpha", "beta"], docs_per_group=5, seed=51)
     alice = world.join("alice", ["alpha"])
-    bob = world.join("bob", ["beta"])
+    bob = world.join("receiver-a", ["beta"])
     with pytest.raises(AccessDenied):
         alice.search("beta", "token")
     with pytest.raises(AccessDenied):
@@ -315,7 +315,7 @@ def test_stale_token_timestamp_is_rejected():
 def test_forward_privacy_new_updates_share_no_address_with_old_tokens():
     world, rng = filled_world(["alpha"], docs_per_group=10, seed=61)
     recorder = Recorder(world.api)
-    bob = world.join("bob", ["alpha"], api=recorder)
+    bob = world.join("receiver-a", ["alpha"], api=recorder)
     world.cloud.trace_tokens = []
     old_counts = {}
     for word in VOCAB:

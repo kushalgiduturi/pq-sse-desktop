@@ -10,7 +10,7 @@ from PySide6.QtGui import QInputDevice
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow  # noqa: F401  (needed so the root object is a QQuickWindow)
 
-from pqsse import paths
+from pqsse import paths, roles
 
 from ..session import Session
 from .bridge import AppBridge
@@ -68,7 +68,9 @@ class SpatialWindow:
         context = self.engine.rootContext()
         context.setContextProperty("app", self.bridge)
         context.setContextProperty("events", self.bridge.events)
-        context.setContextProperty("T", T)
+        context.setContextProperty("T", roles.teach_all(T))
+        # the Teaching names option re-publishes every label with the cast names (or back)
+        self.bridge.namesChanged.connect(lambda: context.setContextProperty("T", roles.teach_all(T)))
         context.setContextProperty("DEST", DESTINATIONS)
         context.setContextProperty("platform", platform_info())
         self.engine.load(QUrl.fromLocalFile(str(qml_path())))

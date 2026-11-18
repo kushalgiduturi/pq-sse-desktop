@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from pqsse import narrator
+from pqsse import narrator, roles
 
 from . import inspector
 
@@ -29,7 +29,7 @@ class EventLog(QObject):
         self._unsubscribe = narrator.subscribe(self.incoming.emit)
 
     def _on_event(self, event: narrator.Event) -> None:
-        record = inspector.build(event)
+        record = roles.teach_all(inspector.build(event))
         record["index"] = len(self._records)
         self.raw.append(event)
         self._records.append(record)
@@ -55,7 +55,7 @@ class EventLog(QObject):
     def set_duration(self, first: int, took_ms: float) -> None:
         """Attach the measured time of an operation to the events it produced."""
         for index in range(max(0, first), len(self._records)):
-            self._records[index] = inspector.build(self.raw[index], took_ms) | {"index": index}
+            self._records[index] = roles.teach_all(inspector.build(self.raw[index], took_ms)) | {"index": index}
         if first < len(self._records):
             self.changed.emit()
 

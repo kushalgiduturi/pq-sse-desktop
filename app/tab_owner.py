@@ -50,9 +50,9 @@ class GroupDialog(QDialog):
 
 
 class OwnerTab(TabBase):
-    INTRO = ("<b>You are Alice, the hospital records manager (the data owner).</b> You own the documents and decide "
+    INTRO = ("<b>You are the data owner, the data owner (the data owner).</b> You own the documents and decide "
              f"who may read what. Here you make a {term('group', 'group')} for each kind of document, add documents, "
-             f"approve doctors, press Publish so doctors can verify answers, and change the locks "
+             f"approve receivers, press Publish so receivers can verify answers, and change the locks "
              f"({term('revocation', 'revocation')}) when someone must lose access.")
 
     def __init__(self, session, runner) -> None:
@@ -242,7 +242,7 @@ class OwnerTab(TabBase):
             self.overview.setText(
                 f"Group {info['group']}: the locks were changed {changes} time(s), so this is key period "
                 f"({term('epoch', 'epoch')}) {info['epoch']}. Stamped summary version {info['version']} ({dirty}), "
-                f"valid until {expires}. {len(info['members'])} doctor(s) may read this group.")
+                f"valid until {expires}. {len(info['members'])} receiver(s) may read this group.")
         else:
             self.overview.setText(
                 f"Group {info['group']}: current epoch {info['epoch']}, live segments from epoch {info['base']}, "

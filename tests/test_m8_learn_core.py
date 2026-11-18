@@ -77,7 +77,7 @@ def test_no_em_dash_in_user_visible_text():
 ERROR_CASES = {
     "revoked user searching": Rejected("revoked", "this receiver has been revoked"),
     "wrong group": Rejected("scope", "group is outside this receiver's capability"),
-    "wrong group, local": AccessDenied("group Medical is outside this receiver's capability"),
+    "wrong group, local": AccessDenied("group Legal is outside this receiver's capability"),
     "bad signature": Rejected("bad_signature", "owner batch signature invalid"),
     "expired state": VerifyError("freshness", "the current state has expired"),
     "rolled-back state": VerifyError("no rollback", "version 3 is older than 4 seen before"),
@@ -132,17 +132,17 @@ def events():
 
 def run_story(events):
     """One pass through all ten algorithms on an in-memory world."""
-    world, _ = filled_world(["Finance", "Medical"], docs_per_group=3, seed=91)
-    bob = world.join("bob", ["Finance"])
-    carol = world.join("carol", ["Finance", "Medical"])
+    world, _ = filled_world(["Finance", "Legal"], docs_per_group=3, seed=91)
+    bob = world.join("receiver-a", ["Finance"])
+    carol = world.join("receiver-b", ["Finance", "Legal"])
     doc_id = world.owner.add_document("Finance", "Invoice", "invoice for the scanner")
     world.owner.publish("Finance")
     result = bob.search("Finance", "invoice")
     bob.open_document("Finance", *result.hits[0])
     with pytest.raises(AccessDenied):
-        bob.search("Medical", "patient")
+        bob.search("Legal", "report")
     with pytest.raises(AccessDenied):
-        bob.open_document("Medical", 1, 1)
+        bob.open_document("Legal", 1, 1)
     world.owner.delete_document("Finance", doc_id)
     world.owner.publish("Finance")
     world.owner.revoke(bob.uid, "R")
@@ -178,8 +178,8 @@ def test_narration_is_complete_text_and_names_the_actor(events):
             assert "{" not in part and "?" not in part, (event.kind, part)
         assert text.line.endswith(".") and text.tag_label
     bob_lines = [narrator.render(e) for e in events if e.kind == "tokengen"]
-    assert bob_lines[0].tag_label == "Bob" and "'invoice'" in bob_lines[0].line
-    assert narrator.render([e for e in events if e.kind == "revoke"][0]).line.startswith("Alice revoked Bob using policy R")
+    assert bob_lines[0].tag_label == "Receiver A" and "'invoice'" in bob_lines[0].line
+    assert narrator.render([e for e in events if e.kind == "revoke"][0]).line.startswith("The data owner revoked Receiver A using policy R")
     assert any(narrator.render(e).packet is not None for e in events)
 
 
@@ -187,7 +187,7 @@ def test_events_never_contain_key_material(events):
     world, bob, carol = run_story(events)
     secrets = [world.owner._sk[32:64], world.cloud._sk[32:64], world.cloud._dk[:32], bob._dk[:32], bob._sk[32:64],
                carol._dk[-32:]]
-    for g in ("Finance", "Medical"):
+    for g in ("Finance", "Legal"):
         secrets += list(world.owner._group(g)["keys"].values())
     for rec in world.owner.receivers.values():
         secrets += [rec["a"], rec["m"]]
@@ -206,13 +206,13 @@ def test_events_never_contain_key_material(events):
 
 def test_emit_refuses_bytes_and_unknown_kinds(events):
     with pytest.raises(TypeError):
-        narrator.emit("group", "Alice", g=b"\x00" * 32)
+        narrator.emit("group", "The data owner", g=b"\x00" * 32)
     with pytest.raises(TypeError):
-        narrator.emit("group", "Alice", g=["ok", b"key"])
+        narrator.emit("group", "The data owner", g=["ok", b"key"])
     with pytest.raises(TypeError):
-        narrator.emit("group", "Alice", g="x" * 5000)
+        narrator.emit("group", "The data owner", g="x" * 5000)
     with pytest.raises(KeyError):
-        narrator.emit("no.such.event", "Alice")
+        narrator.emit("no.such.event", "The data owner")
     assert events == []
 
 
@@ -226,20 +226,20 @@ def test_every_story_renders_and_a_broken_listener_is_harmless(events):
             fields = {name for text in (story.line, story.more, story.hood)
                       for _, name, _, _ in string.Formatter().parse(text) if name}
             fields.discard("who")
-            narrator.emit(kind, "bob", **{name: "value" for name in fields})
+            narrator.emit(kind, "receiver-a", **{name: "value" for name in fields})
     finally:
         stop()
     assert [e.kind for e in events] == list(narrator.STORIES)
     for event in events:
         text = narrator.render(event)
-        assert "?" not in text.line + text.more + text.hood and event.who == "Bob"
+        assert "?" not in text.line + text.more + text.hood and event.who == "Receiver A"
         assert text.technical and text.tag in narrator.TAGS
 
 
 def test_verify_failure_is_narrated(events):
     world, _ = filled_world(["Finance"], docs_per_group=6, seed=92)
     tamper = TamperCloud(world.cloud, seed=1)
-    bob = world.join("bob", ["Finance"], api=tamper)
+    bob = world.join("receiver-a", ["Finance"], api=tamper)
     tamper.mode = "drop"
     with pytest.raises(VerifyError):
         for word in ("token", "cloud", "epoch", "chain", "state", "index"):

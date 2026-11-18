@@ -51,8 +51,8 @@ class WelcomeDialog(QDialog):
 
 TOUR_TEXT = {
     "Learn": "Learn: the guided lesson. It walks through the whole story on the real system, one step at a time.",
-    "Owner": "Owner: this is Alice's desk. She creates groups, adds documents, approves doctors and changes the locks.",
-    "Receiver": "Receiver: this is where a doctor (Bob or Carol) searches. The Verification panel shows every check on the cloud's answer.",
+    "Owner": "Owner: this is the data owner's desk. The owner creates groups, adds documents, approves receivers and changes the locks.",
+    "Receiver": "Receiver: this is where a receiver searches. The Verification panel shows every check on the cloud's answer.",
     "Cloud": "Cloud: start and stop the storage server, watch every request it receives, and see that it holds only locked data.",
     "Attack Lab": "Attack Lab: one-click attacks by a cheating cloud or an outsider, each shown being caught.",
     "Benchmarks": "Benchmarks: measured speed on this computer, including what the graphics chip does and does not speed up.",

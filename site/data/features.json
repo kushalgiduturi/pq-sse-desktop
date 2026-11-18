@@ -76,7 +76,7 @@
       "id": "roles",
       "group": "run",
       "name": "Three roles and the role switcher",
-      "sentence": "Workspace shows the tools of one role at a time: the data owner (Alice), a doctor (Bob, Carol or a person you add), or the storage server (Cloud).",
+      "sentence": "Workspace shows the tools of one role at a time: the data owner (the data owner), a receiver (Receiver A, Receiver B or a person you add), or the storage server (Cloud).",
       "users": [
         "data owner",
         "receiver",
@@ -87,8 +87,8 @@
         "labels": [
           "Work as",
           "Data owner",
-          "Doctor",
-          "Storage server",
+          "Receiver",
+          "Stores encrypted data",
           "Add a person"
         ]
       },
@@ -120,14 +120,14 @@
       "where": {
         "screen": "Workspace, Keys card and Join card",
         "labels": [
-          "Create Alice's keys",
-          "Unlock Alice's keys",
+          "Create the data owner's keys",
+          "Unlock the data owner's keys",
           "Exchange public keys with the cloud",
           "Import the public keys",
           "Passphrase"
         ]
       },
-      "produces": "An ML-DSA key pair for Alice; ML-KEM and ML-DSA key pairs for each doctor and for the cloud; .pqpub public key files.",
+      "produces": "An ML-DSA key pair for the data owner; ML-KEM and ML-DSA key pairs for each receiver and for the cloud; .pqpub public key files.",
       "cloud_sees": "Public keys only.",
       "tests": [
         {
@@ -150,7 +150,7 @@
       "id": "groups",
       "group": "protect",
       "name": "Groups",
-      "sentence": "Alice sorts documents into groups; each group has its own key, so access to one group gives nothing in another.",
+      "sentence": "The data owner sorts documents into groups; each group has its own key, so access to one group gives nothing in another.",
       "users": [
         "data owner"
       ],
@@ -163,7 +163,7 @@
           "Create group"
         ]
       },
-      "produces": "A random 32-byte key per group, kept by Alice.",
+      "produces": "A random 32-byte key per group, kept by the data owner.",
       "cloud_sees": "Group names and that a group exists.",
       "tests": [
         {
@@ -180,7 +180,7 @@
       "id": "documents",
       "group": "protect",
       "name": "Documents: add, import, edit, delete",
-      "sentence": "Alice types a document or imports .txt, .md and .pdf files; the app encrypts each one before it leaves her side, and she can edit or delete it later.",
+      "sentence": "The data owner types a document or imports .txt, .md and .pdf files; the app encrypts each one before it leaves their side, and the owner can edit or delete it later.",
       "users": [
         "data owner"
       ],
@@ -195,7 +195,7 @@
           "Delete"
         ]
       },
-      "produces": "Each document encrypted with AES-256-GCM and signed by Alice (ML-DSA).",
+      "produces": "Each document encrypted with AES-256-GCM and signed by the data owner (ML-DSA).",
       "cloud_sees": "Encrypted documents, their sizes and how many there are.",
       "tests": [
         {
@@ -216,13 +216,13 @@
       "id": "join",
       "group": "protect",
       "name": "Join requests and approval",
-      "sentence": "A doctor sends a signed join request; Alice sees it with the key fingerprint, ticks the groups to allow and approves, and the doctor fetches a sealed access pass.",
+      "sentence": "A receiver sends a signed join request; the data owner sees it with the key fingerprint, ticks the groups to allow and approves, and the receiver fetches a sealed access pass.",
       "users": [
         "receiver",
         "data owner"
       ],
       "where": {
-        "screen": "Workspace, Join card (doctor) and People and access card (Alice)",
+        "screen": "Workspace, Join card (receiver) and People and access card (the data owner)",
         "labels": [
           "Send join request",
           "Look for new requests",
@@ -230,8 +230,8 @@
           "Fetch mailbox"
         ]
       },
-      "produces": "An access pass (capability) with the keys of the chosen groups, sealed for that doctor with ML-KEM and AES-256-GCM and signed by Alice.",
-      "cloud_sees": "That a request and a sealed pass passed through, their sizes, and which groups the doctor may ask about. Not the group keys.",
+      "produces": "An access pass (capability) with the keys of the chosen groups, sealed for that receiver with ML-KEM and AES-256-GCM and signed by the data owner.",
+      "cloud_sees": "That a request and a sealed pass passed through, their sizes, and which groups the receiver may ask about. Not the group keys.",
       "tests": [
         {
           "file": "tests/test_m2_protocol.py",
@@ -243,7 +243,7 @@
         }
       ],
       "limits": [
-        "A doctor's groups are fixed at approval. To change them, revoke and approve a new request."
+        "A receiver's groups are fixed at approval. To change them, revoke and approve a new request."
       ],
       "status": "verified"
     },
@@ -251,7 +251,7 @@
       "id": "build-publish",
       "group": "protect",
       "name": "Build the index and publish the summary",
-      "sentence": "Uploading documents builds an encrypted index (one masked entry per word, linked in a hash chain), and Publish summary sends a signed, encrypted summary that doctors check every answer against.",
+      "sentence": "Uploading documents builds an encrypted index (one masked entry per word, linked in a hash chain), and Publish summary sends a signed, encrypted summary that receivers check every answer against.",
       "users": [
         "data owner"
       ],
@@ -260,7 +260,7 @@
         "labels": [
           "Publish",
           "Publish summary",
-          "Changes are waiting. Doctors do not see them until you publish.",
+          "Changes are waiting. Receivers do not see them until you publish.",
           "Everything is published."
         ]
       },
@@ -283,7 +283,7 @@
         }
       ],
       "limits": [
-        "A summary is valid for a set time (default 24 hours). Inside that time the cloud can still show the newest summary a doctor has already seen."
+        "A summary is valid for a set time (default 24 hours). Inside that time the cloud can still show the newest summary a receiver has already seen."
       ],
       "status": "verified"
     },
@@ -291,7 +291,7 @@
       "id": "search",
       "group": "search",
       "name": "Search without unlocking",
-      "sentence": "A doctor types one word; the app turns it into encrypted secret addresses (a token), and the cloud returns what is stored there without learning the word.",
+      "sentence": "A receiver types one word; the app turns it into encrypted secret addresses (a token), and the cloud returns what is stored there without learning the word.",
       "users": [
         "receiver"
       ],
@@ -315,7 +315,7 @@
       ],
       "limits": [
         "One word per search.",
-        "Alice also knows the doctor's cloud pass, so she could read the token too."
+        "The data owner also knows the receiver's cloud pass, so the owner could read the token too."
       ],
       "status": "verified"
     },
@@ -364,7 +364,7 @@
       "id": "decrypt",
       "group": "search",
       "name": "Open a document",
-      "sentence": "A doctor opens a result; the app checks Alice's signature on the encrypted document and decrypts it with the group key. Outside the doctor's groups there is no key, so nothing opens.",
+      "sentence": "A receiver opens a result; the app checks the data owner's signature on the encrypted document and decrypts it with the group key. Outside the receiver's groups there is no key, so nothing opens.",
       "users": [
         "receiver"
       ],
@@ -375,7 +375,7 @@
           "Pick a result to open it."
         ]
       },
-      "produces": "The document text, on the doctor's side only.",
+      "produces": "The document text, on the receiver's side only.",
       "cloud_sees": "Which encrypted document was fetched, and its size.",
       "tests": [
         {
@@ -393,7 +393,7 @@
         }
       ],
       "limits": [
-        "Neither policy can take back a document a doctor already opened."
+        "Neither policy can take back a document a receiver already opened."
       ],
       "status": "verified"
     },
@@ -433,7 +433,7 @@
       "id": "revoke",
       "group": "change",
       "name": "Revoke: policy R and policy RE",
-      "sentence": "Alice takes a person's access away; the cloud refuses their pass, each affected group gets a new key, and only the people who stay receive it. Quick (policy R) or Thorough (policy RE).",
+      "sentence": "The data owner takes a person's access away; the cloud refuses their pass, each affected group gets a new key, and only the people who stay receive it. Quick (policy R) or Thorough (policy RE).",
       "users": [
         "data owner"
       ],
@@ -446,7 +446,7 @@
           "Take away access"
         ]
       },
-      "produces": "A new key period (epoch) per group, sealed once per remaining doctor. With RE every document is encrypted and signed again.",
+      "produces": "A new key period (epoch) per group, sealed once per remaining receiver. With RE every document is encrypted and signed again.",
       "cloud_sees": "That a revocation happened, which pass is refused, and with RE the full re-upload.",
       "tests": [
         {
@@ -462,7 +462,7 @@
         "Policy R: documents from before the change stay under the old key, so a revoked person who teams up with the cloud can still read them.",
         "Policy RE closes that gap but re-encrypts everything.",
         "Cannot be undone.",
-        "Known display issue: after a revocation the Stage still lists the revoked doctor's old groups and last search result."
+        "Known display issue: after a revocation the Stage still lists the revoked receiver's old groups and last search result."
       ],
       "status": "verified"
     },
@@ -581,7 +581,7 @@
       "id": "lens",
       "group": "learn",
       "name": "The lens: whose view",
-      "sentence": "On the Stage, the lens shows the same data as each party holds it: Everyone, Alice sees, a doctor sees, or Cloud sees (the real stored bytes).",
+      "sentence": "On the Stage, the lens shows the same data as each party holds it: Everyone, the data owner sees, a receiver sees, or Cloud sees (the real stored bytes).",
       "users": [
         "learner"
       ],
@@ -589,9 +589,9 @@
         "screen": "Stage, top",
         "labels": [
           "Everyone",
-          "Alice sees",
-          "Bob sees",
-          "Cloud sees"
+          "Data owner sees",
+          "Receiver A sees",
+          "Cloud server sees"
         ]
       },
       "produces": "Nothing new; Cloud sees shows the real stored bytes.",
@@ -685,7 +685,8 @@
           "Let me try",
           "Check my work",
           "Reset lesson",
-          "Back to my own data"
+          "Back to my own data",
+          "Teaching names"
         ]
       },
       "produces": "A practice area with its own data; every passphrase there is the word lesson. Your own data is not touched.",
@@ -700,9 +701,9 @@
         }
       ],
       "limits": [
-        "Known text issue: the last step still names places in the classic window (Attack Lab, Who sees what, the toolbar). In this window they are the Security Lab, the Stage lens and Mode in Insights."
+        "Teaching names (off by default) shows the lesson cast's names, Alice, Bob and Carol, instead of the role names; it changes only what is shown."
       ],
-      "status": "partial"
+      "status": "verified"
     },
     {
       "id": "challenges",
@@ -718,7 +719,7 @@
           "Challenges",
           "Show a hint",
           "Go there",
-          "Let Carol read only Finance",
+          "Let Receiver B read only Finance",
           "Compare policy R and policy RE"
         ]
       },
@@ -822,7 +823,7 @@
       "id": "r-vs-re",
       "group": "attack",
       "name": "Revoking: quick or thorough (R versus RE)",
-      "sentence": "A comparison where a revoked doctor keeps the old key and teams up with the cloud: under policy R older documents stay readable, under policy RE nothing stored can be read.",
+      "sentence": "A comparison where a revoked receiver keeps the old key and teams up with the cloud: under policy R older documents stay readable, under policy RE nothing stored can be read.",
       "users": [
         "learner"
       ],
@@ -1046,7 +1047,7 @@
       ],
       "limits": [
         "The log never contains passphrases or keys.",
-        "Alice's own readable copies of her documents are saved with the group keys inside her encrypted key store (owner.sqlite), not as plain files."
+        "The data owner's own readable copies of their documents are saved with the group keys inside their encrypted key store (owner.sqlite), not as plain files."
       ],
       "status": "tested"
     },
@@ -1161,7 +1162,7 @@
     "sees": [
       "encrypted documents and their sizes",
       "how many documents and index entries exist",
-      "group names, how many doctors there are and which groups each may ask about",
+      "group names, how many receivers there are and which groups each may ask about",
       "when each request happens and how large it is",
       "which addresses a search asks for, so a repeated search is visible",
       "how many entries matched",
@@ -1191,7 +1192,7 @@
       "evidence": "README Known limits: single owner."
     },
     {
-      "claim": "No change of a doctor's groups after approval.",
+      "claim": "No change of a receiver's groups after approval.",
       "evidence": "README Known limits: no capability update."
     },
     {
@@ -1213,20 +1214,12 @@
   ],
   "mismatches": [
     {
-      "where": "Journey, step 13 'What you learned' (app/lesson.py SUMMARY)",
-      "issue": "Names classic window places: 'the Attack Lab', 'Who sees what', 'Expert Mode in the toolbar'. The new window calls them Security Lab, the Stage lens (Cloud sees) and Mode in Insights."
-    },
-    {
       "where": "Stage after a revocation",
-      "issue": "The revoked doctor is still shown as 'May search: Finance' with the last search result, because the Stage reads the doctor's own stored pass. Seen after the lesson revoked Bob with policy R."
+      "issue": "The revoked receiver is still shown as 'May search: Finance' with the last search result, because the Stage reads the receiver's own stored pass. Seen after the lesson revoked Receiver A with policy R."
     },
     {
       "where": "Security Lab, 'Which check reacts'",
-      "issue": "The text repeats itself: \"the 'hash chain' check in Bob's Verify step. DETECTED by the 'hash chain' check.\""
-    },
-    {
-      "where": "Workspace, People and access",
-      "issue": "\"asks to join. Key fingerprint:\" is written in PageWorkspace.qml, not in copy.py, so a site check cannot read it from copy.py."
+      "issue": "The text repeats itself: \"the 'hash chain' check in Receiver A's Verify step. DETECTED by the 'hash chain' check.\""
     },
     {
       "where": "README.md and docs/START_HERE.md",

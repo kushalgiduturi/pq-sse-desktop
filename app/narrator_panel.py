@@ -37,7 +37,7 @@ class NarratorPanel(QWidget):
         clear = QPushButton("Clear")
         clear.clicked.connect(lambda: self.clear())
         head = QHBoxLayout()
-        legend = QLabel("Each line says who did what. Tags: [Alice], [a doctor's name], [Cloud], [Security].")
+        legend = QLabel("Each line says who did what. Tags: [the data owner], [a receiver's name], [Cloud], [Security].")
         legend.setWordWrap(True)
         head.addWidget(legend, 1)
         head.addWidget(clear)
