@@ -77,7 +77,7 @@ an interrupted RE rebuild (M4-3), a stuck batch blocking a revocation (M6-4).
 | Build | Result | Notes |
 | --- | --- | --- |
 | Server (`build_server.ps1`) | identical, 123 of 123 files | same PC and build environment, two output folders |
-| Desktop (`build_windows.ps1`) | see `docs/measurements/reproducible-desktop.md` | the same two settings |
+| Desktop (`build_windows.ps1`) | 2,126 of 2,127 files identical; the launcher differs in its embedded code archive | open: `docs/measurements/reproducible-desktop.md` |
 
 Bit-for-bit identity was shown on one PC with one Python environment. Identity across PCs needs the same
 Python build, the same pinned packages and the same path layout; that was not tested.
