@@ -5,9 +5,12 @@ states, checks every request, and answers searches. It never holds a group key, 
 documents or search words: everything it stores is ciphertext, masked index entries and public keys.
 This guide is for the person who runs it (the operator).
 
-Status: milestone 2 of `REALLIFE_PLAN.md`. The server runs and is tested on this PC (Windows 11, from
-source and as the console exe). **Not yet verified:** the Docker image (built from `docker/Dockerfile`,
-never run here because Docker was not running), a server on another machine, use over the internet.
+Status: milestone 2 of `REALLIFE_PLAN.md`. Tested on this PC (Windows 11): from source and as the
+console exe (`scripts/server_smoke.py`), and in Docker (`scripts/docker_e2e.py`: image built with
+Docker 28.1, the server in a Linux container, a data owner and a receiver on the host running Join,
+search with all eight checks, decrypt and revoke over HTTPS with the certificate pinned; the server runs
+as a non-root user). **Not yet verified:** a server on another machine, a firewall or router in between,
+use over the internet.
 The desktop app cannot use this server yet: the client modes and invites arrive in milestone 3.
 
 ## Install
