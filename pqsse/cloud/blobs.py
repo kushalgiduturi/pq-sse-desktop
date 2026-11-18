@@ -43,11 +43,15 @@ class BlobStore:
             if not path.exists():
                 path.parent.mkdir(exist_ok=True)
                 tmp = path.with_name(path.name + f".{os.getpid()}.{threading.get_ident()}.tmp")
-                with open(tmp, "wb") as handle:
-                    handle.write(data)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                os.replace(tmp, path)
+                try:
+                    with open(tmp, "wb") as handle:
+                        handle.write(data)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    os.replace(tmp, path)
+                except OSError:
+                    tmp.unlink(missing_ok=True)     # for example a full disk: leave no partial file behind
+                    raise
                 self.total_bytes += len(data)
         return PREFIX + digest.encode("ascii")
 

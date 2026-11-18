@@ -322,6 +322,9 @@ class Owner:
         chain d_w = H(d_w || a || v).
         """
         gs = self._group(g)
+        if not reset and gs.get("reset_pending"):
+            self._finish_reset(g)            # an interrupted revocation (policy RE) goes first
+            gs = self._group(g)
         e = gs["epoch"]
         k_idx, k_doc, _ = group_subkeys(gs["keys"][str(e)], g, e)
         table: dict[str, list] = {} if reset else gs["kw"].setdefault(str(e), {})
@@ -423,6 +426,9 @@ class Owner:
         Returns the published version. ``final`` marks the segment as closed (Revoke).
         """
         gs = self._group(g)
+        if gs.get("reset_pending") and not final:
+            self._finish_reset(g)            # never publish the new epoch before its rebuild is stored
+            gs = self._group(g)
         e = gs["epoch"]
         k_st = group_subkeys(gs["keys"][str(e)], g, e)[2]
         records: dict[bytes, tuple[int, bytes]] = {}
@@ -498,10 +504,31 @@ class Owner:
         gs["kw"][str(new)] = {}
         self._save_group(g)
         if reset:
-            live = [DocInput(d["title"], d["text"], d["kws"], int(i))
-                    for i, d in sorted(gs["docs"].items(), key=lambda kv: int(kv[0]))]
-            self._apply(g, live, [], reset=True)
+            gs["reset_pending"] = True      # the server now expects the reset batch; remembered across a failure
+            self._save_group(g)
+            self._finish_reset(g)
         self.publish(g)
+
+    def _finish_reset(self, g: str) -> None:
+        """Send the policy RE rebuild of a group. If it fails (no network, a full disk at the server), the group stays
+        marked and the next change to it, or resume_pending(), sends the rebuild first. Same messages, no protocol change."""
+        gs = self._group(g)
+        live = [DocInput(d["title"], d["text"], d["kws"], int(i))
+                for i, d in sorted(gs["docs"].items(), key=lambda kv: int(kv[0]))]
+        self._apply(g, live, [], reset=True)
+        gs = self._group(g)
+        gs.pop("reset_pending", None)
+        self._save_group(g)
+
+    def resume_pending(self) -> list[str]:
+        """Finish every interrupted policy RE rebuild and publish it. Returns the groups that were finished."""
+        done = []
+        for g in sorted(self.groups):
+            if self.groups[g].get("reset_pending"):
+                self._finish_reset(g)
+                self.publish(g)
+                done.append(g)
+        return done
 
     # ------------------------------------------------------------------ reference (tests, UI)
     def plaintext_search(self, g: str, keyword: str) -> set[int]:

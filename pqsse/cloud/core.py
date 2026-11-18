@@ -52,6 +52,7 @@ class CloudCore:
                  blobs: BlobStore | None = None, limits: dict | None = None, require_invite: bool = False) -> None:
         self.vault = vault
         self.blobs = blobs              # networked server: document ciphertexts as files
+        self._drops: list[bytes] = []   # document files to delete once the database change is committed
         self.limits = limits or {}      # networked server: max_docs_per_group, max_storage_bytes, max_doc_bytes
         self.require_invite = require_invite   # networked server: a join request needs a registered invite
         self.clock = clock
@@ -138,8 +139,14 @@ class CloudCore:
                     raise Rejected("malformed", type(exc).__name__) from exc
             except Rejected as exc:
                 self.db.rollback()
+                self._drops.clear()
                 self._log(endpoint, len(body), 0, False, exc.reason)
                 raise
+            except Exception:
+                self.db.rollback()          # a full disk or a broken file: keep the last committed state, nothing half applied
+                self._drops.clear()
+                raise
+            self._flush_drops()
             self._log(endpoint, len(body), len(reply), True, "")
             return reply
 
@@ -190,6 +197,10 @@ class CloudCore:
             if row is None:
                 raise Rejected("bad_invite", "unknown invite")
             if row[2]:
+                same = self.db.execute("SELECT 1 FROM joins WHERE uid=? AND req=?",
+                                       (H(req["ek"], req["vk"])[:16].hex(), obj["req"])).fetchone()
+                if same:     # the receiver's own resend after a lost reply (M3-3): nothing changes
+                    raise Rejected("duplicate", "this exact join request is already stored")
                 raise Rejected("invite_used", "this invite was already used")
             if self.clock() > row[1]:
                 raise Rejected("invite_expired", "this invite has expired")
@@ -459,14 +470,17 @@ class CloudCore:
         return stored
 
     def _drop_blobs(self, sql: str, args: tuple) -> None:
-        """Delete the files of the document rows about to be deleted (files are shared only by equal bytes)."""
+        """Note the files of the document rows about to be deleted. They are deleted only after the commit,
+        so a change that fails half way (and is rolled back) never loses a file the database still needs."""
         if self.blobs is None:
             return
-        for (stored,) in self.db.execute(sql, args).fetchall():
-            if is_ref(stored):
-                others = self.db.execute("SELECT COUNT(*) FROM docs WHERE blob=?", (stored,)).fetchone()[0]
-                if others <= 1:
-                    self.blobs.delete(stored)
+        self._drops.extend(stored for (stored,) in self.db.execute(sql, args).fetchall() if is_ref(stored))
+
+    def _flush_drops(self) -> None:
+        drops, self._drops = self._drops, []
+        for stored in set(drops):
+            if self.db.execute("SELECT COUNT(*) FROM docs WHERE blob=?", (stored,)).fetchone()[0] == 0:
+                self.blobs.delete(stored)
 
     def storage_bytes(self) -> int:
         """Database pages in use plus document files."""
@@ -500,6 +514,7 @@ class CloudCore:
             for table in ("entries", "docs", "states", "groups"):
                 self.db.execute(f"DELETE FROM {table} WHERE g=?", (g,))
             self.db.commit()
+            self._flush_drops()
             return counts
 
     def referenced_blobs(self) -> set[bytes]:

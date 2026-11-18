@@ -175,7 +175,12 @@ class Receiver:
 
     def send_join(self, invite_id: str | None = None, code: str | None = None) -> str:
         request = self.join_request(invite_id, code)
-        uid = self._cloud().call("join_post", request)["uid"]
+        try:
+            uid = self._cloud().call("join_post", request)["uid"]
+        except Rejected as exc:
+            if exc.reason != "duplicate":
+                raise
+            uid = self.uid          # the reply to an earlier try was lost; the server already holds this request
         narrator.emit("join.request", self.name, bytes=len(request["req"]))
         return uid
 

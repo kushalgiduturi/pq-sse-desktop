@@ -48,7 +48,8 @@ class Running:
                                  passphrase_file=str(pass_file), kem=FAST.kem, sig=FAST.sig, **overrides)
         self.core = store.open_core(self.config, cfg.read_passphrase(self.config, prompt=False))
         cert, key = tmp / "data" / "server.crt", tmp / "data" / "server.key"
-        tls.make_self_signed(cert, key, ["localhost", "127.0.0.1"])
+        if not cert.is_file():                                     # a restart keeps the certificate (and the pin)
+            tls.make_self_signed(cert, key, ["localhost", "127.0.0.1"])
         self.pin = tls.fingerprint(cert)
         self.public = PublicServer(self.core, self.config, tls.server_context(cert, key))
         self.admin = AdminServer(self.core, self.config, self.public)
