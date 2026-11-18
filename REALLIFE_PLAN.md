@@ -1,0 +1,101 @@
+# From a one-PC demo to a real client-server system
+
+Status: plan only. Nothing below is built yet. Written 2026-11-18 from your brief, the code as it is
+at commit 0e9ae4c, and a first look at the paper (`docs/paper/MU-PQ-SSE_v3_Journal_Paper.pdf`, 13 pages:
+12 definitions, 10 algorithms, 6 theorems and a corollary, a leakage section, 6 tables, 9 figures).
+
+## 1. Where we start (facts, checked in the code)
+
+- One program holds all three roles. The cloud is a child process (`python -m pqsse.cloud`) on
+  `127.0.0.1` over plain HTTP (`pqsse/cloud/server.py`: stdlib `ThreadingHTTPServer`, body limit 512 MB,
+  admin endpoints behind a token, loopback-only check).
+- Owner and receiver talk to the cloud only through `CloudAPI.call(endpoint, obj)` with the canonical
+  wire encoding (`pqsse/transport.py`). Two transports exist: in-process and HTTP. This seam is where
+  the network mode plugs in; `pqsse/owner` and `pqsse/receiver` need no protocol change for it.
+- Cloud storage: one SQLite file; its own secret keys and the credentials `a_u` are wrapped under a
+  key from the cloud passphrase (D12, D13 in PLAN.md).
+- Post-quantum code: pure Python `kyber-py` and `dilithium-py`; the `liboqs` path exists in
+  `pqsse/pqbackend.py` but `oqs` is not installed and was never tested.
+- The app still uses the Alice, Bob, Carol and Cloud story everywhere (copy.py, lesson, challenges,
+  demo data, docs, the website).
+- On this PC: Docker Desktop 28.1 is installed but its engine is not running; no C compiler or CMake
+  (so liboqs cannot be built here); VirtualBox was not found under `C:\Program Files\Oracle`; checking
+  for Windows Sandbox needs admin rights, which I do not use.
+
+## 2. Architecture (target)
+
+```
+ Data owner PC                       Server (Windows, or Docker on Linux)           Receiver PCs
+ +----------------------+   HTTPS    +-----------------------------------+  HTTPS  +------------------+
+ | PQ-SSE Desktop       |  /v1/...   | pqsse-server                      | /v1/... | PQ-SSE Desktop   |
+ | mode: Data owner     | ---------> |  public port: protocol API, TLS   | <------ | mode: Receiver   |
+ | owner.sqlite (enc.)  |  pinned    |  admin port: 127.0.0.1, token     |  pinned | receiver.sqlite  |
+ +----------------------+  cert fp   |  store: SQLite WAL + blob folder  | cert fp +------------------+
+                                     |  limits, rate limits, backups     |
+          invite file (server address, cert fingerprint, owner key fingerprint, expiry, one-time code)
+          travels owner -> receiver by any channel; short fingerprints compared out of band in words
+```
+
+The protocol objects stay as they are. What changes is the transport (HTTPS with a pinned
+certificate), the server program around `CloudCore`, the client modes, and the operations around them.
+`docs/architecture.md` gets this diagram and the data flows.
+
+## 3. Decisions (made now; tell me if you disagree)
+
+| # | Decision | Why |
+| --- | --- | --- |
+| R1 | Work on a branch `reallife` in a separate git worktree outside OneDrive (`C:\Users\Kushal\pqsse-reallife`). `master` stays releasable and the site session keeps working in the OneDrive folder without branch switches under it | Two sessions, one folder; build output outside OneDrive |
+| R2 | The paper PDF is kept out of git (`docs/paper/*.pdf` in `.gitignore`), because the repository is public and the paper may not be published yet. `PAPER_CONFORMANCE.md` quotes item numbers and short phrases only | Ask before publishing your paper |
+| R3 | Milestone 0 is done, and it wins over the site's "How the lesson tells it" section: the site session's Home will be changed to plain role names when M0 lands | Your newer brief |
+| R4 | Server stays on the standard library HTTP server, wrapped with `ssl` (TLS 1.2 minimum, TLS 1.3 preferred, ECDHE with AES-GCM or ChaCha20 only), with per-connection read timeouts, a cap on open connections, a body limit per endpoint and a request rate limit. For exposure to the internet the docs recommend a reverse proxy (Caddy) in front. Alternative considered: an ASGI server (uvicorn); more dependencies for little gain at this size | Few dependencies, CloudCore unchanged, testable |
+| R5 | Certificates: a self-signed ECDSA P-256 certificate made at first start with the `cryptography` package (already a dependency); its SHA-256 fingerprint is printed to the operator and written into invites. Clients pin it: the connection is checked before any request byte is sent. An operator-supplied certificate also works (pin it, or trust the system store when the operator says so) | No public CA needed |
+| R6 | One desktop program with three modes chosen at first run: Use as Data owner, Use as Receiver, Local demo (today's teaching mode, unchanged). Same installer for all | One build, fewer installers to test |
+| R7 | Server program `pqsse-server`: console exe for Windows (its own PyInstaller spec, no Qt), Python package for Linux, Docker image from `python:3.11-slim`. Config: one TOML file plus `PQSSE_*` environment variables; the passphrase from a file or a Docker secret, never a command-line argument | Brief |
+| R8 | Storage: SQLite in WAL mode; large documents in a blob folder named by their handle, written atomically (temp file, fsync, rename), with a SHA-256 in the database that `--check` verifies. Online backup with SQLite's backup API plus a copy of the blobs | Brief |
+| R9 | Invites need one new piece of data in the join flow (the invite id, so an invite is single use). That touches the Join message, so it gets a design note and waits for your approval in M3 (rule 2). Until then joins work as today: request, fingerprint check, approval | Rule 2 |
+| R10 | Fingerprints in words: 6 words from a public-domain word list (PGP word list); the source and license are recorded before use | Brief: words, not only hex |
+| R11 | liboqs is built in GitHub Actions (Windows and Linux, pinned release and commit, checksums recorded), because this PC has no compiler. The built DLL is bundled in installers and the Docker image; the pure-Python backend stays as an explicit fallback with a warning in the app, server and logs | No local toolchain |
+| R12 | Clean-machine tests: Docker on this PC for the Linux server once you start Docker Desktop; a Windows clean-machine test as a `.wsb` file for Windows Sandbox (you start it; it needs the Windows feature, which needs admin to switch on) and a VirtualBox script if you tell me where VirtualBox is installed | No admin rights for me |
+| R13 | Recovery option (Part C): a second encrypted copy of the key file (export with its own passphrase) rather than a printed recovery code. Trade-offs written in the design note; the rule stays: if the owner loses keys and every backup, the data cannot be recovered | Simpler, testable, no new crypto |
+| R14 | Nothing in `pqsse/core`, the wire format or the ten algorithms changes in M2 to M4. Every change there goes through a design note and your approval | Rule 2 |
+
+## 4. Milestones and stops
+
+| # | Milestone | Main outputs | Stop |
+| --- | --- | --- | --- |
+| 0 | Plain role names and neutral demo data | Data owner, Receiver, Cloud server in app, docs and site; demo data such as "Contract A", "Report Q3"; the story only behind an off-by-default "Teaching names" option in Journey; tests updated | no |
+| 1 | Part A: paper conformance | `docs/PAPER_CONFORMANCE.md` (every definition, algorithm, theorem, leakage statement: requirement, code, test, verdict); review of PLAN.md D1 to D20 and the wire format; new or stronger tests (correctness, forward privacy, Type-II backward privacy, verifiability per tamper type, scope, update authenticity, R and RE with collusion, a recorded leakage profile compared with the paper's leakage function) | **yes: you decide each deviation** |
+| 2 | Server program | `pqsse-server` package and exe, TLS and pinning, admin port and CLI (status, storage, connections, rotate token, backup, delete group), limits and rate limits, WAL store, blobs, `--check`, backup and restore, Dockerfile and compose, unattended key loading | no |
+| 3 | Client modes and joining over the network | first-run mode choice; HTTPS client with timeouts, retries with backoff, resumable large downloads, offline state, clock-skew check; invite design note (**stop for approval** before the Join message changes), then invites | yes, for the invite note |
+| 4 | Network tests | three processes over TLS on loopback; server in Docker with clients on the host; fault injection (drops, delays, restart mid-batch, crash during join, full disk, corrupt store, skew, wrong pin, expired and replayed invite, concurrent search and update, large documents and results); abuse (oversized and malformed bodies, slow clients, floods, wrong and revoked credentials, admin from a non-local address) | **yes: you try it on separate machines** |
+| 5 | Part C: liboqs default, key lifecycle | liboqs built in CI and bundled; fallback warning; measured speedups (sign, verify, encapsulate, decapsulate) and rerun benchmarks; change passphrase, encrypted key backup and import, auto-lock, best-effort wiping, ACLs on key files, server key handling documented and tested | **yes, before any protocol change** |
+| 6 | Part D | design notes for: group access change without revocation, more than one owner, large collections, export and import, owner activity log (**stop for approval**); then build items 3, 4 and 5 | yes, for the notes |
+| 7 | Part E | `THREAT_MODEL.md`, review checklist and `SECURITY_REVIEW.md` (my own review, not an audit), TLS configuration test, `pip-audit` and an SBOM, fuzzing (Hypothesis) of wire parsers and document and PDF import, signing research update, reproducible build comparison, clean-machine tests, docs and site updated from regenerated facts (site not pushed before your yes) | yes, before pushing the site |
+| 8 | Final report | what works across machines and how to run it, conformance verdicts, measurements, what was not verified, what you must decide or set up, what belongs in the paper's future work | |
+
+Every milestone ends with all tests green (the existing suite, smoke tests, installer tests and the
+new ones) and a commit on `reallife`. Nothing is pushed, merged into `master` or published without your yes.
+
+## 5. Risks and open questions
+
+- **The paper and the code may differ in ways that matter** (D6, D7, D9 already differ in form). M1
+  decides; until then nothing in the scheme changes.
+- **liboqs on Windows** without a local compiler depends on the CI build working; if `liboqs-python`
+  changes its loading, the fallback stays default until it is fixed. Constant time is claimed only as
+  far as liboqs documents it for that build.
+- **The standard library server under load**: fine for a small group; the abuse tests will show the
+  limits, and the docs will say to put a reverse proxy in front when it faces the internet.
+- **Clock skew**: Join timestamps, token timestamps and the freshness window all need clocks that
+  roughly agree. The skew check warns; it cannot fix a wrong clock.
+- **Separate-machine testing** needs you (two or three PCs or VMs on one network, a firewall rule for
+  the server port that you allow yourself).
+- **Two sessions in one project**: the site session works on `master` in the OneDrive folder; this work
+  goes to the `reallife` worktree, so merging M0 changes into the site is a later, explicit step.
+- **Scope**: Parts B to E are large. I will report honestly where a milestone runs long rather than cut tests.
+
+## 6. What I need from you
+
+1. Your yes (or changes) to this plan, especially R1 (separate worktree and branch), R2 (paper kept out
+   of git), R3 (role names replace the lesson cast on the new site), R4 (stdlib server with TLS) and R13.
+2. Later: start Docker Desktop when M2 needs it; tell me where VirtualBox is, or switch on Windows Sandbox;
+   machines for the M4 test.
