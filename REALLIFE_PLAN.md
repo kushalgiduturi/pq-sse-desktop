@@ -141,3 +141,7 @@ new ones) and a commit on `reallife`. Nothing is pushed, merged into `master` or
 | M6-4 | The write-ahead journal has channels (`ctl`, and `group:<g>` per group) instead of one record, and pending rotations live in the owner record, so a batch stuck at the server never blocks a revocation, and new documents never go under a key a revoked receiver holds | Found while building note 006 B |
 | M6-5 | An interrupted, split RE rebuild remembers the documents still to send (`rebuild_rest`) | Without it, a crash after the reset batch would lose the rest |
 | M6-6 | Activity log entries are written right after the action commits, not in the same transaction; a crash in between loses that one entry | Simpler and safer than merging two kinds of commit |
+| M6-7 | You chose to build notes 003, 004 A and 006 C before Part E (2026-11-18); built, tests `test_m25` to `test_m27` | Your decision |
+| M6-8 | Note 004 A as one store per further owner (`data_dir/owners/<id>/`) instead of an owner column in every table | No migration; stronger isolation; the scheme runs unchanged per store |
+| M6-9 | Documents carry their keywords inside the encryption (`kws`), so an owner recovery rebuilds the exact index | Needed by note 006 C; authorised readers may now see the owner's explicit keywords of documents they can open |
+| M6-10 | Owner recovery always rebuilds with policy RE (new epoch, clean index) instead of trying to reuse counters | Counters of a batch applied but never published cannot be known; RE is always correct |

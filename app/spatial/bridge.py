@@ -551,6 +551,33 @@ class AppBridge(QObject):
         self._run("revoke", "Taking away access and changing the locks",
                   lambda: self._owner().revoke(uid, "RE" if policy.upper() == "RE" else "R"))
 
+    @Slot(str, list, str)
+    def changeAccess(self, uid: str, groups: list, policy: str) -> None:
+        """Design note 003: set an approved person's groups; added ones are granted, removed ones taken away
+        (the server refuses them at once, then each removed group gets new keys with policy R or RE)."""
+        def work() -> dict:
+            owner = self._owner()
+            rec = owner.receivers.get(uid)
+            if rec is None or rec["revoked"]:
+                raise PQSSEError("Choose a person who still has access.")
+            wanted = {str(g) for g in groups}
+            if not wanted:
+                raise PQSSEError("Keep at least one group, or use Revoke to take all access away.")
+            added = owner.grant(uid, sorted(wanted - set(rec["groups"])))
+            removed = owner.take_away(uid, sorted(set(rec["groups"]) - wanted), "RE" if policy.upper() == "RE" else "R")
+            return {"added": ", ".join(added) or "none", "removed": ", ".join(removed) or "none"}
+
+        def done(result: dict) -> None:
+            self._activity_note = T["accessDone"].format(**result)
+        self._run("changeAccess", "Changing access", work, after=done)
+
+    @Slot()
+    def recoverOwner(self) -> None:
+        """Design note 006 C: after restoring an older key backup, rebuild the owner's state from the server."""
+        def done(notes: list) -> None:
+            self._activity_note = T["recoverDone"].format(lines="; ".join(notes) or "nothing to do")
+        self._run("recoverOwner", "Recovering from the server", lambda: self._owner().recover(), after=done)
+
     # ------------------------------------------------------------------ actions: doctors
     def _receiver(self, name: str):
         rec = self.session.receivers.get(name)

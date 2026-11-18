@@ -99,3 +99,23 @@ recovery.
   full-disk test in `tests/test_m19_network_faults.py`, now with the stronger expectation that the stuck
   document is delivered later rather than lost.
 - C (owner recovery from an old backup) is approved and comes in a later milestone.
+
+## As built (after milestone 6): C
+
+- Every owner has a 32-byte recovery key in its vault (new owners at creation; older owners get one when opened,
+  and `resume_pending` then escrows their existing keys and receivers once with the control op `escrow`).
+- Control messages carry escrow boxes: `okeys: [[g, e, AE(R, key, "okey" || g || e)]]` with `group` and `epoch`,
+  `orecs: [[uid, AE(R, record, "orec" || uid)]]` with `cred` and `scope`. The server stores them in `okeys` and
+  `orecs` and cannot open them.
+- New owner-only, timestamped, signed reads: `owner_sync` (per group: epoch, base, sequence number, states,
+  escrowed keys, document handles; the escrowed receiver records with the server's revoked flag; the control
+  sequence number) and `owner_doc` (one stored document with its signature).
+- `Owner.recover()` settles the journal, opens the escrow with `R`, downloads and checks every document (the
+  owner's own signature; ids found by recomputing handles), then rebuilds every group with policy RE, so the
+  index is clean whatever was applied or published after the backup. Documents now carry their keywords inside
+  the encryption (`kws`), so the rebuilt index matches the original exactly. Documents from before this change
+  fall back to the backup's keywords or to keyword extraction.
+- Limits: invites made after the backup must be made again (their owner-side key is not escrowed). Epoch keys
+  made before this change by an owner that never ran `escrow` are lost if that owner's backup lacks them.
+- The app: a "Recover after restoring a backup" card (Data owner mode).
+- Tests: `tests/test_m26_recovery.py`.

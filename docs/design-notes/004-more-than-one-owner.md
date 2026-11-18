@@ -66,3 +66,19 @@ store migration from a one-owner store.
 
 A (recommended, built in a later milestone), or keep one owner per server and document "run one server
 per owner" (no work; Docker makes that cheap). B and C stay future work either way.
+
+## As built (after milestone 6): A, with one change
+
+The proposal added an owner column to every table. Built instead: **one store per further data owner**
+(`data_dir/owners/<owner id>/`: its own database and document files, with the server's identity keys copied
+in, so there is one server key). The first owner keeps the original store, so no migration is needed and a
+one-owner server is unchanged. Isolation is stronger than columns: no query can reach another owner's rows.
+
+- Requests carry `owner` (16 hex characters: the first 8 bytes of `H(owner verification key)`); clients add it
+  to every request. Untagged requests go to the first owner. `owner_pub` also accepts `{"fp": fingerprint}`, so
+  a receiver can ask for the owner its invite names. An unknown owner is refused (`unknown_owner`).
+- Operator: `pqsse-server pair-owner FILE --add` (or the admin interface with `add`). A store paired by the CLI
+  while the server runs is found on first use, without a restart. `admin status` lists the owners with their
+  group counts and storage. `check`, `backup` and `restore` cover every owner's store.
+- A receiver identity belongs to one owner. To join two owners, a person uses two receiver names in the app.
+- Tests: `tests/test_m27_owners.py`.

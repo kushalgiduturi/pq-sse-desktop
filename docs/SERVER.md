@@ -95,6 +95,18 @@ One TOML file; every setting can also be given as `PQSSE_SERVER_<NAME>` (environ
 - The server cannot read documents or keywords with any of these keys: they authenticate it and open
   the control messages sent to it.
 
+## More than one data owner
+
+One server can hold several independent data owners (design note 004 A). The first owner paired uses the main
+store; each further owner gets a store of its own under `data_dir/owners/<owner id>/`:
+
+```powershell
+python -m pqsse.server pair-owner second-owner.pqpub --add
+```
+
+Owners cannot see or change each other's groups, receivers, invites or mail. All of them use the same server
+key and TLS certificate. `admin status` lists them; `check`, `backup` and `restore` cover all of them.
+
 ## Operating it
 
 ```powershell

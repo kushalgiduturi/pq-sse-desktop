@@ -29,6 +29,22 @@ class InProcessCloud:
         return wire.dec(self.core.handle(endpoint, wire.enc(obj)))
 
 
+class OwnerTagged:
+    """Names the data owner in every request (design note 004 A), so a server with several owners routes it.
+    A one-owner server ignores the field."""
+
+    def __init__(self, inner: Any, owner: str) -> None:
+        self.inner, self.owner = inner, owner
+
+    def call(self, endpoint: str, obj: Any) -> Any:
+        if isinstance(obj, dict) and "owner" not in obj:
+            obj = {**obj, "owner": self.owner}
+        return self.inner.call(endpoint, obj)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.inner, name)
+
+
 class CloudUnavailable(PQSSEError):
     """The cloud process cannot be reached."""
 

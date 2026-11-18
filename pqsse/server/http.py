@@ -41,7 +41,7 @@ from .limits import RateLimiter
 API_PREFIX = "/v1/"
 LARGE_ENDPOINTS = {"update", "state_put"}
 PUBLIC_ENDPOINTS = {"pub", "info", "owner_pub", "join_post", "join_list", "mail_get", "ctl", "update", "state_put",
-                    "states_get", "search", "doc_get"}
+                    "states_get", "search", "doc_get", "owner_sync", "owner_doc"}
 LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
 
 
@@ -290,7 +290,8 @@ class _AdminHandler(_Handler):
             self._json(200, {"version": get_version(), "backend": pqbackend.backend_name(), **wire.dec(info),
                              "uptime_s": round(time.time() - self.server.started),
                              "connections": len(public.connections.snapshot()) if public else 0,
-                             "fingerprint": core.public_identity().fingerprint()})
+                             "fingerprint": core.public_identity().fingerprint(),
+                             "owners": core.owners() if hasattr(core, "owners") else []})
         elif self.path == "/admin/storage":
             stats = wire.dec(core.handle("admin_stats", wire.enc(None)))
             self._json(200, {"storage_bytes": core.storage_bytes(), "limit_bytes": self.server.config.max_storage_bytes,
@@ -324,7 +325,10 @@ class _AdminHandler(_Handler):
                 self._json(200, {"ok": True, "deleted": self.server.core.delete_group(str(args["g"]))})
             elif self.path == "/admin/pair-owner":
                 ident = PublicIdentity.from_wire(wire.dec(bytes.fromhex(args["pqpub_hex"])))
-                self.server.core.pair_owner(ident, replace=bool(args.get("replace")))
+                if args.get("add"):
+                    self.server.core.add_owner(ident)
+                else:
+                    self.server.core.pair_owner(ident, replace=bool(args.get("replace")))
                 self._json(200, {"ok": True, "owner_fingerprint": ident.fingerprint()})
             else:
                 self._json(404, {"error": "unknown admin path"})

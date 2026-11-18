@@ -23,6 +23,7 @@ Item {
     property string revokeUid: ""
     property string policy: "R"
     property var approve: ({})              // uid -> list of group names ticked
+    property string accessUid: ""            // the person whose groups are being changed (design note 003)
     property int editId: -1                 // the document being edited, or -1 for a new one
     readonly property string activeGroup: {
         var names = owner.groups.map(function (g) { return g.name })
@@ -369,6 +370,39 @@ Item {
                     Txt { visible: page.owner.people.length > 0; width: parent.width; text: page.policy === "R" ? T.revokeQuickNote : T.revokeThoroughNote; tone: "secondary"; kind: "sm" }
                     PButton { visible: page.owner.people.length > 0; danger: true; primary: page.revokeUid !== ""; enabled: !app.busy && page.revokeUid !== ""; text: T.revokeBtn
                               onClicked: { app.revoke(page.revokeUid, page.policy); page.revokeUid = "" } }
+                }
+
+                TaskCard {
+                    width: scroller.cardWidth
+                    title: T.accessTitle
+                    summary: T.accessSummary
+                    hasMore: true
+                    visible: page.owner.people.filter(function (p) { return !p.revoked }).length > 0
+                    Txt { width: parent.width; text: T.accessPick; kind: "sm"; tone: "secondary"; wrapMode: Text.WordWrap }
+                    Flow { width: parent.width; spacing: 8
+                           Repeater { model: page.owner.people.filter(function (p) { return !p.revoked })
+                                      Pick { required property var modelData; text: page.cap(modelData.name); selected: page.accessUid === modelData.uid
+                                             onClicked: { page.accessUid = modelData.uid
+                                                          var copy = {}; for (var k in page.approve) copy[k] = page.approve[k].slice()
+                                                          copy["access:" + modelData.uid] = modelData.groups.slice(); page.approve = copy } } } }
+                    Flow { visible: page.accessUid !== ""; width: parent.width; spacing: 8
+                           Repeater { model: page.owner.groups
+                                      Pick { required property var modelData; text: modelData.name; selected: page.ticked("access:" + page.accessUid, modelData.name)
+                                             onClicked: page.tick("access:" + page.accessUid, modelData.name) } } }
+                    Segmented { visible: page.accessUid !== ""; width: Math.min(parent.width, 360); name: T.policyName; labels: [T.revokeQuick, T.revokeThorough]
+                                current: page.policy === "R" ? 0 : 1; onChosen: (i) => page.policy = i === 0 ? "R" : "RE" }
+                    PButton { visible: page.accessUid !== ""; primary: true; enabled: !app.busy && (page.approve["access:" + page.accessUid] || []).length > 0
+                              text: T.accessBtn
+                              onClicked: { app.changeAccess(page.accessUid, page.approve["access:" + page.accessUid], page.policy); page.accessUid = "" } }
+                }
+
+                TaskCard {
+                    width: scroller.cardWidth
+                    title: T.recoverTitle
+                    summary: T.recoverSummary
+                    caution: true
+                    visible: page.owner.open && app.remote
+                    PButton { enabled: !app.busy; text: T.recoverBtn; onClicked: app.recoverOwner() }
                 }
 
                 TaskCard {

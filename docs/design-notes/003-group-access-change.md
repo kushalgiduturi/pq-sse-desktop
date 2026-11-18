@@ -69,3 +69,13 @@ box; a grant to a revoked receiver refused; the other receivers of the group una
 ## Decision needed
 
 Approve A and B (recommended), A only (grants only; removal stays revoke-and-rejoin), or neither.
+
+## As built (after milestone 6)
+
+- `Owner.grant(uid, groups)` and `Owner.take_away(uid, groups, policy)`; control op `scope` (`uid`, the full new
+  `groups`, an optional `grant: [box, sig]`); mail kind `grant`; the server refuses an unknown or revoked
+  receiver (`unknown_receiver`). The rotations of removed groups are remembered in the owner record before the
+  scope change is sent (the same mechanism as revocation), so they finish even after a crash.
+- The app: a "Change a person's groups" card (tick the groups they should have; R or RE for the ones taken away).
+- Tests: `tests/test_m25_access_change.py`, including that the removed receiver's old key cannot open a
+  document added after the rotation while the new key can.

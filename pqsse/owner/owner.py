@@ -25,11 +25,11 @@ from ..core.chain import CHAIN_START
 from ..core.errors import PQSSEError, Rejected, VerifyError
 from ..core.pairing import PublicIdentity
 from ..core.index import doc_aad, doc_handle
-from ..core.prims import H, aead_encrypt, group_subkeys, random_key
-from ..core.state import DEFAULT_NMAX, StateHeader, fit_nmax, make_state
+from ..core.prims import H, aead_decrypt, aead_encrypt, group_subkeys, random_key
+from ..core.state import DEFAULT_NMAX, StateHeader, check_state_signature, fit_nmax, make_state
 from ..gpu.batchprf import BatchPRF, CpuPRF
 from ..pqbackend import DEFAULT_PARAMS, Params
-from ..transport import CloudAPI
+from ..transport import CloudAPI, OwnerTagged
 
 JOIN_WINDOW = 600.0
 POLICY_R = "R"
@@ -123,6 +123,10 @@ class Owner:
         self._sk: bytes = meta["sk"]
         self.groups: dict[str, dict] = {n[len("group:"):]: vault.get(n) for n in vault.names("group:")}
         self._log_depth = 0
+        if "recovery_key" not in self._meta:          # design note 006 C; older keys get escrowed by resume_pending
+            self._meta["recovery_key"] = random_key()
+            self._meta["escrow_pending"] = True
+            self._save_meta()
 
     # ------------------------------------------------------------------ Setup
     @classmethod
@@ -132,7 +136,8 @@ class Owner:
             raise PQSSEError("owner already exists in this vault")
         vk, sk = pqbackend.sig_keygen(params.sig)
         vault.put("owner", {"name": name, "kem": params.kem, "sig": params.sig, "vk": vk, "sk": sk,
-                            "ctl_seq": 0, "cloud_pub": None, "receivers": {}, "nonces": []})
+                            "ctl_seq": 0, "cloud_pub": None, "receivers": {}, "nonces": [],
+                            "recovery_key": random_key()})
         narrator.emit("setup.owner", "The data owner", sig=params.sig, vk_bytes=len(vk))
         return cls(vault, **kwargs)
 
@@ -172,7 +177,7 @@ class Owner:
     def _cloud(self) -> CloudAPI:
         if self.cloud is None:
             raise PQSSEError("owner is not connected to a cloud")
-        return self.cloud
+        return OwnerTagged(self.cloud, H(self.vk)[:8].hex())
 
     # ------------------------------------------------------------------ write-ahead journal (design note 006 B)
     # Two kinds of channel, each with at most one message in flight: "ctl" (control messages; they change the
@@ -287,7 +292,7 @@ class Owner:
             raise PQSSEError(f"group {g} already exists")
         fresh = {"epoch": 1, "base": 1, "keys": {"1": random_key()}, "seq": 0, "ver": 0,
                  "next_id": 1, "nmax": nmax, "kw": {"1": {}}, "docs": {}, "dirty": False, "exp": 0}
-        self._ctl("group", change=lambda d: d.new_group(g, fresh), g=g)
+        self._ctl("group", change=lambda d: d.new_group(g, fresh), g=g, okeys=[self._okey(g, 1, fresh["keys"]["1"])])
         narrator.emit("group", "The data owner", g=g)
         self.publish(g)
 
@@ -402,13 +407,15 @@ class Owner:
         cap_sig = signing.sign_obj(self.params, self._sk, "cap", [req.uid, cap_box])
         cred = wire.enc({"a": a_u, "groups": sorted(groups)})
         cred_box = seal.seal(self.params, cloud_pub.ek, cred, b"cred" + uid_raw)
+        record = {"name": req.name, "ek": req.ek, "vk": req.vk, "a": a_u, "m": m_u, "groups": sorted(groups), "revoked": False}
+
         def effect(d: _Draft) -> None:
             d.meta["nonces"] = (d.meta["nonces"] + [req.nonce])[-500:]
             if req.invite:
                 d.meta["invites"][req.invite]["used"] = True
-            d.meta["receivers"][req.uid] = {"name": req.name, "ek": req.ek, "vk": req.vk, "a": a_u, "m": m_u,
-                                            "groups": sorted(groups), "revoked": False}
-        self._ctl("cred", change=effect, uid=req.uid, box=cred_box, cap=cap_box, cap_sig=cap_sig)
+            d.meta["receivers"][req.uid] = record
+        self._ctl("cred", change=effect, uid=req.uid, box=cred_box, cap=cap_box, cap_sig=cap_sig,
+                  orecs=[self._orec(req.uid, record)])
         narrator.emit("join.approved", req.name, groups=sorted(groups), cap_bytes=len(cap_box))
         return req.uid
 
@@ -489,7 +496,7 @@ class Owner:
             kws = sorted(set(doc.keywords)) if doc.keywords is not None else extract_keywords(doc.title + " " + doc.text)
             for word in kws:
                 touch(word, index.OP_ADD, doc_id)
-            blob = aead_encrypt(k_doc, wire.enc({"title": doc.title, "text": doc.text}), doc_aad(g, e, doc_id))
+            blob = aead_encrypt(k_doc, wire.enc({"title": doc.title, "text": doc.text, "kws": kws}), doc_aad(g, e, doc_id))
             handle = doc_handle(k_doc, doc_id)
             sig = signing.sign_obj(self.params, self._sk, "doc", [g, e, handle, H(blob)])
             wire_docs.append([handle, blob, sig])
@@ -598,6 +605,188 @@ class Owner:
                       final="yes" if final else "no")
         return gs["ver"]
 
+    # ------------------------------------------------------------------ recovery escrow (design note 006 C)
+    def _okey(self, g: str, e: int, key: bytes) -> list:
+        return [g, e, aead_encrypt(self._meta["recovery_key"], key, b"okey" + wire.sstr(g) + wire.u32(e))]
+
+    def _orec(self, uid: str, rec: dict) -> list:
+        return [uid, aead_encrypt(self._meta["recovery_key"], wire.enc(rec), b"orec" + uid.encode("ascii"))]
+
+    def escrow_all(self) -> None:
+        """Seal every live epoch key and every receiver record under the recovery key and store them at the server
+        (once, for owners made before design note 006 C)."""
+        okeys = [self._okey(g, int(e), k) for g, gs in sorted(self.groups.items()) for e, k in sorted(gs["keys"].items())]
+        orecs = [self._orec(uid, rec) for uid, rec in sorted(self.receivers.items())]
+
+        def effect(d: _Draft) -> None:
+            d.meta.pop("escrow_pending", None)
+        self._ctl("escrow", change=effect, okeys=okeys, orecs=orecs)
+
+    def _sync_request(self, label: str, fields: dict) -> dict:
+        ts = int(self.clock() * 1000)
+        sig = signing.sign_bytes(self.params, self._sk, label, wire.enc({**fields, "ts": ts}))
+        return {**fields, "ts": ts, "sig": sig}
+
+    @_logged("recovery", lambda o, result=None: {"done": result or []})
+    def recover(self) -> list[str]:
+        """Design note 006 C: bring an owner restored from an older backup back in line with the server.
+
+        Fetches the server's view (owner-signed request), opens the escrowed epoch keys and receiver records with
+        the recovery key, downloads and checks every stored document, and then rebuilds each group with policy RE
+        (no one removed): a clean index under a new epoch, with rekey boxes for every receiver the server still
+        accepts. Returns a line per finding. Documents of an epoch whose key cannot be recovered are reported."""
+        for channel in ["ctl"] + ["group:" + g for g in sorted(self.groups)]:
+            try:
+                self._settle(channel)
+            except Rejected:
+                pass
+        sync = self._cloud().call("owner_sync", self._sync_request("owner_sync", {}))
+        notes: list[str] = []
+        rkey = self._meta["recovery_key"]
+        receivers = dict(self.receivers)
+        for uid, box, revoked in sync["receivers"]:
+            try:
+                rec = wire.dec(aead_decrypt(rkey, box, b"orec" + uid.encode("ascii")))
+            except VerifyError:
+                notes.append(f"receiver {uid[:8]}: record not readable with this recovery key")
+                continue
+            rec["revoked"] = bool(revoked) or rec.get("revoked", False)
+            receivers[uid] = rec
+        groups: dict[str, dict] = {}
+        for sg in sync["groups"]:
+            g = sg["g"]
+            local = self.groups.get(g, {})
+            keys = dict(local.get("keys", {}))
+            for e, box in sg["okeys"]:
+                try:
+                    keys.setdefault(str(e), aead_decrypt(rkey, box, b"okey" + wire.sstr(g) + wire.u32(int(e))))
+                except VerifyError:
+                    notes.append(f"{g}: the key of epoch {e} is not readable with this recovery key")
+            docs, lost = self._recover_docs(g, sg, keys, local.get("docs", {}))
+            if lost:
+                notes.append(f"{g}: {lost} document(s) could not be recovered (no key for their epoch)")
+            ver = max([check_state_signature(self.params, self.vk, s).ver for s in sg["states"]
+                       if "hdr" in s and StateHeader.decode(s["hdr"]).e == sg["epoch"]] or [0])
+            groups[g] = {"epoch": sg["epoch"], "base": sg["base"], "seq": sg["seq"], "ver": ver,
+                         "keys": {e: k for e, k in keys.items() if int(e) >= sg["base"]},
+                         "next_id": max([int(i) for i in docs] + [local.get("next_id", 1) - 1]) + 1,
+                         "nmax": local.get("nmax", DEFAULT_NMAX), "kw": {str(sg["epoch"]): {}}, "docs": docs,
+                         "dirty": True, "exp": 0}
+            if sg["reset_pending"]:
+                groups[g]["reset_pending"] = True
+        # install the rebuilt state in one step, then rebuild every group's index under a new epoch
+        meta = copy.deepcopy(self._meta)
+        meta["receivers"] = receivers
+        meta["ctl_seq"] = sync["ctl_seq"]
+        meta["rotations"] = {g: POLICY_RE for g in groups if not groups[g].get("reset_pending")}
+        meta.pop("escrow_pending", None)
+        for name in list(self.vault.names("group:")):
+            if name[len("group:"):] not in groups:
+                self.vault.delete(name)
+        self.vault.put("owner", meta)
+        for g, gs in groups.items():
+            self.vault.put("group:" + g, gs)
+        self._meta.clear()
+        self._meta.update(meta)
+        self.groups.clear()
+        self.groups.update(groups)
+        for g in sorted(groups):
+            if g in self._meta.get("rotations", {}):
+                self._rotate(g, POLICY_RE)
+            elif groups[g].get("reset_pending"):
+                self._finish_reset(g)
+                self.publish(g)
+            notes.append(f"{g}: rebuilt with {len(self.groups[g]['docs'])} document(s) at epoch {self.groups[g]['epoch']}")
+        return notes
+
+    def _recover_docs(self, g: str, sg: dict, keys: dict, local_docs: dict) -> tuple[dict, int]:
+        """Download and check every stored document of a group; ids are found by recomputing handles."""
+        docs: dict[str, dict] = {}
+        lost = 0
+        by_epoch: dict[int, list[bytes]] = {}
+        for e, handle in sg["handles"]:
+            by_epoch.setdefault(int(e), []).append(handle)
+        for e, handles in sorted(by_epoch.items()):
+            key = keys.get(str(e))
+            if key is None:
+                lost += len(handles)
+                continue
+            k_doc = group_subkeys(key, g, e)[1]
+            wanted = set(handles)
+            limit = max(len(handles) * 4 + 1000, max([int(i) for i in local_docs] + [0]) + len(handles) + 1000)
+            for doc_id in range(1, limit + 1):
+                if not wanted:
+                    break
+                handle = doc_handle(k_doc, doc_id)
+                if handle not in wanted:
+                    continue
+                wanted.discard(handle)
+                got = self._cloud().call("owner_doc", self._sync_request("owner_doc", {"g": g, "e": e, "handle": handle}))
+                if not signing.check_obj(self.params, self.vk, "doc", [g, e, handle, H(got["blob"])], got["sig"]):
+                    raise VerifyError("recovery", f"document {doc_id} of {g} is not signed by this owner")
+                plain = wire.dec(aead_decrypt(k_doc, got["blob"], doc_aad(g, e, doc_id), what="document"))
+                kws = plain.get("kws") or local_docs.get(str(doc_id), {}).get("kws") \
+                    or extract_keywords(plain["title"] + " " + plain["text"])
+                docs[str(doc_id)] = {"e": e, "title": plain["title"], "text": plain["text"], "kws": sorted(kws)}
+            lost += len(wanted)
+        return docs, lost
+
+    # ------------------------------------------------------------------ access change without revocation (design note 003)
+    def _live_receiver(self, uid: str) -> dict:
+        rec = self.receivers.get(uid)
+        if rec is None or rec["revoked"]:
+            raise PQSSEError("unknown or revoked receiver")
+        return rec
+
+    @_logged("access.grant", lambda o, uid, groups, result=None:
+             {"receiver": o.receivers.get(uid, {}).get("name", ""), "uid": uid, "groups": sorted(groups)})
+    def grant(self, uid: str, groups: Sequence[str]) -> list[str]:
+        """Give an approved receiver more groups (note 003 A). The server widens its scope; the receiver gets a grant
+        box with the keys of every live segment of the new groups, sealed to it and bound to its m_u, and signed."""
+        rec = self._live_receiver(uid)
+        new = sorted(set(groups) - set(rec["groups"]))
+        for g in new:
+            self._group(g)
+        if not new:
+            return []
+        for g in new:                         # nothing for these groups may be waiting, so the keys are current
+            self._settle_group(g)
+        body = wire.enc({"groups": {g: {"base": self.groups[g]["base"],
+                                        "keys": {str(e): self.groups[g]["keys"][str(e)]
+                                                 for e in range(self.groups[g]["base"], self.groups[g]["epoch"] + 1)}}
+                                    for g in new}})
+        box = seal.seal(self.params, rec["ek"], body, b"grant" + uid.encode("ascii"), psk=rec["m"])
+        sig = signing.sign_obj(self.params, self._sk, "grant", [uid, box])
+        scope = sorted(set(rec["groups"]) | set(new))
+
+        def effect(d: _Draft) -> None:
+            d.meta["receivers"][uid]["groups"] = scope
+        self._ctl("scope", change=effect, uid=uid, groups=scope, grant=[box, sig],
+                  orecs=[self._orec(uid, {**rec, "groups": scope})])
+        return new
+
+    @_logged("access.remove", lambda o, uid, groups, policy="R", result=None:
+             {"receiver": o.receivers.get(uid, {}).get("name", ""), "uid": uid, "groups": sorted(groups), "policy": policy})
+    def take_away(self, uid: str, groups: Sequence[str], policy: str = POLICY_R) -> list[str]:
+        """Remove groups from a receiver that keeps its others (note 003 B): the server narrows the scope at once,
+        then each removed group is rotated (policy R or RE) without a rekey box for this receiver."""
+        if policy not in (POLICY_R, POLICY_RE):
+            raise PQSSEError("policy must be R or RE")
+        rec = self._live_receiver(uid)
+        gone = sorted(set(groups) & set(rec["groups"]))
+        if not gone:
+            return []
+        scope = sorted(set(rec["groups"]) - set(gone))
+
+        def effect(d: _Draft) -> None:
+            d.meta["receivers"][uid]["groups"] = scope
+            d.meta.setdefault("rotations", {}).update({g: policy for g in gone if g in self.groups})
+        self._ctl("scope", change=effect, uid=uid, groups=scope, orecs=[self._orec(uid, {**rec, "groups": scope})])
+        for g in gone:
+            if g in self.groups:
+                self._rotate(g, policy)
+        return gone
+
     # ------------------------------------------------------------------ export and import (design note 006 A)
     @_logged("export", lambda o, g, dest, passphrase, result=None: {"group": g, "file": str(dest),
                                                                        "count": len(o._group(g)["docs"])})
@@ -681,7 +870,7 @@ class Owner:
             d.meta.get("rotations", {}).pop(g, None)
             if reset:
                 ds["reset_pending"] = True  # the server now expects the reset batch; remembered across a failure
-        self._ctl("epoch", change=effect, g=g, e=new, reset=reset, boxes=boxes)
+        self._ctl("epoch", change=effect, g=g, e=new, reset=reset, boxes=boxes, okeys=[self._okey(g, new, new_key)])
         if reset:
             self._finish_reset(g)
         self.publish(g)
@@ -711,6 +900,9 @@ class Owner:
             outcome = self._settle(channel)
             if outcome:
                 done.append(f"{channel}: last message {outcome}")
+        if self._meta.get("escrow_pending") and self.cloud_pub is not None:
+            self.escrow_all()
+            done.append("recovery keys stored at the server")
         for g in sorted(self.groups):
             policy = self._meta.get("rotations", {}).get(g)
             if policy:
@@ -780,6 +972,7 @@ class Owner:
     @property
     def has_pending(self) -> bool:
         return (any(True for _ in self.vault.names(JOURNAL)) or bool(self._meta.get("rotations"))
+                or bool(self._meta.get("escrow_pending") and self.cloud_pub is not None)
                 or any(gs.get("reset_pending") or gs.get("rebuild_rest") for gs in self.groups.values()))
 
     # ------------------------------------------------------------------ reference (tests, UI)

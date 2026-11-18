@@ -22,7 +22,7 @@ from ..core.prims import H, aead_decrypt, aead_encrypt, group_subkeys
 from ..core.state import StateHeader, check_state_signature, open_state
 from ..gpu.batchprf import BatchPRF, CpuPRF
 from ..pqbackend import DEFAULT_PARAMS, Params
-from ..transport import CloudAPI
+from ..transport import CloudAPI, OwnerTagged
 
 DOWNLOAD_PART = 4 * 1024 * 1024        # bytes per part of a document download (design note 002 D)
 
@@ -155,7 +155,9 @@ class Receiver:
     def _cloud(self) -> CloudAPI:
         if self.cloud is None:
             raise PQSSEError("receiver is not connected to a cloud")
-        return self.cloud
+        if self._me["owner_pub"] is None:
+            return self.cloud
+        return OwnerTagged(self.cloud, H(self._me["owner_pub"]["vk"])[:8].hex())
 
     # ------------------------------------------------------------------ Join
     def join_request(self, invite_id: str | None = None, code: str | None = None) -> dict:
@@ -217,6 +219,8 @@ class Receiver:
                     events.append("capability received for groups: " + ", ".join(self.groups))
                 elif item["kind"] == "rekey":
                     events.append(self._accept_rekey(item["body"], item["sig"]))
+                elif item["kind"] == "grant":
+                    events.append(self._accept_grant(item["body"], item["sig"]))
             except (VerifyError, KeyError, TypeError, WireError):
                 events.append("ignored a mailbox item that failed verification")
                 continue
@@ -255,6 +259,26 @@ class Receiver:
         self._save()
         narrator.emit("rekey", self.name, g=g, e=epoch)
         return f"new key for group {g}, epoch {epoch}" + (" (re-encrypted, old segments dropped)" if body["reset"] else "")
+
+    def _accept_grant(self, box: bytes, sig: bytes) -> str:
+        """Design note 003 A: more groups. Signed by the owner, sealed to this receiver and bound to m_u."""
+        cap = self._me["cap"]
+        if cap is None:
+            raise VerifyError("grant", "no capability yet")
+        if not signing.check_obj(self.params, self._owner_vk(), "grant", [self.uid, box], sig):
+            raise VerifyError("grant", "grant box is not signed by the owner")
+        body = wire.dec(seal.unseal(self.params, self._dk, box, b"grant" + self.uid.encode("ascii"), psk=cap["m"]))
+        added = []
+        for g, info in body["groups"].items():
+            group = cap["groups"].setdefault(g, {"base": info["base"], "keys": {}})
+            for e, key in info["keys"].items():
+                group["keys"].setdefault(e, key)       # keys already held stay; an old box adds nothing new
+            if int(info["base"]) > int(group["base"]):
+                group["base"] = info["base"]
+                group["keys"] = {k: v for k, v in group["keys"].items() if int(k) >= int(info["base"])}
+            added.append(g)
+        self._save()
+        return "access granted to: " + ", ".join(sorted(added))
 
     # ------------------------------------------------------------------ requests
     def _cap(self) -> dict:

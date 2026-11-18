@@ -60,6 +60,18 @@ Helpers used inside PRF inputs: `u32(i)` = 4 bytes big endian, `sstr(w)` = `u32(
 
 `have` (design note 005 B, optional): `[[epoch, version], ...]`, the verified states the receiver already holds. For each live segment whose stored version equals the one listed, the reply holds `{e, same: true}` instead of `{hdr, ct, sig}`; the receiver checks its cached copy exactly like a fresh one (freshness included). Requests without `have` get full states.
 
+## Additions after milestone 6
+
+| Message | Change |
+| --- | --- |
+| every request | optional top-level `owner`: the owner id (design note 004 A); untagged requests go to the first owner |
+| `owner_pub` | optional `{fp}`: the owner whose key has this fingerprint |
+| `Ctl(scope, uid, groups, grant?)` | design note 003: replace a receiver's scope; `grant = [box, sig]` is queued as mail kind `grant` (`seal(ek_u, {groups: {g: {base, keys}}}, "grant" || uid, psk = m_u)`, signed over `("grant", uid, box)`) |
+| `Ctl(escrow, okeys, orecs)` and the fields `okeys`, `orecs` on `group`, `epoch`, `cred`, `scope` | design note 006 C: boxes under the owner's recovery key, stored and never opened by the server |
+| `owner_sync` | `{ts, sig}` signed by the owner over `("owner_sync", {ts})`; reply `{ctl_seq, groups: [{g, epoch, base, seq, reset_pending, states, okeys, handles}], receivers: [[uid, box, revoked]]}` |
+| `owner_doc` | `{g, e, handle, ts, sig}` signed by the owner over `("owner_doc", {g, e, handle, ts})`; reply `{blob, sig}` |
+| document plaintext | `enc({title, text, kws})`: the keywords travel inside the encryption (readers ignore `kws`) |
+
 ## Rejection reasons of the cloud
 
 HTTP 403 with `enc({reason, detail})`.
@@ -69,6 +81,7 @@ HTTP 403 with `enc({reason, detail})`.
 | `bad_signature` | owner signature on a batch, state or control message is invalid |
 | `bad_control` | a control message does not open under the cloud's ML-KEM key |
 | `bad_sequence` | batch or control message is replayed or out of order |
+| `unknown_owner`, `unknown_receiver` | design notes 004 A and 003: no such data owner on this server; no approved receiver with this id |
 | `duplicate` | the exact batch, control message or state that was last accepted, or a join request already stored, sent again (a replay, or a resend after a lost reply; the owner and the receiver treat their own as accepted) |
 | `bad_epoch`, `bad_reset`, `not_final` | wrong epoch, reset flag mismatch, epoch change without a final state |
 | `stale_state` | state version not newer, or the segment is already final |

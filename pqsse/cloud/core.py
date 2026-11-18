@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS joins (uid TEXT PRIMARY KEY, req BLOB, sig BLOB);
 CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, endpoint TEXT, in_bytes INTEGER, out_bytes INTEGER, ok INTEGER, reason TEXT);
 CREATE TABLE IF NOT EXISTS invites (id TEXT PRIMARY KEY, k BLOB, expires REAL, used INTEGER);
 CREATE TABLE IF NOT EXISTS joinkeys (uid TEXT PRIMARY KEY, vk BLOB, proof_o BLOB);
+CREATE TABLE IF NOT EXISTS okeys (g TEXT, e INTEGER, box BLOB, PRIMARY KEY (g, e));
+CREATE TABLE IF NOT EXISTS orecs (uid TEXT PRIMARY KEY, box BLOB);
 """
 
 
@@ -248,6 +250,7 @@ class CloudCore:
         if msg["seq"] != last + 1:
             raise Rejected("bad_sequence", f"expected control seq {last + 1}")
         op = msg["op"]
+        self._store_escrow(msg)
         if op == "group":
             self._ctl_group(msg)
         elif op == "cred":
@@ -258,6 +261,10 @@ class CloudCore:
             self._ctl_epoch(msg)
         elif op == "invite":
             self._ctl_invite(msg)
+        elif op == "scope":
+            self._ctl_scope(msg)
+        elif op == "escrow":
+            pass                                   # only the boxes, stored above
         else:
             raise Rejected("malformed", "unknown control op")
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('ctl_seq', ?)", (str(msg["seq"]).encode(),))
@@ -282,6 +289,53 @@ class CloudCore:
         self.db.execute("DELETE FROM mail WHERE uid=?", (uid,))
         self.db.execute("INSERT INTO mail (uid, kind, body, sig) VALUES (?, 'cap', ?, ?)", (uid, msg["cap"], msg["cap_sig"]))
         self.db.execute("DELETE FROM joins WHERE uid=?", (uid,))
+
+    def _store_escrow(self, msg: dict) -> None:
+        """Design note 006 C: epoch keys and receiver records sealed under the owner's recovery key. Opaque here."""
+        for g, e, box in msg.get("okeys", []):
+            self.db.execute("INSERT OR REPLACE INTO okeys VALUES (?, ?, ?)", (str(g), int(e), box))
+        for uid, box in msg.get("orecs", []):
+            self.db.execute("INSERT OR REPLACE INTO orecs VALUES (?, ?)", (str(uid), box))
+
+    def _owner_fresh(self, obj: dict, label: str, fields: dict) -> None:
+        """An owner-only read: a fresh timestamp and the owner's signature over the request fields."""
+        self._fresh(obj["ts"])
+        if not signing.check_bytes(self.params, self._owner_vk(), label, wire.enc({**fields, "ts": obj["ts"]}), obj["sig"]):
+            raise Rejected("bad_signature", f"{label} is for the data owner only")
+
+    def _h_owner_sync(self, obj: dict) -> dict:
+        """Design note 006 C: everything the owner needs to rebuild its state from an older backup."""
+        self._owner_fresh(obj, "owner_sync", {})
+        groups = []
+        for g, cur, base, seq, pending in self.db.execute("SELECT g, cur, base, seq, reset_pending FROM groups ORDER BY g").fetchall():
+            groups.append({"g": g, "epoch": cur, "base": base, "seq": seq, "reset_pending": int(pending),
+                           "states": self.read_states(g, cur, base)["states"],
+                           "okeys": [[e, box] for e, box in self.db.execute("SELECT e, box FROM okeys WHERE g=? ORDER BY e", (g,))],
+                           "handles": [[e, h] for e, h in self.db.execute("SELECT e, handle FROM docs WHERE g=? ORDER BY e", (g,))]})
+        receivers = [[uid, box, int(self.db.execute("SELECT COALESCE(MAX(revoked), 0) FROM creds WHERE uid=?", (uid,)).fetchone()[0])]
+                     for uid, box in self.db.execute("SELECT uid, box FROM orecs ORDER BY uid")]
+        return {"ctl_seq": int(self._meta_get("ctl_seq") or b"0"), "groups": groups, "receivers": receivers}
+
+    def _h_owner_doc(self, obj: dict) -> dict:
+        """Design note 006 C: the owner fetches one of its own stored documents."""
+        fields = {"g": obj["g"], "e": obj["e"], "handle": obj["handle"]}
+        self._owner_fresh(obj, "owner_doc", fields)
+        row = self.db.execute("SELECT blob, sig FROM docs WHERE g=? AND e=? AND handle=?",
+                              (obj["g"], obj["e"], obj["handle"])).fetchone()
+        if row is None:
+            raise Rejected("no_such_doc", "no such document")
+        return {"blob": self._load_blob(row[0]), "sig": row[1]}
+
+    def _ctl_scope(self, msg: dict) -> None:
+        """Design note 003: replace an approved receiver's scope; queue the owner's grant box, if any."""
+        uid = msg["uid"]
+        row = self.db.execute("SELECT revoked FROM creds WHERE uid=?", (uid,)).fetchone()
+        if row is None or row[0]:
+            raise Rejected("unknown_receiver", "no approved receiver with this id")
+        self.db.execute("UPDATE creds SET scope=? WHERE uid=?", (json.dumps(sorted(msg["groups"])), uid))
+        if msg.get("grant"):
+            box, sig = msg["grant"]
+            self.db.execute("INSERT INTO mail (uid, kind, body, sig) VALUES (?, 'grant', ?, ?)", (uid, box, sig))
 
     def _ctl_invite(self, msg: dict) -> None:
         """Design note 002 B: register an invite id with k_server and its expiry."""
@@ -516,7 +570,7 @@ class CloudCore:
             counts = {t: self.db.execute(f"SELECT COUNT(*) FROM {t} WHERE g=?", (g,)).fetchone()[0]
                       for t in ("entries", "docs", "states")}
             self._drop_blobs("SELECT blob FROM docs WHERE g=?", (g,))
-            for table in ("entries", "docs", "states", "groups"):
+            for table in ("entries", "docs", "states", "groups", "okeys"):
                 self.db.execute(f"DELETE FROM {table} WHERE g=?", (g,))
             self.db.commit()
             self._flush_drops()

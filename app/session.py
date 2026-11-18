@@ -437,7 +437,7 @@ class Session:
         if not code:
             raise PQSSEError("Enter the one-time code that came with the invite.")
         self.connect_server(inv.host, inv.port, inv.tls, inv.server_fp)
-        owner = PublicIdentity.from_wire(self.api().call("owner_pub", None))
+        owner = PublicIdentity.from_wire(self.api().call("owner_pub", {"fp": inv.owner_fp}))   # note 004 A: by fingerprint
         if owner.fingerprint().replace(" ", "") != inv.owner_fp.replace(" ", ""):
             raise PQSSEError("The data owner's key on the server does not match the invite. Do not continue; "
                              "ask the data owner.")

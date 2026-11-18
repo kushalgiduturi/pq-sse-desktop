@@ -46,3 +46,11 @@ These change no algorithm's security argument. For the paper's implementation se
 - A receiver may ask for the group's states "only if changed". A cached state goes through every check of
   Algorithm 8, including freshness, so the server gains nothing it could not get by serving the old state.
 - The owner keeps a write-ahead journal and an encrypted, hash-chained activity log on its own computer.
+
+## Implementation notes from design notes 003, 004 A and 006 C
+
+- **Partial revocation** (003): a receiver's scope can grow (a grant box, like a rekey box, bound to `m_u`) or
+  shrink (the server's scope check at once, then a rotation of each removed group). Theorems 5 and 6 apply per group.
+- **Several owners** (004 A): one store per owner on one server; the scheme runs unchanged inside each store.
+- **Owner recovery** (006 C): epoch keys and receiver records are escrowed at the server under a key only the
+  owner holds; an owner restored from an old backup rebuilds its groups with policy RE.

@@ -66,7 +66,7 @@ def main() -> int:
             inv = invites.parse(Path(a["invite_file"]).read_text(encoding="utf-8"))
             api = HttpsCloud(inv.host, inv.port, inv.tls, timeout=120)
             server = PublicIdentity.from_wire(api.call("pub", None))
-            owner = PublicIdentity.from_wire(api.call("owner_pub", None))
+            owner = PublicIdentity.from_wire(api.call("owner_pub", {"fp": inv.owner_fp}))
             if server.fingerprint() != inv.server_fp or owner.fingerprint() != inv.owner_fp:
                 raise SystemExit("a key on the server does not match the invite")
             rec = Receiver.create(v, owner.params, "receiver-a", cloud=api)

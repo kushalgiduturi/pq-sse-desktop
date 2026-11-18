@@ -49,7 +49,7 @@ def _certificate(config: cfg.Config) -> tuple[Path, Path]:
 
 def _open(config: cfg.Config):
     try:
-        core = store.open_core(config, cfg.read_passphrase(config))
+        core = store.open_router(config, cfg.read_passphrase(config))
     except BadPassphrase:
         raise SystemExit("Wrong passphrase for the server store.") from None
     except store.StoreError as exc:
@@ -72,7 +72,7 @@ def cmd_init(args) -> int:
     print(f"Server public key:   {config.data_dir / 'cloud.pqpub'}  fingerprint {core.public_identity().fingerprint()}")
     print(f"TLS certificate:     {cert}  SHA-256 {tls.pretty(tls.fingerprint(cert))}")
     print(f"Admin token file:    {config.admin_token_path}")
-    core.vault.close()
+    core.close()
     return 0
 
 
@@ -108,7 +108,7 @@ def cmd_run(args) -> int:
         admin.shutdown()
         public.server_close()
         admin.server_close()
-        core.vault.close()
+        core.close()
     return 0
 
 
@@ -146,12 +146,16 @@ def cmd_pair_owner(args) -> int:
     ident = import_pub(Path(args.file), expect_role="owner")
     core = _open(config)
     try:
-        core.pair_owner(ident, replace=args.replace)
+        if args.add:
+            oid = core.add_owner(ident)                   # design note 004 A: one more data owner
+        else:
+            core.pair_owner(ident, replace=args.replace)
+            oid = ""
     except PQSSEError as exc:
         raise SystemExit(f"Pairing refused: {exc}") from None
     finally:
-        core.vault.close()
-    print("Data owner paired. Owner key fingerprint:", ident.fingerprint())
+        core.close()
+    print("Data owner paired. Owner key fingerprint:", ident.fingerprint() + (f" (owner id {oid})" if oid else ""))
     return 0
 
 
@@ -191,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("backup"); p.add_argument("dest"); p.add_argument("--config"); p.set_defaults(fn=cmd_backup)  # noqa: E702
     p = sub.add_parser("restore"); p.add_argument("source"); p.add_argument("--config"); p.set_defaults(fn=cmd_restore)  # noqa: E702
     p = sub.add_parser("pair-owner"); p.add_argument("file"); p.add_argument("--replace", action="store_true")  # noqa: E702
+    p.add_argument("--add", action="store_true", help="pair one more, independent data owner (design note 004 A)")
     p.add_argument("--config"); p.set_defaults(fn=cmd_pair_owner)  # noqa: E702
     p = sub.add_parser("admin")
     p.add_argument("action", choices=["status", "storage", "connections", "log", "rotate-token", "backup", "delete-group"])
