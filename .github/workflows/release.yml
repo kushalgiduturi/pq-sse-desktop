@@ -34,9 +34,9 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -95,14 +95,14 @@ jobs:
 
       - name: Upload the build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-log
           path: ${{ runner.temp }}\pqsse-build\logs
           if-no-files-found: ignore
 
       - name: Upload the release files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-files
           path: release-out/${{ steps.version.outputs.version }}/*
@@ -113,7 +113,7 @@ jobs:
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-files
           path: files
@@ -132,7 +132,7 @@ jobs:
           } > notes.md
 
       - name: Create the GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: PQ-SSE Desktop ${{ needs.build.outputs.version }}
           body_path: notes.md
@@ -151,16 +151,16 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Python packages for the site build (Qt converts the screenshots)
         run: python -m pip install --disable-pip-version-check -r requirements-lock.txt
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-files
           path: files
@@ -173,10 +173,10 @@ jobs:
           python scripts/craft_check_site.py
           python scripts/check_site.py --no-browser
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/public
 
       - name: Deploy to GitHub Pages
         id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
