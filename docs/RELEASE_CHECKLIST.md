@@ -103,6 +103,15 @@ token or password (`gh auth login` keeps the GitHub sign-in in Windows' credenti
    winget validate --manifest packaging\winget\manifests\p\PQSSE\PQSSEDesktop\<version>
    ```
 
+   The manifests list the Standard installer only (winget allows one installer per architecture
+   and scope), with its Apps and Features key as `ProductCode` so winget sees the installed version.
+   To submit: fork `microsoft/winget-pkgs`, copy the version folder to the same path
+   (`manifests/p/PQSSE/PQSSEDesktop/<version>`) on a new branch, push it to the fork and open a
+   pull request titled `New package: PQSSE.PQSSEDesktop version <version>` (later versions:
+   `New version: ...`). The winget-pkgs checks download the installer, compare its hash and
+   install it in a sandbox; a moderator then reviews it. Unsigned installers are accepted, but
+   SmartScreen and antivirus results from those checks can hold the pull request back.
+
    When it is accepted, set `[winget] published = true` and `id = "PQSSE.PQSSEDesktop"` in
    `packaging/release.toml` so the Download page shows the `winget install` command.
 

@@ -11,13 +11,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA = "1.6.0"
+SCHEMA = "1.12.0"                   # the manifest version winget-pkgs merges (checked 2026-11-19)
 PACKAGE_ID = "PQSSE.PQSSEDesktop"
+
+
+def product_code() -> str:
+    """The Apps and Features key the installer writes: Inno Setup's AppId plus "_is1".
+
+    Read from installer/pqsse.iss (the real app, not the test twin) so that winget can tell that the
+    app is installed and which version it has."""
+    iss = (ROOT / "installer" / "pqsse.iss").read_text(encoding="utf-8")
+    found = re.search(r'#else\s*\n\s*#define AppName "PQ-SSE Desktop"\s*\n\s*#define AppIdValue "\{(\{[0-9A-F-]{36}\})"', iss)
+    if not found:
+        raise SystemExit("make_winget: the AppId of PQ-SSE Desktop was not found in installer/pqsse.iss")
+    return found.group(1) + "_is1"
 
 
 def write(out: Path, manifest: dict) -> Path:
@@ -42,6 +55,7 @@ def write(out: Path, manifest: dict) -> Path:
         + f"MinimumOSVersion: {manifest['min_os']}\n"
         + "Installers:\n  - Architecture: x64\n"
         + f"    InstallerUrl: {std['url']}\n    InstallerSha256: {std['sha256'].upper()}\n"
+        + f"    ProductCode: '{product_code()}'\n"
         + f"ManifestType: installer\nManifestVersion: {SCHEMA}\n",
         encoding="utf-8")
     repo = config["project"]["repo"]
@@ -52,7 +66,7 @@ def write(out: Path, manifest: dict) -> Path:
         + f"LicenseUrl: https://github.com/{repo}/blob/master/LICENSE\n"
         + f"PackageUrl: {config['project']['site_url']}\nPublisherUrl: https://github.com/{repo}\n"
         + "ShortDescription: Search encrypted documents through an untrusted cloud, with post-quantum keys. Research and teaching software, not audited.\n"
-        + f"ReleaseNotesUrl: {manifest.get('notes_url', config['project']['site_url'] + 'release-notes.html')}\n"
+        + f"ReleaseNotesUrl: https://github.com/{repo}/releases/tag/v{version}\n"
         + "Tags:\n  - encryption\n  - post-quantum\n  - searchable-encryption\n  - education\n"
         + f"ManifestType: defaultLocale\nManifestVersion: {SCHEMA}\n",
         encoding="utf-8")

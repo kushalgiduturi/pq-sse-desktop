@@ -156,3 +156,44 @@ def test_add_gpu_to_a_published_manifest(tmp_path):
     assert updated["channels"]["gpu"]["min_driver"] == "528.33"
     assert updated["channels"]["standard"] == manifest["channels"]["standard"]   # the released files are untouched
     assert json.loads(path.read_text()) == updated
+
+
+def _winget_fields(path: Path) -> dict[str, str]:
+    """The top-level and installer "key: value" lines of a winget manifest (enough for these checks)."""
+    fields = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if ": " in line and not line.lstrip().startswith("#"):
+            key, value = line.strip().lstrip("- ").split(": ", 1)
+            fields[key] = value.strip("'")
+    return fields
+
+
+def test_winget_manifests_come_from_latest_json(tmp_path):
+    import make_winget
+    sha = "ab" * 32
+    url = "https://github.com/o/r/releases/download/v9.8.7/PQ-SSE-Desktop-Setup-9.8.7.exe"
+    folder = make_winget.write(tmp_path, {"version": "9.8.7", "min_os": "10.0.17763",
+                                          "channels": {"standard": {"url": url, "sha256": sha}}})
+    assert folder == tmp_path / "manifests" / "p" / "PQSSE" / "PQSSEDesktop" / "9.8.7"
+    names = sorted(p.name for p in folder.iterdir())
+    assert names == ["PQSSE.PQSSEDesktop.installer.yaml", "PQSSE.PQSSEDesktop.locale.en-US.yaml", "PQSSE.PQSSEDesktop.yaml"]
+    installer = _winget_fields(folder / "PQSSE.PQSSEDesktop.installer.yaml")
+    assert installer["InstallerUrl"] == url and installer["InstallerSha256"] == sha.upper()
+    assert installer["PackageVersion"] == "9.8.7" and installer["Scope"] == "user" and installer["InstallerType"] == "inno"
+    assert installer["ElevationRequirement"] == "elevationProhibited"
+    locale = _winget_fields(folder / "PQSSE.PQSSEDesktop.locale.en-US.yaml")
+    assert locale["ReleaseNotesUrl"].endswith("/releases/tag/v9.8.7")
+    assert "not audited" in locale["ShortDescription"]
+    for name in names:
+        text = (folder / name).read_text(encoding="utf-8")
+        assert f"ManifestVersion: {make_winget.SCHEMA}" in text and f"winget-manifest." in text
+        assert "—" not in text
+
+
+def test_winget_product_code_is_the_real_apps_appid_not_the_test_twins():
+    import make_winget
+    iss = (ROOT / "installer" / "pqsse.iss").read_text(encoding="utf-8")
+    code = make_winget.product_code()
+    assert code.endswith("_is1") and code[:-4] in iss
+    twin = iss.split("#ifdef TestInstall", 1)[1].split("#else", 1)[0]
+    assert code[:-4] not in twin
